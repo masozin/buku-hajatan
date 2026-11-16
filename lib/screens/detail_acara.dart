@@ -10,6 +10,7 @@ import '../services/layanan_exception.dart';
 import '../widgets/keadaan.dart';
 import 'daftar_bundel.dart';
 import 'pencatatan.dart';
+import 'rekap.dart';
 
 /// Detail satu acara.
 ///
@@ -75,6 +76,18 @@ class DetailAcaraScreen extends ConsumerWidget {
                   },
                   icon: const Icon(Icons.inventory_2_outlined),
                   label: const Text('Lihat Semua Bundel'),
+                ),
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RekapScreen(acaraId: acara.id),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.summarize_outlined),
+                  label: const Text('Rekap & Ekspor'),
                 ),
               ] else
                 _KartuPencatatSaya(acara: acara),

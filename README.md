@@ -55,7 +55,33 @@ flutter run
   ulang seluruh isi `firestore.rules` ke Firebase Console > Firestore
   > Rules > Publish sebelum menguji pencatatan, kalau tidak simpan
   amplop ditolak Rules.
-- Batch 3: rekap realtime pemilik + ekspor Excel/CSV.
+- **Batch 3 (rekap & ekspor)**: layar Rekap dari Detail Acara
+  (tombol **Rekap & Ekspor**, khusus pemilik) — total keseluruhan
+  realtime, rincian per pencatat & per bundel, pencarian nama tamu,
+  dan ekspor **Excel** (format buku: kode bundel tercetak sekali per
+  kelompok, sel digabung) serta **CSV** (kode di setiap baris, untuk
+  diolah lagi). File dibagikan lewat share sheet Android. Ekspor
+  inilah arsip utama acara di paket gratis — simpan baik-baik.
+  Batch 3 menambah dependensi (excel, share_plus, path_provider):
+  jalankan `flutter pub get` setelah apply patch ini. Rules TIDAK
+  berubah di Batch 3.
+
+## Cara uji Batch 3
+
+1. `flutter pub get`, lalu `flutter run` (rules tidak perlu ditempel
+   ulang — tidak ada perubahan rules di batch ini).
+2. Masuk sebagai pemilik, buka acara tes dari Batch 2 (yang sudah
+   berisi bundel-bundel amplop) > **Rekap & Ekspor**.
+3. Periksa: total amplop/bundel/Rp sama dengan Detail Acara; rincian
+   per pencatat (prefix A) dan per bundel (A001 penuh, A002 terbuka)
+   masuk akal; hitungan amplop kosong & tanpa nama cocok.
+4. Cari nama salah satu tamu yang dicatat di Batch 2 — harus ketemu,
+   lengkap dengan nominal & kode bundelnya. Cari juga potongan
+   alamatnya.
+5. Ketuk **Excel** — share sheet muncul; kirim file ke WhatsApp/
+   Drive, buka di komputer: kode bundel tercetak sekali per kelompok
+   10 baris, ada baris TOTAL di bawah. Ulangi untuk **CSV** dan buka
+   file-nya (kode bundel ada di setiap baris).
 
 ## Cara uji Batch 2
 
