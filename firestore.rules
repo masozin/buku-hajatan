@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // =====================================================================
-// Buku Hajatan — Firestore Security Rules (Batch 1)
+// Buku Hajatan — Firestore Security Rules (Batch 1, diperbarui Batch 4)
 // Tempel SELURUH isi file ini ke: Firebase Console > Firestore Database
 // > Rules > Edit rules > Publish.
 //
@@ -48,17 +48,56 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/acara/$(acaraId)/pencatat/$(request.auth.uid));
     }
 
+    // Admin platform (Batch 4): dokumen admin/{uid} ada. Dokumen ini
+    // dibuat SEKALI lewat Firebase Console — tidak ada jalan membuat
+    // diri sendiri jadi admin dari aplikasi (write dimatikan total).
+    function adalahAdmin() {
+      return sudahMasuk()
+        && exists(/databases/$(database)/documents/admin/$(request.auth.uid));
+    }
+
+    function pemilikDiblokir(uid) {
+      return exists(/databases/$(database)/documents/pemilik/$(uid))
+        && get(/databases/$(database)/documents/pemilik/$(uid)).data
+            .get('diblokir', false) == true;
+    }
+
+    // -------------------------------------------------------------- admin
+    match /admin/{uid} {
+      // Aplikasi hanya perlu mengecek status adminnya sendiri.
+      allow get: if sudahMasuk() && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
     // ------------------------------------------------------------ pemilik
     match /pemilik/{uid} {
-      allow read, write: if sudahMasuk() && request.auth.uid == uid;
+      allow get: if (sudahMasuk() && request.auth.uid == uid)
+        || adalahAdmin();
+      // Daftar semua pemilik hanya untuk panel admin.
+      allow list: if adalahAdmin();
+      allow create: if sudahMasuk() && request.auth.uid == uid
+        && request.resource.data.get('diblokir', false) == false;
+      // Pemilik mengubah profilnya sendiri ASAL field diblokir tidak
+      // berubah (tidak bisa membuka blokirnya sendiri); admin hanya
+      // boleh mengubah field diblokir, tidak yang lain.
+      allow update: if (sudahMasuk() && request.auth.uid == uid
+          && request.resource.data.get('diblokir', false)
+              == resource.data.get('diblokir', false))
+        || (adalahAdmin()
+            && request.resource.data.diff(resource.data).changedKeys()
+                .hasOnly(['diblokir']));
+      allow delete: if sudahMasuk() && request.auth.uid == uid;
     }
 
     // ---------------------------------------------------------- kodeAcara
     match /kodeAcara/{kode} {
       allow get: if sudahMasuk();
       allow list: if false;
+      // Gerbang blokir Batch 4 juga dipasang di sini (kode gabung
+      // selalu dibuat bersama acaranya — lihat gerbang di acara).
       allow create: if bukanAnonim()
-        && request.resource.data.pemilikId == request.auth.uid;
+        && request.resource.data.pemilikId == request.auth.uid
+        && !pemilikDiblokir(request.auth.uid);
       allow update, delete: if sudahMasuk()
         && resource.data.pemilikId == request.auth.uid;
     }
@@ -67,13 +106,17 @@ service cloud.firestore {
     match /acara/{acaraId} {
       allow get: if sudahMasuk()
         && (resource.data.pemilikId == request.auth.uid
-            || pencatatAcara(acaraId));
+            || pencatatAcara(acaraId)
+            || adalahAdmin());
       // list dipakai query "acara milik saya" (where pemilikId == uid);
       // rules tidak bisa memeriksa isi query, jadi dibuka untuk yang
       // sudah masuk — aplikasi menyaring berdasarkan pemilikId.
       allow list: if sudahMasuk();
+      // Pemilik yang diblokir admin (Batch 4) tidak bisa membuat
+      // acara baru; acara lamanya tidak disentuh aturan ini.
       allow create: if bukanAnonim()
-        && request.resource.data.pemilikId == request.auth.uid;
+        && request.resource.data.pemilikId == request.auth.uid
+        && !pemilikDiblokir(request.auth.uid);
       // Pemilik bebas mengubah. Pencatat BOLEH mengubah, tapi HANYA
       // agregat hitungannya (Batch 2: tiap amplop menaikkan totalAmplop
       // / totalRp / totalBundel dalam batch tulis yang sama) dan HANYA

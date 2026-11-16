@@ -65,6 +65,46 @@ flutter run
   Batch 3 menambah dependensi (excel, share_plus, path_provider):
   jalankan `flutter pub get` setelah apply patch ini. Rules TIDAK
   berubah di Batch 3.
+- **Batch 4 (panel admin — Fase 2)**: menu **Panel Admin** di Daftar
+  Acara, hanya tampil untuk akun admin. Isi: ringkasan platform
+  (total pemilik/acara/amplop/Rp), daftar pemilik + **Blokir /
+  Aktifkan**, daftar semua acara. Pemilik terblokir melihat layar
+  pemberitahuan dan tidak bisa membuat acara (dijaga aplikasi +
+  rules; ia tidak bisa membuka blokirnya sendiri). Email kini
+  disimpan di dokumen pemilik (akun lama terisi otomatis saat masuk
+  berikutnya). **PENTING: `firestore.rules` berubah di Batch 4** —
+  tempel ulang seluruh isinya ke Firebase Console > Firestore >
+  Rules > Publish. Tidak ada dependensi baru (tidak perlu pub get).
+
+## Menjadikan akunmu admin (sekali saja, Batch 4)
+
+1. Tempel ulang `firestore.rules` (lihat di atas), lalu jalankan
+   aplikasi dan masuk sebagai pemilik dengan akun yang akan jadi
+   admin, supaya dokumen profilnya ada.
+2. Di Firebase Console > **Authentication > Users**: temukan akun
+   itu, salin **User UID**-nya.
+3. Di **Firestore Database > Data**: klik **Start collection**,
+   Collection ID: `admin`, Next. Document ID: tempel UID tadi.
+   Tambah satu field bebas, mis. field `nama`, type string, value
+   `Admin`. Klik **Save**.
+4. Kembali ke aplikasi (tutup-buka bila perlu): ikon **Panel Admin**
+   (perisai) muncul di kanan atas Daftar Acara, di samping tombol
+   Keluar.
+
+## Cara uji Batch 4
+
+1. Tempel ulang rules + buat dokumen admin (langkah di atas), lalu
+   `flutter run`.
+2. Masuk dengan akun admin → ikon Panel Admin muncul. Buka: angka
+   ringkasan & daftar pemilik/acara harus cocok dengan data tes
+   selama ini (email pemilik muncul setelah ia masuk sekali lagi
+   dengan versi baru ini).
+3. Uji blokir: daftarkan akun pemilik KEDUA (atau pakai akun tes),
+   lalu dari Panel Admin blokir akun itu. Di HP/sesi akun itu,
+   aplikasi menampilkan layar "Akun Diblokir" dan Buat Acara
+   ditolak server. Aktifkan lagi dari panel — aksesnya pulih.
+4. Masuk dengan akun BUKAN admin: ikon Panel Admin tidak boleh
+   muncul.
 
 ## Cara uji Batch 3
 
