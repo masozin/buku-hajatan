@@ -46,5 +46,27 @@ flutter run
 - **Batch 1 (fondasi)**: nama paket & label, dependensi Firebase +
   Riverpod, model data, Auth Opsi A, layar Masuk/Daftar Acara/Buat
   Acara/Detail & Kelola Pencatat, `firestore.rules`.
-- Batch 2: layar pencatatan amplop + logika bundel otomatis per 10.
+- **Batch 2 (pencatatan)**: layar Pencatatan (bundel aktif n/10, form
+  cepat nama–alamat–nominal, jenis Normal/Kosong/Tanpa Nama, dialog
+  bundel penuh + bundel baru otomatis), Daftar Bundel + isi bundel,
+  indikator sinkron per baris, agregat bundel & acara naik dalam
+  batch tulis yang sama. **PENTING: `firestore.rules` berubah di
+  Batch 2** (pencatat kini boleh menaikkan agregat acara) — tempel
+  ulang seluruh isi `firestore.rules` ke Firebase Console > Firestore
+  > Rules > Publish sebelum menguji pencatatan, kalau tidak simpan
+  amplop ditolak Rules.
 - Batch 3: rekap realtime pemilik + ekspor Excel/CSV.
+
+## Cara uji Batch 2
+
+1. Tempel ulang `firestore.rules` (lihat di atas), lalu `flutter run`.
+2. Sebagai pemilik: buat acara tes, daftarkan satu pencatat.
+3. Keluar, gabung sebagai pencatat (kode + nama + PIN), buka acara
+   > **Mulai Mencatat** — bundel `A001` terbuka, posisi `0/10`.
+4. Catat 10 amplop (campur: normal, satu Kosong, satu Tanpa Nama).
+   Amplop ke-10 memunculkan dialog "Bundel A001 penuh — masukkan ke
+   kotak" dan bundel `A002` langsung terbuka di `0/10`.
+5. Total di Detail Acara pemilik ikut naik realtime (amplop + Rp).
+6. Uji offline: matikan data/Wi-Fi, catat 1 amplop — barisnya
+   berpenanda oranye "menunggu sinkron"; hidupkan lagi, penanda
+   berubah hijau.

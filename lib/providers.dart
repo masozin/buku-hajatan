@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'services/acara_service.dart';
 import 'services/auth_service.dart';
+import 'services/pencatatan_service.dart';
 
 /// Inisialisasi Firebase. Gagal (error) berarti google-services.json
 /// belum terpasang / Firebase belum disiapkan — aplikasi menampilkan
@@ -15,6 +16,10 @@ final inisialisasiFirebaseProvider = FutureProvider<void>((ref) async {
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
 final acaraServiceProvider = Provider<AcaraService>((ref) => AcaraService());
+
+final pencatatanServiceProvider = Provider<PencatatanService>(
+  (ref) => PencatatanService(),
+);
 
 /// Pengguna yang sedang masuk (null = belum masuk).
 /// Hanya boleh dibaca SETELAH inisialisasi Firebase berhasil.

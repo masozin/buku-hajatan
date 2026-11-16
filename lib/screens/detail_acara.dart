@@ -8,14 +8,16 @@ import '../models/pencatat.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../widgets/keadaan.dart';
+import 'daftar_bundel.dart';
+import 'pencatatan.dart';
 
 /// Detail satu acara.
 ///
 /// - Untuk pemilik: info acara, total berjalan, kode gabung + PIN,
 ///   kelola pencatat (daftar undangan + pencatat yang sudah bergabung),
 ///   dan tombol tandai selesai.
-/// - Untuk pencatat: info acara + kartu prefix miliknya. Layar
-///   pencatatan amplopnya sendiri dibuka di Batch 2.
+/// - Untuk pencatat: info acara + kartu prefix miliknya + tombol
+///   "Mulai Mencatat" menuju layar pencatatan amplop (Batch 2).
 class DetailAcaraScreen extends ConsumerWidget {
   const DetailAcaraScreen({
     super.key,
@@ -59,6 +61,21 @@ class DetailAcaraScreen extends ConsumerWidget {
                 _KelolaPencatat(acara: acara),
                 const SizedBox(height: 16),
                 _TombolStatus(acara: acara),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => DaftarBundelScreen(
+                          acaraId: acara.id,
+                          sebagaiPemilik: true,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.inventory_2_outlined),
+                  label: const Text('Lihat Semua Bundel'),
+                ),
               ] else
                 _KartuPencatatSaya(acara: acara),
             ],
@@ -455,11 +472,44 @@ class _KartuPencatatSaya extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   saya.aktif
-                      ? 'Bundel terakhirmu: ${saya.nomorBundelTerakhir}. '
-                            'Layar pencatatan amplop dibuka pada Batch 2.'
+                      ? acara.sudahSelesai
+                            ? 'Acara sudah selesai — pencatatan ditutup.'
+                            : 'Bundel terakhirmu: ${saya.nomorBundelTerakhir}.'
                       : 'Statusmu sedang dinonaktifkan pemilik acara.',
                   textAlign: TextAlign.center,
                 ),
+                if (saya.aktif && !acara.sudahSelesai) ...[
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PencatatanScreen(
+                            acaraId: acara.id,
+                            pencatatId: saya.id,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit_note_outlined),
+                    label: const Text('Mulai Mencatat'),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => DaftarBundelScreen(
+                            acaraId: acara.id,
+                            pencatatId: saya.id,
+                            sebagaiPemilik: false,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.list_alt_outlined),
+                    label: const Text('Daftar Bundel Saya'),
+                  ),
+                ],
               ],
             );
           },
