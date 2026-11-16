@@ -9,6 +9,7 @@ import '../providers.dart';
 import '../widgets/keadaan.dart';
 import 'buat_acara.dart';
 import 'daftar_acara.dart';
+import 'detail_pemilik.dart';
 import 'tambah_pemilik.dart';
 
 /// Panel Admin platform (Batch 4) — hanya terbuka untuk akun admin
@@ -291,6 +292,13 @@ class _KartuPemilik extends ConsumerWidget {
       child: Column(
         children: [
           ListTile(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => DetailPemilikScreen(pemilikAwal: pemilik),
+                ),
+              );
+            },
             leading: CircleAvatar(
               child: Text(
                 pemilik.nama.isEmpty ? '?' : pemilik.nama[0].toUpperCase(),

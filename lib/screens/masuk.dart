@@ -83,6 +83,39 @@ class _TabPemilikState extends ConsumerState<_TabPemilik> {
     super.dispose();
   }
 
+  /// Minta email atur ulang sandi untuk alamat yang sedang diketik
+  /// (Batch 6) — Firebase mengirim tautan pembuat sandi baru.
+  Future<void> _lupaSandi() async {
+    if (_email.text.trim().isEmpty) {
+      setState(() => _galat = 'Isi email dulu, lalu ketuk Lupa kata sandi.');
+      return;
+    }
+    setState(() {
+      _sibuk = true;
+      _galat = null;
+    });
+    try {
+      await ref.read(authServiceProvider).kirimResetSandi(_email.text);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Email atur ulang sandi terkirim ke ${_email.text.trim()}. '
+              'Periksa kotak masuk (dan folder spam).',
+            ),
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
+    } on LayananException catch (e) {
+      if (mounted) setState(() => _galat = e.pesan);
+    } catch (e) {
+      if (mounted) setState(() => _galat = pesanDari(e));
+    } finally {
+      if (mounted) setState(() => _sibuk = false);
+    }
+  }
+
   Future<void> _kirim() async {
     setState(() {
       _sibuk = true;
@@ -150,6 +183,10 @@ class _TabPemilikState extends ConsumerState<_TabPemilik> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Text('Masuk'),
+          ),
+          TextButton(
+            onPressed: _sibuk ? null : _lupaSandi,
+            child: const Text('Lupa kata sandi?'),
           ),
         ],
       ),
