@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'providers.dart';
 import 'screens/belum_konfigurasi.dart';
 import 'screens/daftar_acara.dart';
+import 'screens/diblokir.dart';
 import 'screens/masuk.dart';
 import 'widgets/keadaan.dart';
 
@@ -44,6 +45,35 @@ class BukuHajatanApp extends ConsumerWidget {
   }
 }
 
+/// Gerbang kedua untuk sesi pemilik: pemilik yang diblokir admin
+/// (Batch 4) melihat layar pemberitahuan, bukan daftar acaranya.
+/// Galat baca profil TIDAK mengunci pemilik — tetap diteruskan.
+class _GerbangPemilik extends ConsumerWidget {
+  const _GerbangPemilik({required this.uid});
+
+  final String uid;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profilStream = ref
+        .watch(authServiceProvider)
+        .profilPemilikStream(uid);
+    return StreamBuilder(
+      stream: profilStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: TampilMuat());
+        }
+        final pemilik = snapshot.data;
+        if (pemilik != null && pemilik.diblokir) {
+          return const DiblokirScreen();
+        }
+        return const DaftarAcaraScreen();
+      },
+    );
+  }
+}
+
 class _GerbangPengguna extends ConsumerWidget {
   const _GerbangPengguna();
 
@@ -55,7 +85,10 @@ class _GerbangPengguna extends ConsumerWidget {
       error: (error, _) => Scaffold(body: TampilGalat(pesan: pesanDari(error))),
       data: (pengguna) {
         if (pengguna == null) return const MasukScreen();
-        return const DaftarAcaraScreen();
+        // Sesi anonim = pencatat; tidak ada profil pemilik & tidak
+        // bisa diblokir — langsung ke daftar acara.
+        if (pengguna.isAnonymous) return const DaftarAcaraScreen();
+        return _GerbangPemilik(uid: pengguna.uid);
       },
     );
   }

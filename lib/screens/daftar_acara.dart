@@ -8,6 +8,7 @@ import '../widgets/keadaan.dart';
 import 'buat_acara.dart';
 import 'detail_acara.dart';
 import 'gabung_acara.dart';
+import 'panel_admin.dart';
 
 /// Halaman utama setelah masuk:
 /// - "Acara Saya" — milik pemilik yang sedang masuk (disembunyikan
@@ -27,6 +28,20 @@ class DaftarAcaraScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Buku Hajatan'),
         actions: [
+          // Pintu Panel Admin — hanya tampil untuk akun admin
+          // (Batch 4); statusAdminProvider false untuk yang lain.
+          if (ref.watch(statusAdminProvider).valueOrNull ?? false)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+              tooltip: 'Panel Admin',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const PanelAdminScreen(),
+                  ),
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Keluar',
