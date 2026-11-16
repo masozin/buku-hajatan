@@ -7,6 +7,8 @@ import '../models/acara.dart';
 import '../models/pemilik.dart';
 import '../providers.dart';
 import '../widgets/keadaan.dart';
+import 'buat_acara.dart';
+import 'tambah_pemilik.dart';
 
 /// Panel Admin platform (Batch 4) — hanya terbuka untuk akun admin
 /// (`admin/{uid}` ada; dibuat lewat Firebase Console). Isi: ringkasan
@@ -52,6 +54,41 @@ class PanelAdminScreen extends ConsumerWidget {
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const TambahPemilikScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.person_add_outlined),
+                          label: const Text('Tambah Pemilik'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const BuatAcaraScreen(
+                                  modeAdmin: true,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.event_outlined),
+                          label: const Text('Buat Acara'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   _Ringkasan(
                     ringkasan: ringkasPlatform(
                       pemilik: pemilik,
@@ -203,27 +240,53 @@ class _KartuPemilik extends ConsumerWidget {
     final pemilik = ringkasan.pemilik;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          child: Text(
-            pemilik.nama.isEmpty ? '?' : pemilik.nama[0].toUpperCase(),
+      child: Column(
+        children: [
+          ListTile(
+            leading: CircleAvatar(
+              child: Text(
+                pemilik.nama.isEmpty ? '?' : pemilik.nama[0].toUpperCase(),
+              ),
+            ),
+            title: Text(pemilik.nama.isEmpty ? '(tanpa nama)' : pemilik.nama),
+            subtitle: Text(
+              [
+                if (pemilik.email != null) pemilik.email!,
+                if (pemilik.noHp != null) pemilik.noHp!,
+                '${ringkasan.jumlahAcara} acara • ${ringkasan.totalAmplop} '
+                    'amplop • ${formatRupiah(ringkasan.totalRp)}',
+                if (pemilik.diblokir) 'DIBLOKIR',
+              ].join('\n'),
+            ),
+            isThreeLine: true,
           ),
-        ),
-        title: Text(pemilik.nama.isEmpty ? '(tanpa nama)' : pemilik.nama),
-        subtitle: Text(
-          [
-            if (pemilik.email != null) pemilik.email!,
-            if (pemilik.noHp != null) pemilik.noHp!,
-            '${ringkasan.jumlahAcara} acara • ${ringkasan.totalAmplop} '
-                'amplop • ${formatRupiah(ringkasan.totalRp)}',
-            if (pemilik.diblokir) 'DIBLOKIR',
-          ].join('\n'),
-        ),
-        isThreeLine: true,
-        trailing: TextButton(
-          onPressed: () => _ubahBlokir(context, ref),
-          child: Text(pemilik.diblokir ? 'Aktifkan' : 'Blokir'),
-        ),
+          OverflowBar(
+            alignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: pemilik.diblokir
+                    ? null
+                    : () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => BuatAcaraScreen(
+                              modeAdmin: true,
+                              pemilikTetap: pemilik.id,
+                              namaPemilikTetap: pemilik.nama,
+                            ),
+                          ),
+                        );
+                      },
+                icon: const Icon(Icons.event_outlined),
+                label: const Text('Buat Acara'),
+              ),
+              TextButton(
+                onPressed: () => _ubahBlokir(context, ref),
+                child: Text(pemilik.diblokir ? 'Aktifkan' : 'Blokir'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
