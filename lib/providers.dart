@@ -6,6 +6,7 @@ import 'services/acara_service.dart';
 import 'services/admin_service.dart';
 import 'services/auth_service.dart';
 import 'services/ekspor_service.dart';
+import 'services/koreksi_service.dart';
 import 'services/pencatatan_service.dart';
 import 'services/provisioning_service.dart';
 import 'services/rekap_service.dart';
@@ -33,6 +34,10 @@ final adminServiceProvider = Provider<AdminService>((ref) => AdminService());
 
 final provisioningServiceProvider = Provider<ProvisioningService>(
   (ref) => ProvisioningService(),
+);
+
+final koreksiServiceProvider = Provider<KoreksiService>(
+  (ref) => KoreksiService(),
 );
 
 /// True bila pengguna yang sedang masuk adalah admin platform

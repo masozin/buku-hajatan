@@ -5,10 +5,19 @@ import '../services/pencatatan_service.dart';
 
 /// Satu baris amplop di dalam bundel: urut, nama, alamat, nominal,
 /// plus penanda sinkron (menunggu terkirim / sudah terkirim).
+/// [onUbah]/[onHapus] hanya diisi pada mode koreksi pemilik setelah
+/// acara selesai (Batch 6) — di layar pencatatan keduanya kosong.
 class BarisAmplop extends StatelessWidget {
-  const BarisAmplop({super.key, required this.tercatat});
+  const BarisAmplop({
+    super.key,
+    required this.tercatat,
+    this.onUbah,
+    this.onHapus,
+  });
 
   final AmplopTercatat tercatat;
+  final VoidCallback? onUbah;
+  final VoidCallback? onHapus;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +48,20 @@ class BarisAmplop extends StatelessWidget {
                 ? Colors.orange
                 : Colors.green,
           ),
+          if (onUbah != null)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              tooltip: 'Ubah',
+              visualDensity: VisualDensity.compact,
+              onPressed: onUbah,
+            ),
+          if (onHapus != null)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 18),
+              tooltip: 'Hapus',
+              visualDensity: VisualDensity.compact,
+              onPressed: onHapus,
+            ),
         ],
       ),
     );

@@ -87,6 +87,41 @@ flutter run
   dihapus. **PENTING: `firestore.rules` berubah di Batch 5** —
   tempel ulang seluruh isinya. Tidak ada dependensi baru.
 
+- **Batch 6 (beranda admin, detail pemilik, koreksi pasca-acara)**:
+  admin langsung masuk **Panel Admin** sebagai beranda (ikon rumah
+  untuk ke tampilan pemilik, ikon keluar di panel). Kartu pemilik di
+  panel bisa diketuk → **Detail Pemilik**: profil, statistik, daftar
+  acaranya, dan aksi Buat Acara / **Reset Sandi** (email atur ulang
+  dari Firebase) / Blokir; layar Masuk juga punya "Lupa kata sandi?".
+  Aturan pantau–koreksi: **selama acara aktif pemilik hanya
+  memantau** data amplop; **setelah acara ditandai selesai**, isi
+  bundel masuk mode koreksi — pemilik bisa **tambah** (ke bundel
+  belum penuh), **ubah**, dan **hapus** amplop, agregat bundel &
+  acara menyesuaikan otomatis. Kelola pencatat & tombol Selesaikan
+  tetap bisa dipakai selama acara aktif. **PENTING:
+  `firestore.rules` berubah di Batch 6** (koreksi pemilik dikunci
+  ke status selesai) — tempel ulang seluruh isinya. Tidak ada
+  dependensi baru.
+
+## Cara uji Batch 6
+
+1. Tempel ulang rules, lalu `flutter run`. Masuk sebagai admin →
+   langsung mendarat di Panel Admin (bukan Daftar Acara).
+2. Ketuk kartu seorang pemilik → Detail Pemilik: daftar acaranya
+   tampil; coba **Reset Sandi** → email atur ulang harus tiba di
+   kotak masuk pemilik itu.
+3. Uji koreksi: pakai acara tes yang masih AKTIF — sebagai pemilik
+   buka Detail Acara > Lihat Semua Bundel > buka satu bundel:
+   tampil kartu "Mode memantau", tidak ada tombol ubah/hapus.
+4. Tandai acara itu **Selesai** (Detail Acara), buka lagi bundel
+   yang sama: kartu berubah "Mode koreksi aktif". Coba: ubah
+   nominal satu amplop (total bundel & Rekap harus bergeser sama),
+   hapus satu amplop (jumlah berkurang; bundel penuh yang terhapus
+   isinya terbuka lagi), tambah satu amplop ke bundel yang belum
+   penuh.
+5. Buka Rekap & ekspor Excel: angka akhirnya harus cocok dengan
+   hasil koreksi.
+
 ## Cara uji Batch 5
 
 1. Tempel ulang rules, lalu `flutter run`.

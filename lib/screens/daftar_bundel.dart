@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
+import '../models/acara.dart';
 import '../models/bundel.dart';
 import '../providers.dart';
+import '../services/layanan_exception.dart';
 import '../services/pencatatan_service.dart';
 import '../widgets/baris_amplop.dart';
 import '../widgets/keadaan.dart';
+import 'koreksi_amplop.dart';
 
 /// Daftar bundel (Batch 2).
 ///
@@ -104,7 +107,13 @@ class DaftarBundelScreen extends ConsumerWidget {
   }
 }
 
-/// Isi satu bundel (baca saja): daftar amplop 1..10 + total bundel.
+/// Isi satu bundel: daftar amplop 1..10 + total bundel.
+///
+/// Umumnya baca saja. Pengecualian (Batch 6): bila yang membuka
+/// adalah PEMILIK dan acaranya SUDAH SELESAI, layar ini masuk mode
+/// koreksi — tiap baris dapat diubah/dihapus dan ada tombol tambah
+/// (ke bundel yang belum penuh). Selama acara aktif pemilik hanya
+/// memantau, sesuai aturan mainnya.
 class IsiBundelScreen extends ConsumerWidget {
   const IsiBundelScreen({
     super.key,
@@ -115,66 +124,208 @@ class IsiBundelScreen extends ConsumerWidget {
   final String acaraId;
   final Bundel bundel;
 
+  Future<void> _hapus(
+    BuildContext context,
+    WidgetRef ref,
+    AmplopTercatat tercatat,
+  ) async {
+    final amplop = tercatat.amplop;
+    final yakin = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus amplop?'),
+        content: Text(
+          'Amplop ${amplop.tampilNama} (${formatRupiah(amplop.nominal)}) '
+          'akan dihapus dari bundel ${bundel.kode}. Total bundel & '
+          'acara ikut berkurang.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (yakin != true) return;
+    try {
+      await ref
+          .read(koreksiServiceProvider)
+          .hapusAmplop(acaraId: acaraId, bundelId: bundel.id, amplop: amplop);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Amplop dihapus.')),
+        );
+      }
+    } on LayananException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.pesan)));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(pesanDari(e))));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final layanan = ref.watch(pencatatanServiceProvider);
+    final pengguna = ref.watch(statusPenggunaProvider).valueOrNull;
     return Scaffold(
       appBar: AppBar(title: Text('Bundel ${bundel.kode}')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+      body: StreamBuilder<Acara?>(
+        stream: ref.watch(acaraServiceProvider).acaraStream(acaraId),
+        builder: (context, snapAcara) {
+          final acara = snapAcara.data;
+          final sayaPemilik =
+              acara != null &&
+              pengguna != null &&
+              acara.pemilikId == pengguna.uid;
+          final bisaKoreksi = sayaPemilik && acara.sudahSelesai;
+          return StreamBuilder<List<Bundel>>(
+            stream: layanan.semuaBundelStream(acaraId),
+            builder: (context, snapBundel) {
+              // Bundel segar dari stream (agregat berubah setelah
+              // koreksi); fallback ke bundel bawaan navigasi.
+              var segar = bundel;
+              for (final b in snapBundel.data ?? const <Bundel>[]) {
+                if (b.id == bundel.id) segar = b;
+              }
+              return ListView(
+                padding: const EdgeInsets.all(16),
                 children: [
-                  _Angka(
-                    label: 'Amplop',
-                    nilai: '${bundel.jumlahAmplop}/10',
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _Angka(
+                            label: 'Amplop',
+                            nilai: '${segar.jumlahAmplop}/10',
+                          ),
+                          _Angka(
+                            label: 'Total',
+                            nilai: formatRupiah(segar.totalRp),
+                          ),
+                          _Angka(
+                            label: 'Status',
+                            nilai: segar.status == StatusBundel.penuh
+                                ? 'Penuh'
+                                : 'Terbuka',
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  _Angka(
-                    label: 'Total',
-                    nilai: formatRupiah(bundel.totalRp),
-                  ),
-                  _Angka(
-                    label: 'Status',
-                    nilai: bundel.status == StatusBundel.penuh
-                        ? 'Penuh'
-                        : 'Terbuka',
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          StreamBuilder<List<AmplopTercatat>>(
-            stream: layanan.amplopBundelStream(acaraId, bundel.id),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const TampilMuat();
-              }
-              if (snapshot.hasError) {
-                return TampilGalat(pesan: pesanDari(snapshot.error!));
-              }
-              final isi = snapshot.data ?? const <AmplopTercatat>[];
-              if (isi.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text('Bundel ini masih kosong.'),
-                );
-              }
-              return Card(
-                child: Column(
-                  children: [
-                    for (final tercatat in isi)
-                      BarisAmplop(tercatat: tercatat),
+                  if (bisaKoreksi) ...[
+                    const SizedBox(height: 12),
+                    const Card(
+                      child: ListTile(
+                        leading: Icon(Icons.edit_note_outlined),
+                        title: Text('Mode koreksi aktif'),
+                        subtitle: Text(
+                          'Acara sudah selesai — amplop dapat ditambah, '
+                          'diubah, dan dihapus bila perlu.',
+                        ),
+                      ),
+                    ),
+                  ] else if (sayaPemilik) ...[
+                    const SizedBox(height: 12),
+                    const Card(
+                      child: ListTile(
+                        leading: Icon(Icons.visibility_outlined),
+                        title: Text('Mode memantau'),
+                        subtitle: Text(
+                          'Acara masih berlangsung — koreksi data '
+                          'dibuka setelah acara ditandai selesai.',
+                        ),
+                      ),
+                    ),
                   ],
-                ),
+                  const SizedBox(height: 16),
+                  StreamBuilder<List<AmplopTercatat>>(
+                    stream: layanan.amplopBundelStream(acaraId, bundel.id),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const TampilMuat();
+                      }
+                      if (snapshot.hasError) {
+                        return TampilGalat(
+                          pesan: pesanDari(snapshot.error!),
+                        );
+                      }
+                      final isi =
+                          snapshot.data ?? const <AmplopTercatat>[];
+                      if (isi.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Text('Bundel ini masih kosong.'),
+                        );
+                      }
+                      return Card(
+                        child: Column(
+                          children: [
+                            for (final tercatat in isi)
+                              BarisAmplop(
+                                tercatat: tercatat,
+                                onUbah: bisaKoreksi
+                                    ? () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                KoreksiAmplopScreen(
+                                                  acaraId: acaraId,
+                                                  bundel: segar,
+                                                  amplopLama:
+                                                      tercatat.amplop,
+                                                ),
+                                          ),
+                                        );
+                                      }
+                                    : null,
+                                onHapus: bisaKoreksi
+                                    ? () =>
+                                          _hapus(context, ref, tercatat)
+                                    : null,
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  if (bisaKoreksi && segar.jumlahAmplop < 10) ...[
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => KoreksiAmplopScreen(
+                              acaraId: acaraId,
+                              bundel: segar,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Tambah Amplop'),
+                    ),
+                  ],
+                ],
               );
             },
-          ),
-        ],
+          );
+        },
       ),
     );
   }

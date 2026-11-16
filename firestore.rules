@@ -62,6 +62,12 @@ service cloud.firestore {
             .get('diblokir', false) == true;
     }
 
+    // Koreksi pemilik (Batch 6) hanya pada acara yang sudah selesai.
+    function acaraSudahSelesai(acaraId) {
+      return get(/databases/$(database)/documents/acara/$(acaraId)).data
+          .status == 'selesai';
+    }
+
     // -------------------------------------------------------------- admin
     match /admin/{uid} {
       // Aplikasi hanya perlu mengecek status adminnya sendiri.
@@ -178,22 +184,33 @@ service cloud.firestore {
         allow get, list: if pemilikAcara(acaraId) || pencatatAcara(acaraId);
         allow create: if pencatatAcara(acaraId)
           && request.resource.data.pencatatId == request.auth.uid;
-        allow update: if pemilikAcara(acaraId)
+        // Pemilik menyentuh bundel hanya untuk koreksi SETELAH acara
+        // selesai (Batch 6); pencatat seperti biasa selama aktif.
+        allow update: if (pemilikAcara(acaraId)
+              && acaraSudahSelesai(acaraId))
           || (pencatatAcara(acaraId)
               && resource.data.pencatatId == request.auth.uid);
-        allow delete: if pemilikAcara(acaraId);
+        allow delete: if pemilikAcara(acaraId)
+          && acaraSudahSelesai(acaraId);
 
         // -------------------------------------------------------- amplop
         match /amplop/{amplopId} {
           allow get, list: if pemilikAcara(acaraId)
             || pencatatAcara(acaraId);
-          allow create: if pencatatAcara(acaraId)
+          // Buat: pencatat selama acara berjalan; ATAU pemilik untuk
+          // koreksi setelah acara selesai (Batch 6). Batasan field
+          // sama untuk keduanya.
+          allow create: if (pencatatAcara(acaraId)
+              || (pemilikAcara(acaraId) && acaraSudahSelesai(acaraId)))
             && request.resource.data.createdBy == request.auth.uid
             && request.resource.data.nominal >= 0
             && request.resource.data.jenis in ['normal', 'kosong', 'tanpa_nama']
             && request.resource.data.urut >= 1
             && request.resource.data.urut <= 10;
-          allow update, delete: if pemilikAcara(acaraId);
+          // Ubah/hapus hanya pemilik, hanya setelah acara selesai —
+          // selama acara berlangsung data terkunci untuk semua.
+          allow update, delete: if pemilikAcara(acaraId)
+            && acaraSudahSelesai(acaraId);
         }
       }
     }
