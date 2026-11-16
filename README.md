@@ -76,6 +76,33 @@ flutter run
   tempel ulang seluruh isinya ke Firebase Console > Firestore >
   Rules > Publish. Tidak ada dependensi baru (tidak perlu pub get).
 
+- **Batch 5 (provisioning admin)**: model berubah menjadi dikelola
+  admin — **acara hanya dibuat oleh admin**, pemilik menerima acara
+  yang dibuatkan untuknya (satu pemilik bisa punya banyak acara).
+  Panel Admin bertambah: **Tambah Pemilik** (admin membuatkan akun:
+  nama/email/no HP/kata sandi awal, lewat app Firebase sekunder
+  supaya sesi admin tidak tertimpa) dan **Buat Acara** (pilih pemilik
+  tujuan, atau dari kartu pemiliknya langsung). Pendaftaran mandiri
+  di layar Masuk DITUTUP dan tombol Buat Acara di Daftar Acara
+  dihapus. **PENTING: `firestore.rules` berubah di Batch 5** —
+  tempel ulang seluruh isinya. Tidak ada dependensi baru.
+
+## Cara uji Batch 5
+
+1. Tempel ulang rules, lalu `flutter run`.
+2. Sebagai admin: Panel Admin > **Tambah Pemilik** — buat akun tes
+   (mis. "Pemilik Tes", email tes, kata sandi awal 6+ karakter).
+   Dialog sukses muncul dan kamu TETAP masuk sebagai admin (tidak
+   tertimpa sesi akun baru).
+3. Panel Admin > **Buat Acara** — pilih pemilik tes tadi, isi form,
+   simpan. Acara muncul di daftar Semua Acara panel dengan pemilik
+   yang benar, lengkap dengan kode gabungnya.
+4. Keluar, masuk dengan akun pemilik tes: acara yang dibuatkan
+   admin tampil di "Acara Saya"; TIDAK ada tombol Buat Acara;
+   pemilik tetap bisa mengelola acaranya (tambah pencatat, rekap,
+   ekspor) seperti biasa.
+5. Di layar Masuk, tab Pemilik tidak lagi menawarkan pendaftaran.
+
 ## Menjadikan akunmu admin (sekali saja, Batch 4)
 
 1. Tempel ulang `firestore.rules` (lihat di atas), lalu jalankan

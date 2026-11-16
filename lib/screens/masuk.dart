@@ -7,7 +7,8 @@ import '../widgets/keadaan.dart';
 import 'gabung_acara.dart';
 
 /// Layar masuk: dua tab sesuai Auth Opsi A.
-/// - Pemilik: email + kata sandi (masuk / daftar).
+/// - Pemilik: email + kata sandi. Sejak Batch 5 akun pemilik
+///   DIBUATKAN oleh admin — tidak ada pendaftaran mandiri di sini.
 /// - Pencatat: gabung acara dengan kode + nama + PIN, tanpa email.
 class MasukScreen extends StatelessWidget {
   const MasukScreen({super.key});
@@ -70,18 +71,13 @@ class _TabPemilik extends ConsumerStatefulWidget {
 }
 
 class _TabPemilikState extends ConsumerState<_TabPemilik> {
-  final _nama = TextEditingController();
-  final _noHp = TextEditingController();
   final _email = TextEditingController();
   final _sandi = TextEditingController();
-  bool _modeDaftar = false;
   bool _sibuk = false;
   String? _galat;
 
   @override
   void dispose() {
-    _nama.dispose();
-    _noHp.dispose();
     _email.dispose();
     _sandi.dispose();
     super.dispose();
@@ -93,20 +89,9 @@ class _TabPemilikState extends ConsumerState<_TabPemilik> {
       _galat = null;
     });
     try {
-      final auth = ref.read(authServiceProvider);
-      if (_modeDaftar) {
-        if (_nama.text.trim().isEmpty) {
-          throw const LayananException('Nama pemilik belum diisi.');
-        }
-        await auth.daftarPemilik(
-          email: _email.text,
-          kataSandi: _sandi.text,
-          nama: _nama.text,
-          noHp: _noHp.text,
-        );
-      } else {
-        await auth.masukPemilik(email: _email.text, kataSandi: _sandi.text);
-      }
+      await ref
+          .read(authServiceProvider)
+          .masukPemilik(email: _email.text, kataSandi: _sandi.text);
       // Berhasil: statusPenggunaProvider berubah, gerbang berpindah
       // ke Daftar Acara dengan sendirinya.
     } on LayananException catch (e) {
@@ -125,34 +110,12 @@ class _TabPemilikState extends ConsumerState<_TabPemilik> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            _modeDaftar
-                ? 'Daftar sebagai pemilik acara. Akun ini yang membuat '
-                      'acara dan mendaftarkan para pencatat.'
-                : 'Masuk sebagai pemilik acara untuk membuat & '
-                      'memantau acara hajatanmu.',
+          const Text(
+            'Masuk sebagai pemilik acara untuk memantau acara '
+            'hajatanmu. Akun dibuatkan oleh admin Buku Hajatan — '
+            'hubungi admin bila belum punya akun.',
           ),
           const SizedBox(height: 16),
-          if (_modeDaftar) ...[
-            TextField(
-              controller: _nama,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Nama Pemilik',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _noHp,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'No. HP (opsional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
           TextField(
             controller: _email,
             keyboardType: TextInputType.emailAddress,
@@ -186,20 +149,7 @@ class _TabPemilikState extends ConsumerState<_TabPemilik> {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(_modeDaftar ? 'Daftar' : 'Masuk'),
-          ),
-          TextButton(
-            onPressed: _sibuk
-                ? null
-                : () => setState(() {
-                    _modeDaftar = !_modeDaftar;
-                    _galat = null;
-                  }),
-            child: Text(
-              _modeDaftar
-                  ? 'Sudah punya akun? Masuk'
-                  : 'Belum punya akun? Daftar sebagai pemilik',
-            ),
+                : const Text('Masuk'),
           ),
         ],
       ),

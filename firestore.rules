@@ -75,8 +75,11 @@ service cloud.firestore {
         || adalahAdmin();
       // Daftar semua pemilik hanya untuk panel admin.
       allow list: if adalahAdmin();
-      allow create: if sudahMasuk() && request.auth.uid == uid
-        && request.resource.data.get('diblokir', false) == false;
+      // Dibuat oleh pemiliknya sendiri (jalur lama) ATAU dibuatkan
+      // admin lewat provisioning (Batch 5).
+      allow create: if (sudahMasuk() && request.auth.uid == uid
+          && request.resource.data.get('diblokir', false) == false)
+        || adalahAdmin();
       // Pemilik mengubah profilnya sendiri ASAL field diblokir tidak
       // berubah (tidak bisa membuka blokirnya sendiri); admin hanya
       // boleh mengubah field diblokir, tidak yang lain.
@@ -93,11 +96,13 @@ service cloud.firestore {
     match /kodeAcara/{kode} {
       allow get: if sudahMasuk();
       allow list: if false;
-      // Gerbang blokir Batch 4 juga dipasang di sini (kode gabung
-      // selalu dibuat bersama acaranya — lihat gerbang di acara).
+      // Kode gabung selalu dibuat bersama acaranya (Batch 5: oleh
+      // admin untuk pemilik tujuan) — gerbang blokirnya memeriksa
+      // pemilik TUJUAN, bukan pembuatnya.
       allow create: if bukanAnonim()
-        && request.resource.data.pemilikId == request.auth.uid
-        && !pemilikDiblokir(request.auth.uid);
+        && (request.resource.data.pemilikId == request.auth.uid
+            || adalahAdmin())
+        && !pemilikDiblokir(request.resource.data.pemilikId);
       allow update, delete: if sudahMasuk()
         && resource.data.pemilikId == request.auth.uid;
     }
@@ -112,11 +117,11 @@ service cloud.firestore {
       // rules tidak bisa memeriksa isi query, jadi dibuka untuk yang
       // sudah masuk — aplikasi menyaring berdasarkan pemilikId.
       allow list: if sudahMasuk();
-      // Pemilik yang diblokir admin (Batch 4) tidak bisa membuat
-      // acara baru; acara lamanya tidak disentuh aturan ini.
-      allow create: if bukanAnonim()
-        && request.resource.data.pemilikId == request.auth.uid
-        && !pemilikDiblokir(request.auth.uid);
+      // Sejak Batch 5 acara HANYA dibuat oleh admin (untuk pemilik
+      // tujuan yang tidak sedang diblokir); pemilik tidak lagi
+      // membuat acaranya sendiri. Acara lama tidak disentuh.
+      allow create: if bukanAnonim() && adalahAdmin()
+        && !pemilikDiblokir(request.resource.data.pemilikId);
       // Pemilik bebas mengubah. Pencatat BOLEH mengubah, tapi HANYA
       // agregat hitungannya (Batch 2: tiap amplop menaikkan totalAmplop
       // / totalRp / totalBundel dalam batch tulis yang sama) dan HANYA

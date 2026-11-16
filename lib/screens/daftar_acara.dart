@@ -5,7 +5,6 @@ import '../core/format.dart';
 import '../models/acara.dart';
 import '../providers.dart';
 import '../widgets/keadaan.dart';
-import 'buat_acara.dart';
 import 'detail_acara.dart';
 import 'gabung_acara.dart';
 import 'panel_admin.dart';
@@ -49,17 +48,9 @@ class DaftarAcaraScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: anonim
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const BuatAcaraScreen()),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Buat Acara'),
-            ),
+      // Sejak Batch 5 tidak ada tombol Buat Acara di sini: acara
+      // dibuatkan oleh admin lewat Panel Admin, pemilik tinggal
+      // menerima & mengelolanya.
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         children: [
