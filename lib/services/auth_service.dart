@@ -35,6 +35,7 @@ class AuthService {
       final pemilik = Pemilik(
         id: user.uid,
         nama: nama.trim(),
+        email: email.trim(),
         noHp: (noHp == null || noHp.trim().isEmpty) ? null : noHp.trim(),
       );
       await _db.collection('pemilik').doc(user.uid).set(pemilik.toMap());
@@ -60,6 +61,7 @@ class AuthService {
         email: email.trim(),
         password: kataSandi,
       );
+      await _lengkapiEmailProfil(kredensial.user!);
       return kredensial.user!;
     } on FirebaseAuthException catch (e) {
       throw LayananException(pesanGalatAuth(e));
@@ -83,6 +85,31 @@ class AuthService {
     final doc = await _db.collection('pemilik').doc(uid).get();
     if (!doc.exists) return null;
     return Pemilik.fromFirestore(doc);
+  }
+
+  /// Profil pemilik sebagai stream — dipakai gerbang aplikasi untuk
+  /// memeriksa status blokir (Batch 4) secara realtime.
+  Stream<Pemilik?> profilPemilikStream(String uid) {
+    return _db.collection('pemilik').doc(uid).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return Pemilik.fromFirestore(doc);
+    });
+  }
+
+  /// Akun lama (sebelum Batch 4) belum menyimpan email di dokumen
+  /// pemilik — lengkapi sekali saat masuk. Kegagalan di sini TIDAK
+  /// boleh menggagalkan proses masuk.
+  Future<void> _lengkapiEmailProfil(User user) async {
+    try {
+      if (user.email == null) return;
+      final ref = _db.collection('pemilik').doc(user.uid);
+      final doc = await ref.get();
+      if (doc.exists && doc.data()?['email'] == null) {
+        await ref.update({'email': user.email});
+      }
+    } catch (_) {
+      // Abaikan: email profil bisa dilengkapi pada masuk berikutnya.
+    }
   }
 
   Future<void> keluar() => _auth.signOut();
