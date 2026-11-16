@@ -53,7 +53,8 @@ class Bundel {
 
   bool get sudahPenuh => status == StatusBundel.penuh || jumlahAmplop >= 10;
 
-  factory Bundel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc, {
+  factory Bundel.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc, {
     required String acaraId,
   }) {
     final data = doc.data() ?? const <String, dynamic>{};
@@ -87,9 +88,7 @@ class Bundel {
       'createdAt': createdAt == null
           ? FieldValue.serverTimestamp()
           : Timestamp.fromDate(createdAt!),
-      'ditutupAt': ditutupAt == null
-          ? null
-          : Timestamp.fromDate(ditutupAt!),
+      'ditutupAt': ditutupAt == null ? null : Timestamp.fromDate(ditutupAt!),
     };
   }
 }

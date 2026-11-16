@@ -43,8 +43,7 @@ class AcaraService {
     // tapi tetap diperiksa karena kode ini kunci pencarian acara).
     String kode = buatKodeGabung();
     for (var i = 0; i < 5; i++) {
-      final sudahAda =
-          await _db.collection('kodeAcara').doc(kode).get();
+      final sudahAda = await _db.collection('kodeAcara').doc(kode).get();
       if (!sudahAda.exists) break;
       kode = buatKodeGabung();
     }
@@ -57,9 +56,7 @@ class AcaraService {
       tuanRumah: tuanRumah.trim(),
       jenis: jenis,
       tanggal: tanggal,
-      lokasi: (lokasi == null || lokasi.trim().isEmpty)
-          ? null
-          : lokasi.trim(),
+      lokasi: (lokasi == null || lokasi.trim().isEmpty) ? null : lokasi.trim(),
       kodeGabung: kode,
     );
 
@@ -82,14 +79,13 @@ class AcaraService {
 
   /// Acara milik pemilik ini, urut tanggal terdekat dulu.
   Stream<List<Acara>> acaraMilikSayaStream(String pemilikId) {
-    return _acara
-        .where('pemilikId', isEqualTo: pemilikId)
-        .snapshots()
-        .map((qs) {
-          final daftar = qs.docs.map(Acara.fromFirestore).toList();
-          daftar.sort((a, b) => a.tanggal.compareTo(b.tanggal));
-          return daftar;
-        });
+    return _acara.where('pemilikId', isEqualTo: pemilikId).snapshots().map((
+      qs,
+    ) {
+      final daftar = qs.docs.map(Acara.fromFirestore).toList();
+      daftar.sort((a, b) => a.tanggal.compareTo(b.tanggal));
+      return daftar;
+    });
   }
 
   /// Acara yang diikuti pengguna sebagai pencatat (collectionGroup query
@@ -116,9 +112,7 @@ class AcaraService {
               ),
             );
           }
-          hasil.sort(
-            (a, b) => a.acara.tanggal.compareTo(b.acara.tanggal),
-          );
+          hasil.sort((a, b) => a.acara.tanggal.compareTo(b.acara.tanggal));
           return hasil;
         });
   }
@@ -132,8 +126,7 @@ class AcaraService {
 
   /// PIN gabung acara (hanya untuk ditampilkan ke pemiliknya).
   Future<String?> ambilPinGabung(String kodeGabung) async {
-    final doc =
-        await _db.collection('kodeAcara').doc(kodeGabung).get();
+    final doc = await _db.collection('kodeAcara').doc(kodeGabung).get();
     if (!doc.exists) return null;
     return doc.data()?['pinGabung'] as String?;
   }
@@ -141,65 +134,44 @@ class AcaraService {
   // ------------------------------------------------------------- pencatat
 
   Stream<List<Pencatat>> pencatatStream(String acaraId) {
-    return _acara
-        .doc(acaraId)
-        .collection('pencatat')
-        .snapshots()
-        .map((qs) {
-          final daftar = qs.docs
-              .map((d) => Pencatat.fromFirestore(d, acaraId: acaraId))
-              .toList();
-          daftar.sort((a, b) => a.prefix.compareTo(b.prefix));
-          return daftar;
-        });
+    return _acara.doc(acaraId).collection('pencatat').snapshots().map((qs) {
+      final daftar = qs.docs
+          .map((d) => Pencatat.fromFirestore(d, acaraId: acaraId))
+          .toList();
+      daftar.sort((a, b) => a.prefix.compareTo(b.prefix));
+      return daftar;
+    });
   }
 
   Future<Pencatat?> pencatatDi(String acaraId, String uid) async {
-    final doc = await _acara
-        .doc(acaraId)
-        .collection('pencatat')
-        .doc(uid)
-        .get();
+    final doc = await _acara.doc(acaraId).collection('pencatat').doc(uid).get();
     if (!doc.exists) return null;
     return Pencatat.fromFirestore(doc, acaraId: acaraId);
   }
 
-  Future<void> setAktifPencatat(
-    String acaraId,
-    String pencatatId,
-    bool aktif,
-  ) {
-    return _acara
-        .doc(acaraId)
-        .collection('pencatat')
-        .doc(pencatatId)
-        .update(<String, dynamic>{'aktif': aktif});
+  Future<void> setAktifPencatat(String acaraId, String pencatatId, bool aktif) {
+    return _acara.doc(acaraId).collection('pencatat').doc(pencatatId).update(
+      <String, dynamic>{'aktif': aktif},
+    );
   }
 
   // ------------------------------------------------------------- undangan
 
   Stream<List<UndanganPencatat>> undanganStream(String acaraId) {
-    return _acara
-        .doc(acaraId)
-        .collection('undanganPencatat')
-        .snapshots()
-        .map((qs) {
-          final daftar = qs.docs
-              .map(
-                (d) => UndanganPencatat.fromFirestore(d, acaraId: acaraId),
-              )
-              .toList();
-          daftar.sort((a, b) => a.prefix.compareTo(b.prefix));
-          return daftar;
-        });
+    return _acara.doc(acaraId).collection('undanganPencatat').snapshots().map((
+      qs,
+    ) {
+      final daftar = qs.docs
+          .map((d) => UndanganPencatat.fromFirestore(d, acaraId: acaraId))
+          .toList();
+      daftar.sort((a, b) => a.prefix.compareTo(b.prefix));
+      return daftar;
+    });
   }
 
   /// Daftarkan nama pencatat baru; prefix otomatis = huruf berikutnya
   /// setelah jumlah (pencatat terdaftar + undangan yang masih menunggu).
-  Future<UndanganPencatat> tambahUndangan(
-    String acaraId,
-    String nama,
-  ) async {
+  Future<UndanganPencatat> tambahUndangan(String acaraId, String nama) async {
     final namaBersih = nama.trim();
     if (namaBersih.isEmpty) {
       throw const LayananException('Nama pencatat belum diisi.');
@@ -207,8 +179,7 @@ class AcaraService {
     final refAcara = _acara.doc(acaraId);
 
     final snapPencatat = await refAcara.collection('pencatat').get();
-    final snapUndangan =
-        await refAcara.collection('undanganPencatat').get();
+    final snapUndangan = await refAcara.collection('undanganPencatat').get();
 
     final normalBaru = normalisasiNama(namaBersih);
     var jumlahTerpakai = snapPencatat.docs.length;
@@ -224,8 +195,7 @@ class AcaraService {
     }
     for (final doc in snapPencatat.docs) {
       final data = doc.data();
-      if (normalisasiNama((data['nama'] as String?) ?? '') ==
-          normalBaru) {
+      if (normalisasiNama((data['nama'] as String?) ?? '') == normalBaru) {
         throw LayananException(
           'Nama "$namaBersih" sudah bergabung sebagai pencatat.',
         );
@@ -296,10 +266,7 @@ class AcaraService {
     final refAcara = _acara.doc(acaraId);
     final snapUndangan = await refAcara
         .collection('undanganPencatat')
-        .where(
-          'namaNormalisasi',
-          isEqualTo: normalisasiNama(namaInput),
-        )
+        .where('namaNormalisasi', isEqualTo: normalisasiNama(namaInput))
         .where('status', isEqualTo: 'menunggu')
         .limit(1)
         .get();
@@ -322,10 +289,7 @@ class AcaraService {
     );
 
     final batch = _db.batch();
-    batch.set(
-      refAcara.collection('pencatat').doc(uid),
-      pencatat.toMap(),
-    );
+    batch.set(refAcara.collection('pencatat').doc(uid), pencatat.toMap());
     batch.update(docUndangan.reference, <String, dynamic>{
       'status': 'diklaim',
       'claimedBy': uid,

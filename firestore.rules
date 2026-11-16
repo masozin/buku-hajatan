@@ -1,0 +1,145 @@
+rules_version = '2';
+
+// =====================================================================
+// Buku Hajatan — Firestore Security Rules (Batch 1)
+// Tempel SELURUH isi file ini ke: Firebase Console > Firestore Database
+// > Rules > Edit rules > Publish.
+//
+// Prinsip (rancangan teknis §4, Auth Opsi A):
+// - Pemilik acara = user email/password; dokumen acara hanya bisa
+//   dibuat/diubah/dihapus oleh pemiliknya, dan akun ANONIM tidak boleh
+//   membuat acara.
+// - Pencatat = user anonim yang dokumen pencatatnya ber-ID = UID-nya
+//   di acara itu (acara/{id}/pencatat/{uid}); keanggotaan diperiksa
+//   dengan exists() sehingga tidak perlu query di dalam rules.
+// - kodeAcara/{kode}: hanya boleh dibaca SATU dokumen bila kodenya tahu
+//   (get), TIDAK boleh di-list — kode adalah kunci pencarian acara,
+//   pasangannya PIN di dalam dokumen yang sama.
+//
+// Batasan yang jujur (sudah dicatat di rancangan):
+// - Rules TIDAK bisa menghitung isi sub-collection, jadi aturan
+//   "maks 10 amplop per bundel" dijaga aplikasi, bukan di sini.
+// - Query daftar (list) untuk undangan & collectionGroup pencatat
+//   dibuka untuk pengguna yang sudah masuk; aplikasi yang menyaring
+//   tampilannya. Data yang bisa terbaca pihak ketiga lewat celah ini
+//   terbatas pada nama pencatat di acara yang ID-nya ia ketahui.
+// =====================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function sudahMasuk() {
+      return request.auth != null;
+    }
+
+    function bukanAnonim() {
+      return sudahMasuk()
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function pemilikAcara(acaraId) {
+      return sudahMasuk()
+        && get(/databases/$(database)/documents/acara/$(acaraId)).data.pemilikId
+            == request.auth.uid;
+    }
+
+    function pencatatAcara(acaraId) {
+      return sudahMasuk()
+        && exists(/databases/$(database)/documents/acara/$(acaraId)/pencatat/$(request.auth.uid));
+    }
+
+    // ------------------------------------------------------------ pemilik
+    match /pemilik/{uid} {
+      allow read, write: if sudahMasuk() && request.auth.uid == uid;
+    }
+
+    // ---------------------------------------------------------- kodeAcara
+    match /kodeAcara/{kode} {
+      allow get: if sudahMasuk();
+      allow list: if false;
+      allow create: if bukanAnonim()
+        && request.resource.data.pemilikId == request.auth.uid;
+      allow update, delete: if sudahMasuk()
+        && resource.data.pemilikId == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------- acara
+    match /acara/{acaraId} {
+      allow get: if sudahMasuk()
+        && (resource.data.pemilikId == request.auth.uid
+            || pencatatAcara(acaraId));
+      // list dipakai query "acara milik saya" (where pemilikId == uid);
+      // rules tidak bisa memeriksa isi query, jadi dibuka untuk yang
+      // sudah masuk — aplikasi menyaring berdasarkan pemilikId.
+      allow list: if sudahMasuk();
+      allow create: if bukanAnonim()
+        && request.resource.data.pemilikId == request.auth.uid;
+      allow update: if sudahMasuk()
+        && resource.data.pemilikId == request.auth.uid;
+      allow delete: if sudahMasuk()
+        && resource.data.pemilikId == request.auth.uid;
+
+      // -------------------------------------------------------- pencatat
+      match /pencatat/{uidPencatat} {
+        allow get: if pemilikAcara(acaraId)
+          || (sudahMasuk() && request.auth.uid == uidPencatat);
+        allow list: if sudahMasuk();
+        // Klaim undangan: pencatat membuat dokumennya sendiri,
+        // ID dokumen = UID-nya, dan field userId harus sama.
+        allow create: if sudahMasuk()
+          && request.auth.uid == uidPencatat
+          && request.resource.data.userId == request.auth.uid;
+        allow update: if pemilikAcara(acaraId)
+          || (sudahMasuk() && request.auth.uid == uidPencatat);
+        allow delete: if pemilikAcara(acaraId);
+      }
+
+      // ------------------------------------------------- undanganPencatat
+      match /undanganPencatat/{undanganId} {
+        allow get, list: if sudahMasuk();
+        allow create, delete: if pemilikAcara(acaraId);
+        // Pemilik bebas mengubah; pencatat hanya boleh mengubah status
+        // undangan MENJADI diklaim oleh dirinya sendiri.
+        allow update: if pemilikAcara(acaraId)
+          || (sudahMasuk()
+              && resource.data.status == 'menunggu'
+              && request.resource.data.status == 'diklaim'
+              && request.resource.data.claimedBy == request.auth.uid);
+      }
+
+      // ---------------------------------------------------------- bundel
+      // Dipakai mulai Batch 2; aturannya ditulis sekarang supaya
+      // struktur lengkap sejak awal.
+      match /bundel/{bundelId} {
+        allow get, list: if pemilikAcara(acaraId) || pencatatAcara(acaraId);
+        allow create: if pencatatAcara(acaraId)
+          && request.resource.data.pencatatId == request.auth.uid;
+        allow update: if pemilikAcara(acaraId)
+          || (pencatatAcara(acaraId)
+              && resource.data.pencatatId == request.auth.uid);
+        allow delete: if pemilikAcara(acaraId);
+
+        // -------------------------------------------------------- amplop
+        match /amplop/{amplopId} {
+          allow get, list: if pemilikAcara(acaraId)
+            || pencatatAcara(acaraId);
+          allow create: if pencatatAcara(acaraId)
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.nominal >= 0
+            && request.resource.data.jenis in ['normal', 'kosong', 'tanpa_nama']
+            && request.resource.data.urut >= 1
+            && request.resource.data.urut <= 10;
+          allow update, delete: if pemilikAcara(acaraId);
+        }
+      }
+    }
+
+    // ------------------------------------------- collectionGroup pencatat
+    // Untuk daftar "acara yang saya ikuti": query collectionGroup ke
+    // semua sub-koleksi pencatat berdasarkan field userId.
+    match /{path=**}/pencatat/{uidPencatat} {
+      allow get, list: if sudahMasuk()
+        && resource.data.userId == request.auth.uid;
+    }
+  }
+}

@@ -15,9 +15,7 @@ class Pemilik {
   final String? noHp;
   final DateTime? createdAt;
 
-  factory Pemilik.fromFirestore(
-    DocumentSnapshot<Map<String, dynamic>> doc,
-  ) {
+  factory Pemilik.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? const <String, dynamic>{};
     return Pemilik(
       id: doc.id,

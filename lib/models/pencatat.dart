@@ -43,8 +43,7 @@ class Pencatat {
       userId: (data['userId'] as String?) ?? doc.id,
       nama: (data['nama'] as String?) ?? '',
       prefix: (data['prefix'] as String?) ?? '',
-      nomorBundelTerakhir:
-          (data['nomorBundelTerakhir'] as num?)?.toInt() ?? 0,
+      nomorBundelTerakhir: (data['nomorBundelTerakhir'] as num?)?.toInt() ?? 0,
       aktif: (data['aktif'] as bool?) ?? true,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
