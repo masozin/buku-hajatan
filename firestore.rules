@@ -74,8 +74,24 @@ service cloud.firestore {
       allow list: if sudahMasuk();
       allow create: if bukanAnonim()
         && request.resource.data.pemilikId == request.auth.uid;
+      // Pemilik bebas mengubah. Pencatat BOLEH mengubah, tapi HANYA
+      // agregat hitungannya (Batch 2: tiap amplop menaikkan totalAmplop
+      // / totalRp / totalBundel dalam batch tulis yang sama) dan HANYA
+      // selama acara masih aktif — field lain (pemilik, nama, status,
+      // kode gabung, ...) tidak boleh disentuh pencatat.
       allow update: if sudahMasuk()
-        && resource.data.pemilikId == request.auth.uid;
+        && (resource.data.pemilikId == request.auth.uid
+            || (pencatatAcara(acaraId)
+                && resource.data.status == 'aktif'
+                && request.resource.data
+                    .diff(resource.data)
+                    .changedKeys()
+                    .hasOnly([
+                      'totalAmplop',
+                      'totalRp',
+                      'totalBundel',
+                      'updatedAt',
+                    ])));
       allow delete: if sudahMasuk()
         && resource.data.pemilikId == request.auth.uid;
 
@@ -108,8 +124,8 @@ service cloud.firestore {
       }
 
       // ---------------------------------------------------------- bundel
-      // Dipakai mulai Batch 2; aturannya ditulis sekarang supaya
-      // struktur lengkap sejak awal.
+      // Dipakai sejak Batch 2 (pencatatan hari-H); aturannya ditulis
+      // di Batch 1 supaya struktur lengkap sejak awal.
       match /bundel/{bundelId} {
         allow get, list: if pemilikAcara(acaraId) || pencatatAcara(acaraId);
         allow create: if pencatatAcara(acaraId)
