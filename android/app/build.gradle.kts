@@ -4,8 +4,16 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Plugin google-services HANYA dipakai bila file google-services.json sudah
+// ada di folder ini (diunduh Mark dari Firebase Console). Tanpa file itu
+// build tetap jalan, dan aplikasi menampilkan layar "Firebase belum
+// dikonfigurasi" — lihat lib/screens/belum_konfigurasi.dart.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
-    namespace = "com.example.buku_hajatan"
+    namespace = "id.my.ozinsq.bukuhajatan"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +24,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.buku_hajatan"
+        applicationId = "id.my.ozinsq.bukuhajatan"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

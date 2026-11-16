@@ -46,3 +46,8 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Firebase — file konfigurasi berisi identitas project; repo ini publik,
+# jadi TIDAK di-commit. Letakkan salinannya secara lokal di tiap mesin build.
+**/google-services.json
+**/GoogleService-Info.plist
