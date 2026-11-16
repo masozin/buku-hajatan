@@ -7,6 +7,7 @@ import 'services/admin_service.dart';
 import 'services/auth_service.dart';
 import 'services/ekspor_service.dart';
 import 'services/pencatatan_service.dart';
+import 'services/provisioning_service.dart';
 import 'services/rekap_service.dart';
 
 /// Inisialisasi Firebase. Gagal (error) berarti google-services.json
@@ -29,6 +30,10 @@ final rekapServiceProvider = Provider<RekapService>((ref) => RekapService());
 final eksporServiceProvider = Provider<EksporService>((ref) => EksporService());
 
 final adminServiceProvider = Provider<AdminService>((ref) => AdminService());
+
+final provisioningServiceProvider = Provider<ProvisioningService>(
+  (ref) => ProvisioningService(),
+);
 
 /// True bila pengguna yang sedang masuk adalah admin platform
 /// (dokumen `admin/{uid}` ada). Sesi anonim tidak pernah admin.

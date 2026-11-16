@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
 import '../core/kode.dart';
+import '../models/pemilik.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../widgets/keadaan.dart';
@@ -16,10 +17,25 @@ const List<String> pilihanJenisAcara = [
   'Lainnya',
 ];
 
-/// Form buat acara baru (khusus pemilik). Kode gabung dibuat otomatis
-/// di server; PIN gabung disiapkan di sini (bisa diganti pemilik).
+/// Form buat acara baru. Kode gabung dibuat otomatis di server;
+/// PIN gabung disiapkan di sini.
+///
+/// Sejak Batch 5 pembuatan acara adalah pekerjaan ADMIN: dengan
+/// [modeAdmin] form ini memilih pemilik tujuan (atau terkunci ke
+/// [pemilikTetap] bila dibuka dari kartu pemilik tertentu). Tanpa
+/// modeAdmin, acara dibuat untuk pengguna yang sedang masuk
+/// (jalur lama — kini tidak lagi ditautkan dari UI pemilik).
 class BuatAcaraScreen extends ConsumerStatefulWidget {
-  const BuatAcaraScreen({super.key});
+  const BuatAcaraScreen({
+    super.key,
+    this.modeAdmin = false,
+    this.pemilikTetap,
+    this.namaPemilikTetap,
+  });
+
+  final bool modeAdmin;
+  final String? pemilikTetap;
+  final String? namaPemilikTetap;
 
   @override
   ConsumerState<BuatAcaraScreen> createState() => _BuatAcaraScreenState();
@@ -34,6 +50,9 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
   DateTime _tanggal = DateTime.now();
   bool _sibuk = false;
   String? _galat;
+
+  /// Pemilik tujuan yang dipilih admin (modeAdmin tanpa pemilikTetap).
+  String? _pemilikDipilih;
 
   @override
   void dispose() {
@@ -57,6 +76,15 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
   Future<void> _simpan() async {
     final pengguna = ref.read(statusPenggunaProvider).valueOrNull;
     if (pengguna == null) return;
+    // Tujuan acara: pemilik terkunci (dari kartu pemilik) > pilihan
+    // dropdown admin > pengguna sendiri (jalur lama non-admin).
+    final pemilikTujuan =
+        widget.pemilikTetap ??
+        (widget.modeAdmin ? _pemilikDipilih : pengguna.uid);
+    if (pemilikTujuan == null) {
+      setState(() => _galat = 'Pilih dulu pemilik untuk acara ini.');
+      return;
+    }
     if (_namaAcara.text.trim().isEmpty || _tuanRumah.text.trim().isEmpty) {
       setState(() => _galat = 'Nama acara dan tuan rumah wajib diisi.');
       return;
@@ -73,7 +101,7 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
       final acara = await ref
           .read(acaraServiceProvider)
           .buatAcara(
-            pemilikId: pengguna.uid,
+            pemilikId: pemilikTujuan,
             namaAcara: _namaAcara.text,
             tuanRumah: _tuanRumah.text,
             jenis: _jenis,
@@ -104,12 +132,55 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Buat Acara')),
+      appBar: AppBar(
+        title: Text(
+          widget.modeAdmin ? 'Buat Acara untuk Pemilik' : 'Buat Acara',
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (widget.modeAdmin) ...[
+              if (widget.pemilikTetap != null)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.person_outline),
+                  title: const Text('Acara untuk pemilik'),
+                  subtitle: Text(widget.namaPemilikTetap ?? ''),
+                )
+              else
+                StreamBuilder<List<Pemilik>>(
+                  stream: ref
+                      .watch(adminServiceProvider)
+                      .semuaPemilikStream(),
+                  builder: (context, snapshot) {
+                    final semua = snapshot.data ?? const <Pemilik>[];
+                    final aktif = semua.where((p) => !p.diblokir).toList();
+                    return DropdownButtonFormField<String>(
+                      initialValue: _pemilikDipilih,
+                      items: aktif
+                          .map(
+                            (p) => DropdownMenuItem(
+                              value: p.id,
+                              child: Text(
+                                p.nama.isEmpty ? '(tanpa nama)' : p.nama,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) =>
+                          setState(() => _pemilikDipilih = v),
+                      decoration: const InputDecoration(
+                        labelText: 'Pemilik Acara',
+                        border: OutlineInputBorder(),
+                      ),
+                    );
+                  },
+                ),
+              const SizedBox(height: 12),
+            ],
             TextField(
               controller: _namaAcara,
               textCapitalization: TextCapitalization.sentences,
