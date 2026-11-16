@@ -7,6 +7,7 @@ import 'screens/belum_konfigurasi.dart';
 import 'screens/daftar_acara.dart';
 import 'screens/diblokir.dart';
 import 'screens/masuk.dart';
+import 'screens/panel_admin.dart';
 import 'widgets/keadaan.dart';
 
 Future<void> main() async {
@@ -47,6 +48,7 @@ class BukuHajatanApp extends ConsumerWidget {
 
 /// Gerbang kedua untuk sesi pemilik: pemilik yang diblokir admin
 /// (Batch 4) melihat layar pemberitahuan, bukan daftar acaranya.
+/// Admin (Batch 6) langsung masuk ke Panel Admin sebagai beranda.
 /// Galat baca profil TIDAK mengunci pemilik — tetap diteruskan.
 class _GerbangPemilik extends ConsumerWidget {
   const _GerbangPemilik({required this.uid});
@@ -68,6 +70,9 @@ class _GerbangPemilik extends ConsumerWidget {
         if (pemilik != null && pemilik.diblokir) {
           return const DiblokirScreen();
         }
+        final adalahAdmin =
+            ref.watch(statusAdminProvider).valueOrNull ?? false;
+        if (adalahAdmin) return const PanelAdminScreen();
         return const DaftarAcaraScreen();
       },
     );

@@ -8,6 +8,7 @@ import '../models/pemilik.dart';
 import '../providers.dart';
 import '../widgets/keadaan.dart';
 import 'buat_acara.dart';
+import 'daftar_acara.dart';
 import 'tambah_pemilik.dart';
 
 /// Panel Admin platform (Batch 4) — hanya terbuka untuk akun admin
@@ -30,7 +31,29 @@ class PanelAdminScreen extends ConsumerWidget {
     }
     final admin = ref.watch(adminServiceProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Panel Admin')),
+      appBar: AppBar(
+        title: const Text('Panel Admin'),
+        actions: [
+          // Panel ini beranda utama admin (Batch 6) — sediakan jalan
+          // ke tampilan pemilik & keluar dari sini juga.
+          IconButton(
+            icon: const Icon(Icons.home_outlined),
+            tooltip: 'Tampilan Pemilik',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const DaftarAcaraScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Keluar',
+            onPressed: () => _konfirmasiKeluar(context, ref),
+          ),
+        ],
+      ),
       body: StreamBuilder<List<Pemilik>>(
         stream: admin.semuaPemilikStream(),
         builder: (context, snapPemilik) {
@@ -127,6 +150,31 @@ class PanelAdminScreen extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  Future<void> _konfirmasiKeluar(BuildContext context, WidgetRef ref) async {
+    final yakin = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Keluar dari Buku Hajatan?'),
+        content: const Text(
+          'Kamu akan keluar dari sesi admin ini.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Keluar'),
+          ),
+        ],
+      ),
+    );
+    if (yakin == true) {
+      await ref.read(authServiceProvider).keluar();
+    }
   }
 
   String _namaPemilik(List<Pemilik> pemilik, String uid) {

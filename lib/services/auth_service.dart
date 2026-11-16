@@ -114,6 +114,18 @@ class AuthService {
 
   Future<void> keluar() => _auth.signOut();
 
+  /// Kirim email atur ulang kata sandi (Batch 6). Dipakai admin dari
+  /// Detail Pemilik dan pemilik sendiri dari layar Masuk ("Lupa kata
+  /// sandi?"). Firebase yang mengirim emailnya; pemilik mengikuti
+  /// tautan di email untuk membuat sandi baru.
+  Future<void> kirimResetSandi(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+    } on FirebaseAuthException catch (e) {
+      throw LayananException(pesanGalatAuth(e));
+    }
+  }
+
   /// Terjemahkan kode galat Firebase Auth ke pesan Indonesia yang jelas.
   String pesanGalatAuth(FirebaseAuthException e) {
     switch (e.code) {
