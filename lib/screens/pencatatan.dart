@@ -173,7 +173,8 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    // ConsumerState.build hanya menerima context; ref adalah properti.
     final layanan = ref.watch(pencatatanServiceProvider);
     return Scaffold(
       appBar: AppBar(

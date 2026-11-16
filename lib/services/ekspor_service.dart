@@ -59,11 +59,11 @@ class EksporService {
     }
 
     tulisSel(0, 0, TextCellValue('BUKU HAJATAN — REKAP AMPLOP'), tebal: true);
-    tulisSel(0, 1, const TextCellValue('Acara'));
+    tulisSel(0, 1, TextCellValue('Acara'));
     tulisSel(1, 1, TextCellValue(acara.namaAcara));
-    tulisSel(0, 2, const TextCellValue('Tuan Rumah'));
+    tulisSel(0, 2, TextCellValue('Tuan Rumah'));
     tulisSel(1, 2, TextCellValue(acara.tuanRumah));
-    tulisSel(0, 3, const TextCellValue('Jenis / Tanggal'));
+    tulisSel(0, 3, TextCellValue('Jenis / Tanggal'));
     tulisSel(1, 3, TextCellValue('${acara.jenis} / $tanggalTeks'));
 
     const barisHeader = 5;
@@ -114,7 +114,7 @@ class EksporService {
     }
 
     r += 1;
-    tulisSel(2, r, const TextCellValue('TOTAL'), tebal: true);
+    tulisSel(2, r, TextCellValue('TOTAL'), tebal: true);
     tulisSel(4, r, IntCellValue(totalRp), tebal: true);
     r += 1;
     tulisSel(

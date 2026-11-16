@@ -248,7 +248,7 @@ class PencatatanService {
       throw const LayananException('Bundel ini milik pencatat lain.');
     }
     if (bundelPenuh(bundelKini.jumlahAmplop)) {
-      throw const LayananException(
+      throw LayananException(
         'Bundel ${bundelKini.kode} sudah penuh — buka bundel baru.',
       );
     }
