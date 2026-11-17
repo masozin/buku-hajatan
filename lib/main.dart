@@ -6,6 +6,7 @@ import 'providers.dart';
 import 'screens/belum_konfigurasi.dart';
 import 'screens/daftar_acara.dart';
 import 'screens/diblokir.dart';
+import 'screens/gabung_acara.dart';
 import 'screens/masuk.dart';
 import 'screens/panel_admin.dart';
 import 'widgets/keadaan.dart';
@@ -91,9 +92,88 @@ class _GerbangPengguna extends ConsumerWidget {
       data: (pengguna) {
         if (pengguna == null) return const MasukScreen();
         // Sesi anonim = pencatat; tidak ada profil pemilik & tidak
-        // bisa diblokir — langsung ke daftar acara.
-        if (pengguna.isAnonymous) return const DaftarAcaraScreen();
+        // bisa diblokir. Lewat gerbang pencatat dulu (lihat bawah).
+        if (pengguna.isAnonymous) return _GerbangPencatat(uid: pengguna.uid);
         return _GerbangPemilik(uid: pengguna.uid);
+      },
+    );
+  }
+}
+
+/// Gerbang sesi pencatat (perbaikan gabung, 2026-11-17).
+///
+/// BUG LAMA: form gabung di tab Pencatat masuk anonim DULU, gerbang
+/// langsung menukar layar Masuk dengan Daftar Acara begitu sesi
+/// muncul — form hancur sebelum langkah klaim undangan berjalan,
+/// klaim tidak pernah selesai dan galatnya (PIN salah dsb.) tidak
+/// pernah terlihat. Pencatat berakhir di beranda kosong.
+///
+/// SEKARANG: pencatat anonim yang BELUM mengikuti acara apa pun
+/// mendarat di form gabung sebagai berandanya (sesinya sudah aktif,
+/// form stabil, galat tampil normal). Begitu klaim berhasil, stream
+/// keikutsertaan terisi dan gerbang berpindah ke Daftar Acara
+/// dengan sendirinya.
+class _GerbangPencatat extends ConsumerWidget {
+  const _GerbangPencatat({required this.uid});
+
+  final String uid;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stream = ref.watch(acaraServiceProvider).acaraDiikutiStream(uid);
+    return StreamBuilder(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: TampilMuat());
+        }
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Buku Hajatan'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  tooltip: 'Keluar',
+                  onPressed: () =>
+                      ref.read(authServiceProvider).keluar(),
+                ),
+              ],
+            ),
+            body: TampilGalat(pesan: pesanDari(snapshot.error!)),
+          );
+        }
+        final daftar = snapshot.data ?? const [];
+        if (daftar.isNotEmpty) return const DaftarAcaraScreen();
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Gabung Acara'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.logout),
+                tooltip: 'Keluar',
+                onPressed: () => ref.read(authServiceProvider).keluar(),
+              ),
+            ],
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: GabungAcaraForm(
+              onBerhasil: (pencatat) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Selamat datang, ${pencatat.nama}. Kamu pencatat '
+                      'prefix ${pencatat.prefix}.',
+                    ),
+                  ),
+                );
+                // Gerbang berpindah ke Daftar Acara dengan sendirinya
+                // begitu stream keikutsertaan terisi.
+              },
+            ),
+          ),
+        );
       },
     );
   }

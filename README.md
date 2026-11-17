@@ -121,6 +121,28 @@ flutter run
   sesi anonim pencatat, karena itu beranda mereka). Rules TIDAK
   berubah di batch ini; tidak ada dependensi baru.
 
+- **Perbaikan gabung pencatat (2026-11-17)**: bug — gabung dari
+  tab Pencatat di layar Masuk tidak pernah berhasil diam-diam:
+  form masuk anonim dulu, gerbang langsung menukar layar ke
+  Daftar Acara begitu sesi muncul, form hancur sebelum klaim
+  undangan berjalan (dokumen pencatat tidak pernah dibuat, galat
+  tidak pernah tampil) sehingga beranda menyatakan "belum
+  mengikuti acara apa pun". Sekarang tab Pencatat hanya membuat
+  sesi anonim; pencatat yang belum mengikuti acara mendarat di
+  form gabung sebagai berandanya (galat PIN/nama tampil normal),
+  dan begitu klaim berhasil gerbang berpindah ke Daftar Acara
+  sendiri. Rules tidak berubah, tidak ada dependensi baru.
+
+## Cara uji perbaikan gabung
+
+1. Keluar dari semua sesi. Di layar Masuk, tab Pencatat → ketuk
+   **Masuk sebagai Pencatat** → kamu mendarat di form Gabung Acara.
+2. Isi kode + nama terdaftar + PIN yang BENAR → berhasil masuk,
+   acara tampil di beranda.
+3. Ulangi dari awal (keluar dulu) dengan PIN SALAH → pesan "PIN
+   acara salah." harus TAMPIL di form (tidak lagi hilang), dan
+   kamu tetap di form, bisa langsung betulkan.
+
 ## Cara uji Batch 7
 
 1. `flutter run` (tanpa tempel rules). Sebagai pencatat di acara

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../widgets/keadaan.dart';
-import 'gabung_acara.dart';
 
 /// Layar masuk: dua tab sesuai Auth Opsi A.
 /// - Pemilik: email + kata sandi. Sejak Batch 5 akun pemilik
@@ -41,24 +40,76 @@ class MasukScreen extends StatelessWidget {
   }
 }
 
-class _TabPencatat extends StatelessWidget {
+/// Tab Pencatat: tombol masuk anonim saja. Form kode+nama+PIN
+/// SENGAJA tidak ditaruh di sini lagi (perbaikan gabung
+/// 2026-11-17): form itu masuk anonim dulu baru mengklaim, dan
+/// gerbang menukar layar begitu sesi muncul — form hancur di tengah
+/// jalan dan klaim tidak pernah selesai. Sekarang: ketuk tombol →
+/// sesi anonim dibuat → gerbang menampilkan form gabung sebagai
+/// beranda pencatat (form stabil di sana, galat tampil normal).
+class _TabPencatat extends ConsumerStatefulWidget {
   const _TabPencatat();
 
   @override
+  ConsumerState<_TabPencatat> createState() => _TabPencatatState();
+}
+
+class _TabPencatatState extends ConsumerState<_TabPencatat> {
+  bool _sibuk = false;
+  String? _galat;
+
+  Future<void> _masuk() async {
+    setState(() {
+      _sibuk = true;
+      _galat = null;
+    });
+    try {
+      await ref.read(authServiceProvider).masukAnonim();
+      // Berhasil: gerbang berpindah ke form gabung pencatat.
+    } on LayananException catch (e) {
+      if (mounted) setState(() => _galat = e.pesan);
+    } catch (e) {
+      if (mounted) setState(() => _galat = pesanDari(e));
+    } finally {
+      if (mounted) setState(() => _sibuk = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GabungAcaraForm(
-      onBerhasil: (pencatat) {
-        // Status pengguna berubah (anonim) -> gerbang menampilkan
-        // Daftar Acara. Pesan sambutan ditampilkan dari sini.
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Selamat datang, ${pencatat.nama}. Kamu pencatat '
-              'prefix ${pencatat.prefix}.',
-            ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Untuk petugas pencatat amplop. Kamu akan diminta kode '
+            'acara, namamu (sesuai yang didaftarkan pemilik), dan PIN '
+            'acara di langkah berikutnya.',
           ),
-        );
-      },
+          if (_galat != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _galat!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _sibuk ? null : _masuk,
+            icon: _sibuk
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.badge_outlined),
+            label: const Text('Masuk sebagai Pencatat'),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -8,8 +8,12 @@ import '../services/layanan_exception.dart';
 import '../widgets/keadaan.dart';
 
 /// Form gabung pencatat (Opsi A): kode acara + nama (sesuai yang
-/// didaftarkan pemilik) + PIN acara. Dipakai di tab Pencatat pada layar
-/// Masuk dan sebagai layar tersendiri untuk gabung acara lain.
+/// didaftarkan pemilik) + PIN acara. Dipakai sebagai beranda
+/// pencatat anonim yang belum mengikuti acara (lewat gerbang di
+/// main.dart) dan sebagai layar tersendiri untuk gabung acara lain.
+/// TIDAK dipakai lagi di tab Pencatat layar Masuk — di sana sesi
+/// belum ada, dan masuk anonim di tengah form membuat gerbang
+/// menukar layar sebelum klaim selesai (bug gabung 2026-11-17).
 class GabungAcaraForm extends ConsumerStatefulWidget {
   const GabungAcaraForm({super.key, required this.onBerhasil});
 
@@ -39,17 +43,19 @@ class _GabungAcaraFormState extends ConsumerState<GabungAcaraForm> {
       _sibuk = true;
       _galat = null;
     });
+    // Ambil service SEBELUM await pertama: masukAnonim dapat memicu
+    // pergantian layar oleh gerbang, dan ref tidak boleh dipakai
+    // lagi setelah widget dilepas.
+    final auth = ref.read(authServiceProvider);
+    final acaraService = ref.read(acaraServiceProvider);
     try {
-      final auth = ref.read(authServiceProvider);
       final user = await auth.masukAnonim();
-      final pencatat = await ref
-          .read(acaraServiceProvider)
-          .gabungAcara(
-            uid: user.uid,
-            kodeInput: _kode.text,
-            namaInput: _nama.text,
-            pinInput: _pin.text,
-          );
+      final pencatat = await acaraService.gabungAcara(
+        uid: user.uid,
+        kodeInput: _kode.text,
+        namaInput: _nama.text,
+        pinInput: _pin.text,
+      );
       if (!mounted) return;
       widget.onBerhasil(pencatat);
     } on LayananException catch (e) {
