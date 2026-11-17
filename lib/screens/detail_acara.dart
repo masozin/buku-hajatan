@@ -178,11 +178,9 @@ class DetailAcaraScreen extends ConsumerWidget {
                 ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    _InfoAcara(acara: acara),
+                    _InfoAcara(acara: acara, tampilkanKode: true),
                     const SizedBox(height: 16),
                     _TotalAcara(acara: acara),
-                    const SizedBox(height: 16),
-                    _KartuKodeGabung(acara: acara),
                     const SizedBox(height: 16),
                     _KelolaPencatat(acara: acara),
                     const SizedBox(height: 16),
@@ -367,12 +365,26 @@ class _FabPencatat extends ConsumerWidget {
 }
 
 class _InfoAcara extends StatelessWidget {
-  const _InfoAcara({required this.acara});
+  const _InfoAcara({required this.acara, this.tampilkanKode = false});
 
   final Acara acara;
 
+  /// true hanya di halaman pemilik (Batch 13): kode gabung +
+  /// tombol salin tampil langsung di bawah tanggal acara, tanpa
+  /// dropdown dan tanpa keterangan tambahan.
+  final bool tampilkanKode;
+
+  void _salinKode(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: acara.kodeGabung));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Kode gabung tersalin: ${acara.kodeGabung}')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final skema = tema.colorScheme;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -414,6 +426,42 @@ class _InfoAcara extends StatelessWidget {
                 label: 'Lokasi',
                 nilai: acara.lokasi!,
               ),
+            if (tampilkanKode) ...[
+              const SizedBox(height: 8),
+              const Divider(),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(Icons.key_rounded, size: 20, color: skema.primary),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 92,
+                    child: Text(
+                      'Kode Gabung',
+                      style: tema.textTheme.bodySmall?.copyWith(
+                        color: skema.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      acara.kodeGabung,
+                      style: const TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_outlined),
+                    tooltip: 'Salin kode',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _salinKode(context),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -479,69 +527,6 @@ class _TotalAcara extends StatelessWidget {
   }
 }
 
-/// Kode gabung + PIN untuk dibagikan pemilik ke para pencatat,
-/// lengkap dengan tombol salin.
-class _KartuKodeGabung extends ConsumerWidget {
-  const _KartuKodeGabung({required this.acara});
-
-  final Acara acara;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Bisa dilipat (Batch 8): halaman Ringkasan lebih bersih —
-    // kode & PIN baru tampil saat pemilik mengetuk bagiannya.
-    return Card(
-      child: ExpansionTile(
-        leading: const Icon(Icons.key_outlined),
-        title: const Text('Kode Gabung & PIN Pencatat'),
-        subtitle: const Text('Ketuk untuk menampilkan'),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Bagikan kode ini hanya ke pencatat yang sudah kamu '
-                'daftarkan namanya di bagian Pencatat.',
-              ),
-              const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Kode: ${acara.kodeGabung}',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.copy_outlined),
-                  tooltip: 'Salin kode',
-                  onPressed: () => _salin(context, acara.kodeGabung),
-                ),
-              ],
-            ),
-            // Sejak Batch 10 pencatat masuk dengan PIN PRIBADI
-            // masing-masing (ada di bagian Pencatat), bukan lagi
-            // satu PIN acara bersama.
-            const Text(
-              'Pencatat masuk dengan kode ini + namanya + PIN '
-              'pribadinya masing-masing — PIN pribadi tiap pencatat '
-              'ada di bagian Pencatat di bawah.',
-            ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _salin(BuildContext context, String teks) {
-    Clipboard.setData(ClipboardData(text: teks));
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Tersalin: $teks')));
-  }
-}
-
 /// Kelola pencatat (pemilik): tambah nama (prefix otomatis),
 /// daftar undangan yang belum bergabung, daftar pencatat aktif.
 class _KelolaPencatat extends ConsumerStatefulWidget {
@@ -567,7 +552,7 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
 
   /// Reset sesi pencatat [p] (Batch 10): lepaskan kunci sesi dari
   /// perangkat yang sedang memegangnya, supaya ia bisa masuk dari
-  /// perangkat lain dengan nama + PIN pribadinya. Identitas dan
+  /// perangkat lain dengan nama + PIN-nya. Identitas dan
   /// semua data catatannya tetap menempel ke namanya.
   Future<void> _resetSesi(Pencatat p) async {
     final yakin = await showDialog<bool>(
@@ -577,7 +562,7 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
         content: Text(
           'Sesi ${p.nama} di perangkat yang sekarang memegangnya '
           'akan dilepas. Setelah itu ia bisa masuk dari perangkat '
-          'mana pun dengan namanya + PIN pribadinya.\n\n'
+          'mana pun dengan namanya + PIN-nya.\n\n'
           'Bundel & amplop yang sudah ${p.nama} catat TIDAK berubah '
           '— semua tetap atas namanya.',
         ),
@@ -614,7 +599,7 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
     }
   }
 
-  /// Dialog atur/ganti PIN pribadi untuk satu undangan (Batch 10).
+  /// Dialog atur/ganti PIN untuk satu undangan (Batch 10).
   Future<void> _aturPin({
     required String undanganId,
     required String nama,
@@ -624,12 +609,12 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
     final pinBaru = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('PIN pribadi $nama'),
+        title: Text('PIN $nama'),
         content: TextField(
           controller: kontrol,
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(
-            labelText: 'PIN pribadi (4–6 digit angka)',
+            labelText: 'PIN (4–6 digit angka)',
           ),
         ),
         actions: [
@@ -652,7 +637,7 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
           .aturPinPribadi(widget.acara.id, undanganId, pinBaru);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('PIN pribadi $nama diperbarui.')),
+        SnackBar(content: Text('PIN $nama diperbarui.')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -678,7 +663,7 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
         SnackBar(
           content: Text(
             '${undangan.nama} didaftarkan sebagai pencatat '
-            '${undangan.prefix} — PIN pribadinya: '
+            '${undangan.prefix} — PIN: '
             '${undangan.pinPribadi}. Bagikan ke orangnya.',
           ),
         ),
@@ -737,7 +722,7 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
               controller: _pinBaru,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'PIN pribadi pencatat baru '
+                labelText: 'PIN pencatat baru '
                     '(kosongkan = dibuatkan otomatis)',
               ),
             ),
@@ -759,10 +744,9 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                     for (final u in menunggu)
                       ListTile(
                         dense: true,
-                        leading: CircleAvatar(child: Text(u.prefix)),
                         title: Text(u.nama),
                         subtitle: Text(
-                          'PIN pribadi: ${u.pinPribadi ?? 'belum diatur'}'
+                          'PIN: ${u.pinPribadi ?? 'belum diatur'}'
                           ' • menunggu gabung',
                         ),
                         trailing: Row(
@@ -770,7 +754,7 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                           children: [
                             IconButton(
                               icon: const Icon(Icons.key_outlined),
-                              tooltip: 'Atur PIN pribadi',
+                              tooltip: 'Atur PIN',
                               onPressed: () => _aturPin(
                                 undanganId: u.id,
                                 nama: u.nama,
@@ -815,11 +799,10 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                     for (final p in daftar)
                       ListTile(
                         dense: true,
-                        leading: CircleAvatar(child: Text(p.prefix)),
                         title: Text(p.nama),
                         subtitle: Text(
                           'Bundel terakhir: ${p.nomorBundelTerakhir}'
-                          ' • PIN pribadi: ${p.pinPribadi ?? 'belum diatur'}'
+                          ' • PIN: ${p.pinPribadi ?? 'belum diatur'}'
                           '${p.uidAktif != null ? ' • sesi aktif di 1 perangkat' : ' • tidak sedang masuk'}',
                         ),
                         trailing: Row(
@@ -828,7 +811,7 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                             if (p.undanganId != null)
                               IconButton(
                                 icon: const Icon(Icons.key_outlined),
-                                tooltip: 'Atur PIN pribadi',
+                                tooltip: 'Atur PIN',
                                 onPressed: () => _aturPin(
                                   undanganId: p.undanganId!,
                                   nama: p.nama,
