@@ -20,11 +20,18 @@ import 'koreksi_amplop.dart';
 /// Sejak Batch 9 tiap baris bisa diketuk: muncul pratinjau data
 /// lengkapnya, dan bila acara sudah selesai pemilik dapat langsung
 /// mengedit amplop itu dari pratinjau (form koreksi Batch 6).
+///
+/// Sejak Batch 11 tab ini juga dipakai PENCATAT (modePencatat):
+/// semua pengunjung tetap terlihat, tetapi tombol Ubah di
+/// pratinjau hanya muncul untuk amplop inputannya SENDIRI dan
+/// hanya selama acara masih aktif (hak ubah pencatat, Batch 8).
 class DaftarPengunjungTab extends ConsumerStatefulWidget {
   const DaftarPengunjungTab({
     super.key,
     required this.acaraId,
     required this.sudahSelesai,
+    this.modePencatat = false,
+    this.pencatatIdSaya,
   });
 
   final String acaraId;
@@ -32,6 +39,14 @@ class DaftarPengunjungTab extends ConsumerStatefulWidget {
   /// true = acara sudah ditandai selesai → pratinjau menawarkan
   /// tombol Ubah (mode koreksi pemilik).
   final bool sudahSelesai;
+
+  /// true bila yang membuka adalah pencatat (Batch 11).
+  final bool modePencatat;
+
+  /// ID tetap pencatat yang membuka (mode pencatat) — penentu
+  /// amplop mana yang boleh ia ubah. Null = sesi tidak ditemukan,
+  /// tidak ada hak ubah sama sekali.
+  final String? pencatatIdSaya;
 
   @override
   ConsumerState<DaftarPengunjungTab> createState() =>
@@ -74,6 +89,18 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
     Bundel? bundel,
   ) async {
     final a = ditemukan.amplop;
+    // Hak ubah dari pratinjau:
+    // - Pemilik: hanya setelah acara selesai (koreksi, Batch 6/9).
+    // - Pencatat (Batch 11): hanya amplop inputannya sendiri dan
+    //   hanya selama acara aktif (Batch 8).
+    final milikSaya =
+        widget.pencatatIdSaya != null &&
+        a.createdBy == widget.pencatatIdSaya;
+    final bisaUbah =
+        bundel != null &&
+        (widget.modePencatat
+            ? (milikSaya && !widget.sudahSelesai)
+            : widget.sudahSelesai);
     final baris = <(String, String)>[
       ('Nominal', formatRupiah(a.nominal)),
       ('Bundel', '${ditemukan.kodeBundel} • nomor ${a.urut}'),
@@ -115,7 +142,18 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
                     ],
                   ),
                 ),
-              if (widget.sudahSelesai && bundel != null) ...[
+              if (widget.modePencatat && !bisaUbah) ...[
+                const SizedBox(height: 12),
+                Text(
+                  milikSaya
+                      ? 'Acara sudah selesai — perubahan data kini '
+                            'lewat pemilik acara.'
+                      : 'Ini catatan pencatat lain — kamu hanya bisa '
+                            'mengubah catatanmu sendiri.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+              if (bisaUbah) ...[
                 const SizedBox(height: 16),
                 FilledButton.icon(
                   onPressed: () => Navigator.of(context).pop(true),
@@ -135,6 +173,9 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
           acaraId: widget.acaraId,
           bundel: bundel,
           amplopLama: a,
+          // Mode pencatat: simpan lewat jalur ubah pencatat
+          // (Batch 8); pemilik membiarkannya null (jalur koreksi).
+          pencatatId: widget.modePencatat ? widget.pencatatIdSaya : null,
         ),
       ),
     );

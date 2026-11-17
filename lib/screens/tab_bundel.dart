@@ -20,16 +20,27 @@ import 'koreksi_amplop.dart';
 /// Setelah acara selesai, baris amplop di dalam dropdown ikut
 /// mendapat tombol ubah/hapus + tambah amplop (mode koreksi
 /// pemilik, sama seperti layar Isi Bundel).
+///
+/// Sejak Batch 11 tab ini juga dipakai PENCATAT: hanya bundel
+/// MILIKNYA yang tampil, dan selama acara aktif baris amplopnya
+/// mendapat tombol ubah (hak ubah pencatat, Batch 8 — tanpa
+/// hapus, tanpa tambah koreksi).
 class DaftarBundelTab extends ConsumerWidget {
-  const DaftarBundelTab({super.key, required this.acara});
+  const DaftarBundelTab({super.key, required this.acara, this.pencatatIdSaya});
 
   final Acara acara;
+
+  /// ID tetap pencatat yang membuka (Batch 11): non-null = mode
+  /// pencatat (hanya bundel miliknya). Null = mode pemilik.
+  final String? pencatatIdSaya;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final layanan = ref.watch(pencatatanServiceProvider);
     return StreamBuilder<List<Bundel>>(
-      stream: layanan.semuaBundelStream(acara.id),
+      stream: pencatatIdSaya == null
+          ? layanan.semuaBundelStream(acara.id)
+          : layanan.bundelPencatatStream(acara.id, pencatatIdSaya!),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const TampilMuat();
@@ -39,9 +50,12 @@ class DaftarBundelTab extends ConsumerWidget {
         }
         final daftar = snapshot.data ?? const <Bundel>[];
         if (daftar.isEmpty) {
-          return const TampilKosong(
-            teks: 'Belum ada bundel. Bundel pertama dibuat pencatat '
-                'saat mulai mencatat.',
+          return TampilKosong(
+            teks: pencatatIdSaya == null
+                ? 'Belum ada bundel. Bundel pertama dibuat pencatat '
+                      'saat mulai mencatat.'
+                : 'Belum ada bundel milikmu. Bundel pertama dibuat '
+                      'saat kamu mulai mencatat.',
             ikon: Icons.inventory_2_outlined,
           );
         }
@@ -70,7 +84,11 @@ class DaftarBundelTab extends ConsumerWidget {
                       '\nPencatat: ${namaPencatat[b.pencatatId] ?? '—'}',
                     ),
                     children: [
-                      _IsiBundelDropdown(acara: acara, bundel: b),
+                      _IsiBundelDropdown(
+                        acara: acara,
+                        bundel: b,
+                        pencatatIdSaya: pencatatIdSaya,
+                      ),
                     ],
                   ),
                 );
@@ -84,13 +102,21 @@ class DaftarBundelTab extends ConsumerWidget {
 }
 
 /// Isi satu dropdown bundel: daftar amplopnya (stream), plus —
-/// dalam mode koreksi (acara selesai) — aksi ubah/hapus per baris
-/// dan tambah amplop bila bundel belum penuh.
+/// dalam mode koreksi pemilik (acara selesai) — aksi ubah/hapus
+/// per baris dan tambah amplop bila bundel belum penuh. Dalam
+/// mode pencatat (Batch 11): tombol ubah saja, selama acara aktif.
 class _IsiBundelDropdown extends ConsumerWidget {
-  const _IsiBundelDropdown({required this.acara, required this.bundel});
+  const _IsiBundelDropdown({
+    required this.acara,
+    required this.bundel,
+    this.pencatatIdSaya,
+  });
 
   final Acara acara;
   final Bundel bundel;
+
+  /// Non-null = mode pencatat (Batch 11).
+  final String? pencatatIdSaya;
 
   Future<void> _hapus(
     BuildContext context,
@@ -150,7 +176,11 @@ class _IsiBundelDropdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bisaKoreksi = acara.sudahSelesai;
+    // Pemilik: koreksi penuh setelah acara selesai. Pencatat:
+    // ubah amplop di bundel miliknya selama acara aktif (Batch 8).
+    final bisaKoreksi = pencatatIdSaya == null && acara.sudahSelesai;
+    final bisaUbahPencatat =
+        pencatatIdSaya != null && !acara.sudahSelesai;
     return StreamBuilder<List<AmplopTercatat>>(
       stream: ref
           .watch(pencatatanServiceProvider)
@@ -187,6 +217,19 @@ class _IsiBundelDropdown extends ConsumerWidget {
                               acaraId: acara.id,
                               bundel: bundel,
                               amplopLama: tercatat.amplop,
+                            ),
+                          ),
+                        );
+                      }
+                    : bisaUbahPencatat
+                    ? () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => KoreksiAmplopScreen(
+                              acaraId: acara.id,
+                              bundel: bundel,
+                              amplopLama: tercatat.amplop,
+                              pencatatId: pencatatIdSaya,
                             ),
                           ),
                         );
