@@ -172,10 +172,10 @@ class DetailAcaraScreen extends ConsumerWidget {
               ),
             ),
             floatingActionButton: acara.sudahSelesai
-                ? FloatingActionButton.extended(
+                ? FloatingActionButton(
                     onPressed: () => _catatKoreksi(context, ref, acara),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Catat Koreksi'),
+                    tooltip: 'Catat Koreksi',
+                    child: const Icon(Icons.edit_note_rounded),
                   )
                 : null,
             body: TabBarView(
@@ -841,18 +841,62 @@ class _TombolStatus extends ConsumerWidget {
 
   final Acara acara;
 
+  /// Batch 20: ganti status selalu lewat dialog penjelasan dulu —
+  /// pemilik tahu persis apa yang berubah sebelum menekan tombol.
+  Future<void> _konfirmasi(BuildContext context, WidgetRef ref) async {
+    final selesai = acara.sudahSelesai;
+    final yakin = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          selesai ? 'Aktifkan kembali acara?' : 'Tandai acara selesai?',
+        ),
+        content: Text(
+          selesai
+              ? 'Setelah acara aktif lagi:\n\n'
+                    '• Pencatat bisa kembali mencatat dan mengubah '
+                    'inputannya sendiri.\n'
+                    '• Koreksi oleh pemilik DITUTUP — tambah, ubah, '
+                    'dan hapus pengunjung tidak bisa sampai acara '
+                    'ditandai selesai lagi.\n\n'
+                    'Data yang sudah ada tidak berubah.'
+              : 'Setelah acara ditandai selesai:\n\n'
+                    '• Pencatat TIDAK bisa lagi mencatat atau '
+                    'mengubah catatannya.\n'
+                    '• Kamu bisa mengoreksi data: menambah, '
+                    'mengubah, dan menghapus pengunjung.\n'
+                    '• Pengunjung tambahan yang kamu catat masuk '
+                    'ke bundel khusus pemilik (kode PM001, PM002, '
+                    '…).\n'
+                    '• Rekap dan ekspor tetap bisa dibuka.\n\n'
+                    'Acara bisa diaktifkan kembali kapan pun.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(selesai ? 'Aktifkan' : 'Tandai Selesai'),
+          ),
+        ],
+      ),
+    );
+    if (yakin != true) return;
+    await ref
+        .read(acaraServiceProvider)
+        .ubahStatusAcara(
+          acara.id,
+          selesai ? StatusAcara.aktif : StatusAcara.selesai,
+        );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selesai = acara.sudahSelesai;
     return OutlinedButton.icon(
-      onPressed: () {
-        ref
-            .read(acaraServiceProvider)
-            .ubahStatusAcara(
-              acara.id,
-              selesai ? StatusAcara.aktif : StatusAcara.selesai,
-            );
-      },
+      onPressed: () => _konfirmasi(context, ref),
       icon: Icon(selesai ? Icons.replay_outlined : Icons.done_all),
       label: Text(selesai ? 'Aktifkan Kembali' : 'Tandai Acara Selesai'),
     );
