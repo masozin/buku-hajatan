@@ -547,3 +547,44 @@ perubahan rules, data, atau dependensi.** Isinya:
 4. Tab Pengunjung: bawaan Terbaru, ada urutan Desa; barisnya
    ringkas dengan kode-urut + jam di kanan. Tab Bundel: kepala
    dropdown ringkas seperti di atas.
+
+## Batch 14 — Form gabung di tab + perbaikan kolom isian
+
+**Tidak ada perubahan rules, data, atau dependensi.**
+
+1. **Login pencatat tanpa halaman baru:** form gabung (kode +
+   nama + PIN) kini LANGSUNG di tab Pencatat pada layar Masuk.
+   Gerbang menahan sesi anonim yang belum mengikuti acara di
+   layar Masuk (tab Pencatat terbuka), jadi form tidak hancur
+   saat sesi dibuat — bug gabung lama tidak terulang. Di tab
+   yang sama ada tombol "Keluar sesi pencatat" untuk yang batal
+   bergabung.
+2. **Baris pengunjung tidak lagi meluap:** tulisan "bottom
+   overflowed" dari Batch 13 hilang — baris pengunjung memakai
+   tata letak bebas (bukan ListTile) sehingga kolom kanan
+   (nominal, kode-urut, waktu) muat berapa pun tingginya.
+3. **Kolom Dusun bertombol − / +:** tiap ketuk mengubah angka
+   sebanyak 1; dari kosong + mengisi 1, dari 1 − mengosongkan.
+   Berlaku di form catat dan form koreksi/ubah.
+4. **Sugesti alamat:** kolom Alamat menawarkan alamat yang
+   pernah dipakai DI ACARA ITU — mengetik "c" menampilkan
+   alamat berawalan c (atau yang salah satu katanya berawalan
+   c, mis. "Cahya Tani"); ketuk untuk memakai. Alamat yang baru
+   disimpan langsung ikut menjadi sugesti berikutnya.
+5. **Nominal dalam ribu saat input:** di form Catat Amplop dan
+   form Tambah (koreksi), nominal diketik dalam ribu — 50
+   berarti Rp 50.000 — dengan pratinjau "= Rp 50.000" di bawah
+   kolom. Form UBAH tetap memakai angka penuh seperti biasa.
+
+## Cara uji Batch 14
+
+1. Keluar total, buka tab Pencatat: form gabung langsung ada
+   di sana. Isi dengan PIN salah → pesan galat tampil di form;
+   betulkan → berhasil masuk.
+2. Tab Pengunjung: tidak ada lagi tulisan overflow; alamat
+   tampil di bawah nama untuk amplop yang alamatnya terisi.
+3. Form catat: tombol − / + di kolom Dusun bekerja; ketik "c"
+   di Alamat → sugesti alamat acara muncul; ketik nominal 50 →
+   pratinjau "= Rp 50.000" dan hasil simpan Rp 50.000.
+4. Buka form Ubah Amplop: nominal tampil & tersimpan sebagai
+   angka penuh (tidak dikali 1000).

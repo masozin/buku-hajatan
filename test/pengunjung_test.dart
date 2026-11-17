@@ -154,6 +154,46 @@ void main() {
 
   });
 
+  group('sugesti alamat (Batch 14)', () {
+    test('daftarAlamatUnik menyaring duplikat tanpa peka huruf', () {
+      final dataSaran = [
+        bundelUji('A', 1, [
+          amplopUji(
+            urut: 1,
+            nama: 'X',
+            alamat: 'Cahya Tani',
+            nominal: 1000,
+          ),
+          amplopUji(
+            urut: 2,
+            nama: 'Y',
+            alamat: 'cahya tani',
+            nominal: 1000,
+          ),
+          amplopUji(urut: 3, nama: 'Z', alamat: '  ', nominal: 1000),
+          amplopUji(
+            urut: 4,
+            nama: 'W',
+            alamat: 'Baturaja',
+            nominal: 1000,
+          ),
+        ]),
+      ];
+      expect(daftarAlamatUnik(dataSaran), ['Baturaja', 'Cahya Tani']);
+    });
+
+    test('saringSaranAlamat cocok awalan alamat atau katanya', () {
+      const saran = ['Baturaja', 'Cahya Tani', 'Tani Baru'];
+      expect(saringSaranAlamat(saran, 'c'), ['Cahya Tani']);
+      expect(saringSaranAlamat(saran, 'tani'), [
+        'Cahya Tani',
+        'Tani Baru',
+      ]);
+      expect(saringSaranAlamat(saran, ''), isEmpty);
+      expect(saringSaranAlamat(saran, 'xyz'), isEmpty);
+    });
+  });
+
   group('formatWaktuKonteks', () {
     test('hari yang sama cukup jamnya', () {
       expect(
