@@ -143,6 +143,41 @@ flutter run
    acara salah." harus TAMPIL di form (tidak lagi hilang), dan
    kamu tetap di form, bisa langsung betulkan.
 
+## Batch 8 — Edit oleh penginput, masuk langsung ke panel, halaman bersih
+
+**WAJIB tempel ulang `firestore.rules`** sesudah menerapkan patch
+ini (aturan ubah amplop berubah).
+
+1. **Tombol edit per amplop.** Pencatat kini bisa mengubah amplop
+   yang IA input sendiri selama acara masih aktif (pensil di tiap
+   baris pada layar Pencatatan dan di Isi Bundel miliknya) — untuk
+   membetulkan salah ketik di tempat. Total bundel & acara
+   menyesuaikan sebesar selisihnya. Hapus tetap tidak bisa untuk
+   pencatat. Sesudah acara selesai, hak ubah berpindah ke pemilik
+   (mode koreksi Batch 6, tidak berubah).
+2. **Pencatat langsung ke panelnya.** Pencatat yang hanya mengikuti
+   satu acara langsung masuk ke panel acara itu setelah masuk —
+   tidak perlu mengetuk daftar dulu. Mengikuti lebih dari satu
+   acara tetap memilih dari daftar. Panel pencatat kini punya
+   tombol Keluar sendiri.
+3. **Halaman pemilik lebih bersih.** Di tab Ringkasan, bagian
+   "Kode Gabung & PIN Pencatat" dan "Pencatat" sekarang terlipat —
+   ketuk judulnya untuk membuka isinya.
+
+## Cara uji Batch 8
+
+1. Sebagai pencatat di acara aktif: catat satu amplop, lalu ketuk
+   pensil di barisnya → ubah nominal/nama → tersimpan, dan total
+   bundel berubah sebesar selisihnya.
+2. Coba ubah amplop dari bundel pencatat LAIN (lewat Isi Bundel):
+   tidak ada tombol ubah.
+3. Keluar, lalu masuk lagi sebagai pencatat yang hanya ikut satu
+   acara: langsung tiba di panel acara itu.
+4. Sebagai pemilik: tab Ringkasan tampil ringkas; ketuk "Kode
+   Gabung & PIN Pencatat" dan "Pencatat" untuk membuka isinya.
+5. Tandai acara selesai: tombol ubah pencatat hilang; koreksi
+   pemilik berjalan seperti sebelumnya.
+
 ## Cara uji Batch 7
 
 1. `flutter run` (tanpa tempel rules). Sebagai pencatat di acara

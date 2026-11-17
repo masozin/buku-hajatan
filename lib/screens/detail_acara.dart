@@ -372,22 +372,23 @@ class _KartuKodeGabung extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Bisa dilipat (Batch 8): halaman Ringkasan lebih bersih —
+    // kode & PIN baru tampil saat pemilik mengetuk bagiannya.
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Kode Gabung Pencatat',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Bagikan kode + PIN ini hanya ke pencatat yang sudah '
-              'kamu daftarkan namanya di bawah.',
-            ),
-            const SizedBox(height: 12),
+      child: ExpansionTile(
+        leading: const Icon(Icons.key_outlined),
+        title: const Text('Kode Gabung & PIN Pencatat'),
+        subtitle: const Text('Ketuk untuk menampilkan'),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Bagikan kode + PIN ini hanya ke pencatat yang sudah '
+                'kamu daftarkan namanya di bagian Pencatat.',
+              ),
+              const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -427,8 +428,9 @@ class _KartuKodeGabung extends ConsumerWidget {
                 );
               },
             ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -495,14 +497,18 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
   @override
   Widget build(BuildContext context) {
     final layanan = ref.watch(acaraServiceProvider);
+    // Bisa dilipat (Batch 8): form tambah + daftar pencatat baru
+    // tampil saat pemilik mengetuk bagiannya — Ringkasan bersih.
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Pencatat', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+      child: ExpansionTile(
+        leading: const Icon(Icons.badge_outlined),
+        title: const Text('Pencatat'),
+        subtitle: const Text('Ketuk untuk mengelola'),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               children: [
                 Expanded(
@@ -599,8 +605,9 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                 );
               },
             ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
