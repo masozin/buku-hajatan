@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/format.dart';
 import '../core/pencatatan.dart';
+import '../core/rekap.dart';
 import '../models/amplop.dart';
 import '../models/bundel.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../widgets/keadaan.dart';
+import '../widgets/kolom_form.dart';
 
 /// Form koreksi amplop oleh pemilik SETELAH acara selesai (Batch 6):
 /// tambah amplop yang terlewat, atau ubah amplop yang salah catat.
@@ -54,6 +57,9 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
   bool _sibuk = false;
   String? _galat;
 
+  /// Sugesti alamat untuk kolom Alamat (Batch 14).
+  List<String> _saranAlamat = const [];
+
   bool get _modeUbah => widget.amplopLama != null;
 
   @override
@@ -71,6 +77,20 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
     );
     _keterangan = TextEditingController(text: lama?.keterangan ?? '');
     _jenis = lama?.jenis ?? JenisAmplop.normal;
+    _muatSaranAlamat();
+  }
+
+  Future<void> _muatSaranAlamat() async {
+    try {
+      final data = await ref
+          .read(rekapServiceProvider)
+          .ambilDataLengkap(widget.acaraId);
+      if (mounted) {
+        setState(() => _saranAlamat = daftarAlamatUnik(data));
+      }
+    } catch (_) {
+      // Sugesti hanya pelengkap — abaikan bila gagal dimuat.
+    }
   }
 
   @override
@@ -84,7 +104,11 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
   }
 
   Future<void> _simpan() async {
-    final nominal = parseNominal(_nominal.text);
+    // Batch 14: mode TAMBAH mengetik nominal dalam ribu (dikali
+    // 1000); mode UBAH memakai angka apa adanya — sesuai
+    // permintaan Mark, perkalian hanya saat input baru.
+    final nominalMentah = parseNominal(_nominal.text);
+    final nominal = _modeUbah ? nominalMentah : nominalMentah * 1000;
     final galat = validasiAmplop(
       jenis: _jenis,
       nama: _nama.text,
@@ -269,34 +293,36 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _alamat,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Alamat',
-              ),
-            ),
+            KolomAlamat(controller: _alamat, saran: _saranAlamat),
             const SizedBox(height: 12),
-            TextField(
-              controller: _dusun,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'Dusun (angka, boleh kosong)',
-              ),
-            ),
+            KolomDusun(controller: _dusun),
             const SizedBox(height: 12),
-            TextField(
-              controller: _nominal,
-              enabled: !kosong,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: InputDecoration(
-                labelText: kosong
-                    ? 'Nominal (amplop kosong = Rp 0)'
-                    : 'Nominal (Rp)',
-                prefixText: kosong ? null : 'Rp ',
-              ),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _nominal,
+              builder: (context, nilaiTeks, _) {
+                final n = parseNominal(nilaiTeks.text);
+                return TextField(
+                  controller: _nominal,
+                  enabled: !kosong,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  decoration: InputDecoration(
+                    labelText: kosong
+                        ? 'Nominal (amplop kosong = Rp 0)'
+                        : _modeUbah
+                        ? 'Nominal (Rp)'
+                        : 'Nominal (ribu Rp)',
+                    prefixText: kosong ? null : 'Rp ',
+                    helperText: kosong || _modeUbah
+                        ? null
+                        : n > 0
+                        ? '= ${formatRupiah(n * 1000)}'
+                        : 'Ketik dalam ribu: 50 = Rp 50.000',
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 12),
             TextField(

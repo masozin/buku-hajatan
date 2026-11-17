@@ -241,3 +241,37 @@ List<AmplopDitemukan> cariDalamData(List<BundelTerisi> data, String kataKunci) {
   });
   return hasil;
 }
+
+/// Daftar alamat unik yang pernah dipakai di acara ini (Batch 14)
+/// — bahan sugesti kolom Alamat pada form pencatatan & koreksi.
+/// Duplikat disaring tanpa peka huruf (ejaan pertama yang
+/// menang), hasil terurut A–Z.
+List<String> daftarAlamatUnik(List<BundelTerisi> data) {
+  final terlihat = <String, String>{};
+  for (final bt in data) {
+    for (final a in bt.isi) {
+      final alamat = a.alamat?.trim() ?? '';
+      if (alamat.isEmpty) continue;
+      terlihat.putIfAbsent(normalisasiNama(alamat), () => alamat);
+    }
+  }
+  final hasil = terlihat.values.toList()
+    ..sort((x, y) => normalisasiNama(x).compareTo(normalisasiNama(y)));
+  return hasil;
+}
+
+/// Saring [saran] alamat untuk teks yang sedang diketik
+/// (Batch 14): cocok bila alamatnya — atau salah satu katanya —
+/// berawalan teks itu, tanpa peka huruf. Maksimal 8 sugesti.
+List<String> saringSaranAlamat(List<String> saran, String teks) {
+  final kunci = normalisasiNama(teks);
+  if (kunci.isEmpty) return const [];
+  return saran
+      .where((a) {
+        final na = normalisasiNama(a);
+        return na.startsWith(kunci) ||
+            na.split(' ').any((kata) => kata.startsWith(kunci));
+      })
+      .take(8)
+      .toList();
+}

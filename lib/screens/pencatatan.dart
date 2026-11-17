@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
+import '../core/kode.dart';
 import '../core/pencatatan.dart';
+import '../core/rekap.dart';
 import '../models/amplop.dart';
 import '../models/bundel.dart';
 import '../providers.dart';
@@ -12,6 +14,7 @@ import '../services/pencatatan_service.dart';
 import '../theme/tema_aplikasi.dart';
 import '../widgets/baris_amplop.dart';
 import '../widgets/keadaan.dart';
+import '../widgets/kolom_form.dart';
 import 'koreksi_amplop.dart';
 
 /// Layar utama pencatat di hari-H (Batch 2).
@@ -49,10 +52,30 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   var _sudahBuka = false;
   String? _galatBuka;
 
+  /// Sugesti alamat untuk kolom Alamat (Batch 14): alamat unik
+  /// yang pernah dipakai di acara ini.
+  List<String> _saranAlamat = const [];
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _bukaBundel());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _bukaBundel();
+      _muatSaranAlamat();
+    });
+  }
+
+  Future<void> _muatSaranAlamat() async {
+    try {
+      final data = await ref
+          .read(rekapServiceProvider)
+          .ambilDataLengkap(widget.acaraId);
+      if (mounted) {
+        setState(() => _saranAlamat = daftarAlamatUnik(data));
+      }
+    } catch (_) {
+      // Sugesti hanya pelengkap — abaikan bila gagal dimuat.
+    }
   }
 
   @override
@@ -99,7 +122,11 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   }
 
   Future<void> _simpan(Bundel bundel) async {
-    final nominal = parseNominal(_nominal.text);
+    // Batch 14: nominal diketik DALAM RIBU saat input (50 berarti
+    // Rp 50.000) — dikalikan 1000 di sini. (Form ubah/koreksi
+    // tidak memakai perkalian ini.)
+    final nominal = parseNominal(_nominal.text) * 1000;
+    final alamatDipakai = _alamat.text.trim();
     final galat = validasiAmplop(
       jenis: _jenis,
       nama: _nama.text,
@@ -125,6 +152,15 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
             nominal: nominal,
           );
       if (!mounted) return;
+      // Alamat yang baru dipakai ikut menjadi sugesti berikutnya.
+      if (alamatDipakai.isNotEmpty &&
+          !_saranAlamat.any(
+            (a) => normalisasiNama(a) == normalisasiNama(alamatDipakai),
+          )) {
+        _saranAlamat = [..._saranAlamat, alamatDipakai]..sort(
+          (x, y) => normalisasiNama(x).compareTo(normalisasiNama(y)),
+        );
+      }
       final namaTampil = _jenis == JenisAmplop.tanpaNama
           ? '(Tanpa Nama)'
           : _nama.text.trim();
@@ -254,6 +290,7 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                 keterangan: _keterangan,
                 fokusNama: _fokusNama,
                 sibuk: _sibuk,
+                saranAlamat: _saranAlamat,
                 onSimpan: () => _simpan(bundel),
               ),
               const SizedBox(height: 16),
@@ -462,6 +499,7 @@ class _FormAmplop extends StatelessWidget {
     required this.keterangan,
     required this.fokusNama,
     required this.sibuk,
+    required this.saranAlamat,
     required this.onSimpan,
   });
 
@@ -474,6 +512,9 @@ class _FormAmplop extends StatelessWidget {
   final TextEditingController keterangan;
   final FocusNode fokusNama;
   final bool sibuk;
+
+  /// Sugesti alamat acara ini (Batch 14).
+  final List<String> saranAlamat;
   final VoidCallback onSimpan;
 
   @override
@@ -516,39 +557,48 @@ class _FormAmplop extends StatelessWidget {
               onSubmitted: (_) => sibuk ? null : onSimpan(),
             ),
             const SizedBox(height: 12),
-            TextField(
+            KolomAlamat(
               controller: alamat,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Alamat',
-              ),
-              onSubmitted: (_) => sibuk ? null : onSimpan(),
+              saran: saranAlamat,
+              onSubmitted: () => sibuk ? null : onSimpan(),
             ),
             const SizedBox(height: 12),
-            TextField(
+            KolomDusun(
               controller: dusun,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'Dusun (angka, boleh kosong)',
-              ),
-              onSubmitted: (_) => sibuk ? null : onSimpan(),
+              onSubmitted: () => sibuk ? null : onSimpan(),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: nominal,
-              enabled: !kosong,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: const TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w700,
-              ),
-              decoration: InputDecoration(
-                labelText: kosong ? 'Nominal (amplop kosong = Rp 0)' : 'Nominal (Rp)',
-                prefixText: kosong ? null : 'Rp ',
-              ),
-              onSubmitted: (_) => sibuk ? null : onSimpan(),
+            // Batch 14: nominal diketik dalam ribu — tampilkan
+            // pratinjau hasil kalinya agar tidak salah tafsir.
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: nominal,
+              builder: (context, nilaiTeks, _) {
+                final n = parseNominal(nilaiTeks.text);
+                return TextField(
+                  controller: nominal,
+                  enabled: !kosong,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: kosong
+                        ? 'Nominal (amplop kosong = Rp 0)'
+                        : 'Nominal (ribu Rp)',
+                    prefixText: kosong ? null : 'Rp ',
+                    helperText: kosong
+                        ? null
+                        : n > 0
+                        ? '= ${formatRupiah(n * 1000)}'
+                        : 'Ketik dalam ribu: 50 = Rp 50.000',
+                  ),
+                  onSubmitted: (_) => sibuk ? null : onSimpan(),
+                );
+              },
             ),
             const SizedBox(height: 12),
             TextField(
