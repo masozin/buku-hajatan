@@ -196,7 +196,7 @@ class _Ringkasan extends StatelessWidget {
           children: [
             _Angka(label: 'Pemilik', nilai: '${ringkasan.totalPemilik}'),
             _Angka(label: 'Acara', nilai: '${ringkasan.totalAcara}'),
-            _Angka(label: 'Amplop', nilai: '${ringkasan.totalAmplop}'),
+            _Angka(label: 'Pengunjung', nilai: '${ringkasan.totalAmplop}'),
             _Angka(label: 'Total', nilai: formatRupiah(ringkasan.totalRp)),
           ],
         ),
@@ -327,7 +327,7 @@ class _KartuPemilik extends ConsumerWidget {
                 if (pemilik.email != null) pemilik.email!,
                 if (pemilik.noHp != null) pemilik.noHp!,
                 '${ringkasan.jumlahAcara} acara • ${ringkasan.totalAmplop} '
-                    'amplop • ${formatRupiah(ringkasan.totalRp)}',
+                    'pengunjung • ${formatRupiah(ringkasan.totalRp)}',
               ].join('\n'),
             ),
             trailing: pemilik.diblokir
@@ -395,7 +395,7 @@ class _BarisAcara extends StatelessWidget {
         subtitle: Text(
           'Pemilik: $namaPemilik\n'
           '${acara.jenis} • ${formatTanggal(acara.tanggal)} • '
-          '${acara.totalAmplop} amplop • ${acara.totalBundel} bundel • '
+          '${acara.totalAmplop} pengunjung • ${acara.totalBundel} bundel • '
           '${formatRupiah(acara.totalRp)}',
         ),
         isThreeLine: true,

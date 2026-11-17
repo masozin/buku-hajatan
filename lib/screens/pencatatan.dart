@@ -224,7 +224,7 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
     return Scaffold(
       // Batch 13: tombol "Daftar Bundel Saya" di sini dihapus —
       // fungsinya digantikan tab Bundel di Detail Acara.
-      appBar: AppBar(title: const Text('Mencatat Amplop')),
+      appBar: AppBar(title: const Text('Mencatat Pengunjung')),
       body: StreamBuilder<List<Bundel>>(
         stream: layanan.bundelPencatatStream(
           widget.acaraId,
@@ -322,7 +322,7 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                   if (isi.isEmpty) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text('Belum ada amplop di bundel ini.'),
+                      child: Text('Belum ada pengunjung di bundel ini.'),
                     );
                   }
                   return Card(
@@ -448,7 +448,7 @@ class _KartuBundelAktif extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  '${bundel.jumlahAmplop}/10 amplop',
+                  '${bundel.jumlahAmplop}/10 pengunjung',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -593,7 +593,7 @@ class _FormAmplop extends StatelessWidget {
                   ),
                   decoration: InputDecoration(
                     labelText: kosong
-                        ? 'Nominal (amplop kosong = Rp 0)'
+                        ? 'Nominal (kosong = Rp 0)'
                         : 'Nominal (ribu Rp)',
                     prefixText: kosong ? null : 'Rp ',
                     helperText: kosong
@@ -619,7 +619,7 @@ class _FormAmplop extends StatelessWidget {
             FilledButton.icon(
               onPressed: sibuk ? null : onSimpan,
               icon: const Icon(Icons.save_outlined),
-              label: const Text('Simpan Amplop'),
+              label: const Text('Simpan Pengunjung'),
             ),
           ],
         ),

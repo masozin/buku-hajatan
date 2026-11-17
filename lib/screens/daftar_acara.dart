@@ -291,7 +291,7 @@ class _KartuAcara extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '  •  ${acara.totalAmplop} amplop',
+                    '  •  ${acara.totalAmplop} pengunjung',
                     style: TextStyle(
                       fontSize: 13,
                       color: skema.onSurfaceVariant,
@@ -359,7 +359,7 @@ class _SapaanPemilik extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Kelola acara hajatanmu — pantau amplop masuk '
+              'Kelola acara hajatanmu — pantau pengunjung masuk '
               'secara realtime.',
               style: tema.textTheme.bodyMedium?.copyWith(
                 color: tema.colorScheme.onSurfaceVariant,

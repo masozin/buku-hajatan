@@ -143,7 +143,7 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
             );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Amplop diperbarui.')),
+          const SnackBar(content: Text('Pengunjung diperbarui.')),
         );
         Navigator.of(context).pop();
         return;
@@ -178,7 +178,7 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _modeUbah ? 'Amplop diperbarui.' : 'Amplop ditambahkan.',
+            _modeUbah ? 'Pengunjung diperbarui.' : 'Pengunjung ditambahkan.',
           ),
         ),
       );
@@ -205,7 +205,7 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
               ListTile(
                 leading: CircleAvatar(child: Text(b.prefix)),
                 title: Text('Bundel ${b.kode}'),
-                subtitle: Text('${b.jumlahAmplop}/10 amplop'),
+                subtitle: Text('${b.jumlahAmplop}/10 pengunjung'),
                 trailing: b.id == _bundel.id
                     ? const Icon(Icons.check)
                     : null,
@@ -226,8 +226,8 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
       appBar: AppBar(
         title: Text(
           _modeUbah
-              ? 'Ubah Amplop — Bundel ${_bundel.kode}'
-              : 'Tambah Amplop — Bundel ${_bundel.kode}',
+              ? 'Ubah Pengunjung — Bundel ${_bundel.kode}'
+              : 'Tambah Pengunjung — Bundel ${_bundel.kode}',
         ),
       ),
       body: SingleChildScrollView(
@@ -237,7 +237,7 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
           children: [
             Text(
               widget.pencatatId != null
-                  ? 'Kamu mengubah amplop yang kamu input sendiri. '
+                  ? 'Kamu mengubah pengunjung yang kamu input sendiri. '
                         'Perubahan langsung menyesuaikan total bundel '
                         '& acara.'
                   : 'Mode koreksi: perubahan langsung menyesuaikan total '
@@ -249,7 +249,7 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Amplop ini masuk ke bundel ${_bundel.kode} '
+                      'Pengunjung ini masuk ke bundel ${_bundel.kode} '
                       '(${_bundel.jumlahAmplop}/10).',
                     ),
                   ),
@@ -310,7 +310,7 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
                   ],
                   decoration: InputDecoration(
                     labelText: kosong
-                        ? 'Nominal (amplop kosong = Rp 0)'
+                        ? 'Nominal (kosong = Rp 0)'
                         : _modeUbah
                         ? 'Nominal (Rp)'
                         : 'Nominal (ribu Rp)',
@@ -351,7 +351,7 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save_outlined),
-              label: Text(_modeUbah ? 'Simpan Perubahan' : 'Tambah Amplop'),
+              label: Text(_modeUbah ? 'Simpan Perubahan' : 'Tambah Pengunjung'),
             ),
           ],
         ),

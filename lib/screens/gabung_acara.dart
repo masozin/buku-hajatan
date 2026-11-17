@@ -83,7 +83,7 @@ class _GabungAcaraFormState extends ConsumerState<GabungAcaraForm> {
       children: [
         if (widget.tampilkanPengantar) ...[
           const Text(
-            'Untuk petugas pencatat amplop. Kode acara & PIN '
+            'Untuk petugas pencatat pengunjung. Kode acara & PIN '
             'pribadimu didapat dari pemilik acara; namamu harus '
             'sudah didaftarkan pemilik acara.',
           ),

@@ -161,9 +161,9 @@ class _IsiBundelDropdown extends ConsumerWidget {
     final yakin = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Hapus amplop?'),
+        title: const Text('Hapus pengunjung?'),
         content: Text(
-          'Amplop ${amplop.tampilNama} (${formatRupiah(amplop.nominal)}) '
+          'Pengunjung ${amplop.tampilNama} (${formatRupiah(amplop.nominal)}) '
           'akan dihapus dari bundel ${bundel.kode}. Total bundel & '
           'acara ikut berkurang.',
         ),
@@ -190,7 +190,7 @@ class _IsiBundelDropdown extends ConsumerWidget {
           );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Amplop dihapus.')),
+          const SnackBar(content: Text('Pengunjung dihapus.')),
         );
       }
     } on LayananException catch (e) {
@@ -276,7 +276,7 @@ class _IsiBundelDropdown extends ConsumerWidget {
             if (bisaKoreksi && bundel.jumlahAmplop < 10)
               ListTile(
                 leading: const Icon(Icons.add_circle_outline),
-                title: const Text('Tambah amplop ke bundel ini'),
+                title: const Text('Tambah pengunjung ke bundel ini'),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(

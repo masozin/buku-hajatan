@@ -412,12 +412,12 @@ class PencatatanService {
     final refAmplop = refBundel.collection('amplop').doc(amplopLama.id);
     final docAmplop = await refAmplop.get();
     if (!docAmplop.exists) {
-      throw const LayananException('Amplop tidak ditemukan. Muat ulang.');
+      throw const LayananException('Pengunjung tidak ditemukan. Muat ulang.');
     }
     final tersimpan = Amplop.fromFirestore(docAmplop, bundelId: bundelId);
     if (tersimpan.createdBy != pencatatId) {
       throw const LayananException(
-        'Hanya pencatat yang menginput amplop ini yang boleh mengubahnya.',
+        'Hanya pencatat yang menginput pengunjung ini yang boleh mengubahnya.',
       );
     }
 

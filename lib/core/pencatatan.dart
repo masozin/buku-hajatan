@@ -26,19 +26,19 @@ String? validasiAmplop({
     case JenisAmplop.normal:
       if (nama.trim().isEmpty) return 'Nama tamu belum diisi.';
       if (nominal <= 0) {
-        return 'Nominal harus lebih dari Rp 0 untuk amplop normal.';
+        return 'Nominal harus lebih dari Rp 0 untuk jenis Normal.';
       }
       return null;
     case JenisAmplop.kosong:
       // Amplop kosong: nama tetap wajib (itu yang membedakannya dari
       // tanpa nama); nominal berapa pun akan dipaksa 0 saat disimpan.
       if (nama.trim().isEmpty) {
-        return 'Nama tamu belum diisi (amplop kosong tetap dicatat namanya).';
+        return 'Nama pengunjung belum diisi (yang kosong pun tetap dicatat namanya).';
       }
       return null;
     case JenisAmplop.tanpaNama:
       if (nominal <= 0) {
-        return 'Nominal harus diisi untuk amplop tanpa nama.';
+        return 'Nominal harus diisi untuk pengunjung tanpa nama.';
       }
       return null;
   }

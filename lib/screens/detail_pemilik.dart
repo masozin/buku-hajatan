@@ -62,7 +62,7 @@ class DetailPemilikScreen extends ConsumerWidget {
                             nilai: '${ringkasan.jumlahAcara}',
                           ),
                           _Angka(
-                            label: 'Amplop',
+                            label: 'Pengunjung',
                             nilai: '${ringkasan.totalAmplop}',
                           ),
                           _Angka(
@@ -296,7 +296,7 @@ class _BarisAcara extends StatelessWidget {
         title: Text(acara.namaAcara),
         subtitle: Text(
           '${acara.jenis} • ${formatTanggal(acara.tanggal)} • '
-          '${acara.totalAmplop} amplop • ${acara.totalBundel} bundel • '
+          '${acara.totalAmplop} pengunjung • ${acara.totalBundel} bundel • '
           '${formatRupiah(acara.totalRp)}\n'
           'Kode gabung: ${acara.kodeGabung}',
         ),

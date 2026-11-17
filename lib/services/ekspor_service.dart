@@ -30,12 +30,12 @@ class EksporService {
     final baris = buatBarisEkspor(data);
     if (baris.isEmpty) {
       throw const LayananException(
-        'Belum ada amplop tercatat — tidak ada yang bisa diekspor.',
+        'Belum ada pengunjung tercatat — tidak ada yang bisa diekspor.',
       );
     }
 
     final buku = Excel.createExcel();
-    final sheet = buku['Buku Amplop'];
+    final sheet = buku['Buku Pengunjung'];
     buku.delete('Sheet1');
 
     sheet.setColumnWidth(0, 13);
@@ -61,7 +61,7 @@ class EksporService {
       if (tebal) sel.cellStyle = CellStyle(bold: true);
     }
 
-    tulisSel(0, 0, TextCellValue('BUKU HAJATAN — REKAP AMPLOP'), tebal: true);
+    tulisSel(0, 0, TextCellValue('BUKU HAJATAN — REKAP PENGUNJUNG'), tebal: true);
     tulisSel(0, 1, TextCellValue('Acara'));
     tulisSel(1, 1, TextCellValue(acara.namaAcara));
     tulisSel(0, 2, TextCellValue('Tuan Rumah'));
@@ -134,7 +134,7 @@ class EksporService {
       2,
       r,
       TextCellValue(
-        'Jumlah amplop: ${baris.length} '
+        'Jumlah pengunjung: ${baris.length} '
         '(kosong: $jumlahKosong, tanpa nama: $jumlahTanpaNama)',
       ),
     );
@@ -149,7 +149,7 @@ class EksporService {
     );
     await Share.shareXFiles([
       XFile(file.path),
-    ], text: 'Rekap amplop acara ${acara.namaAcara} (Excel)');
+    ], text: 'Rekap pengunjung acara ${acara.namaAcara} (Excel)');
   }
 
   /// Buat file .csv lalu buka share sheet.
@@ -160,7 +160,7 @@ class EksporService {
     final baris = buatBarisEkspor(data);
     if (baris.isEmpty) {
       throw const LayananException(
-        'Belum ada amplop tercatat — tidak ada yang bisa diekspor.',
+        'Belum ada pengunjung tercatat — tidak ada yang bisa diekspor.',
       );
     }
     // BOM UTF-8 supaya Excel di Windows langsung membaca dengan benar.
@@ -171,7 +171,7 @@ class EksporService {
     );
     await Share.shareXFiles([
       XFile(file.path),
-    ], text: 'Rekap amplop acara ${acara.namaAcara} (CSV)');
+    ], text: 'Rekap pengunjung acara ${acara.namaAcara} (CSV)');
   }
 
   Future<File> _tulisFileSementara(String namaFile, List<int> bytes) async {

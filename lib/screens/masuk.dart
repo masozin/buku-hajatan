@@ -47,7 +47,7 @@ class MasukScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Text(
-                  'Buku tamu digital untuk amplop hajatan — rapi, '
+                  'Buku tamu digital untuk hajatan — rapi, '
                   'aman, dan tersinkron realtime.',
                   textAlign: TextAlign.center,
                   style: tema.textTheme.bodyMedium?.copyWith(
@@ -139,7 +139,7 @@ class _TabPencatat extends ConsumerWidget {
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
-                      'Untuk petugas pencatat amplop. Isi kode '
+                      'Untuk petugas pencatat pengunjung. Isi kode '
                       'acara, namamu (sesuai yang didaftarkan '
                       'pemilik), dan PIN-mu untuk bergabung.',
                     ),

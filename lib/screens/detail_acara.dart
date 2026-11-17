@@ -358,7 +358,7 @@ class _FabPencatat extends ConsumerWidget {
               ),
             );
           },
-          tooltip: 'Catat Amplop',
+          tooltip: 'Catat Pengunjung',
           child: const Icon(Icons.edit_note_rounded),
         );
       },
@@ -563,7 +563,7 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
           'Sesi ${p.nama} di perangkat yang sekarang memegangnya '
           'akan dilepas. Setelah itu ia bisa masuk dari perangkat '
           'mana pun dengan namanya + PIN-nya.\n\n'
-          'Bundel & amplop yang sudah ${p.nama} catat TIDAK berubah '
+          'Bundel & pengunjung yang sudah ${p.nama} catat TIDAK berubah '
           '— semua tetap atas namanya.',
         ),
         actions: [

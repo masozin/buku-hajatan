@@ -159,7 +159,7 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
                 FilledButton.icon(
                   onPressed: () => Navigator.of(context).pop(true),
                   icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Ubah Amplop'),
+                  label: const Text('Ubah Pengunjung'),
                 ),
               ],
             ],

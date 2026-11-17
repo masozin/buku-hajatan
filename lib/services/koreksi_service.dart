@@ -124,7 +124,7 @@ class KoreksiService {
     final bundel = (await _pastikanBolehKoreksi(acaraId, bundelId)).bundel;
     if (bundelPenuh(bundel.jumlahAmplop)) {
       throw const LayananException(
-        'Bundel ini sudah penuh (10 amplop) — tambah tidak tersedia. '
+        'Bundel ini sudah penuh (10 pengunjung) — tambah tidak tersedia. '
         'Pilih bundel lain yang belum penuh.',
       );
     }
@@ -142,7 +142,7 @@ class KoreksiService {
       ),
     );
     if (urut == null) {
-      throw const LayananException('Bundel ini sudah penuh (10 amplop).');
+      throw const LayananException('Bundel ini sudah penuh (10 pengunjung).');
     }
 
     final amplop = Amplop(
