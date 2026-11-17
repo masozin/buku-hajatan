@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'providers.dart';
+import 'theme/tema_aplikasi.dart';
 import 'screens/belum_konfigurasi.dart';
 import 'screens/daftar_acara.dart';
 import 'screens/detail_acara.dart';
@@ -34,10 +35,11 @@ class BukuHajatanApp extends ConsumerWidget {
     final inisialisasi = ref.watch(inisialisasiFirebaseProvider);
     return MaterialApp(
       title: 'Buku Hajatan',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF386641)),
-        useMaterial3: true,
-      ),
+      // Sistem desain Batch 12: tema zamrud & emas, terang dan
+      // gelap mengikuti setelan perangkat.
+      theme: TemaAplikasi.terang,
+      darkTheme: TemaAplikasi.gelap,
+      themeMode: ThemeMode.system,
       home: inisialisasi.when(
         loading: () => const Scaffold(body: TampilMuat()),
         error: (error, _) =>
