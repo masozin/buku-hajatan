@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
+import '../core/kode.dart';
 import '../models/acara.dart';
 import '../models/bundel.dart';
 import '../models/pencatat.dart';
@@ -89,7 +90,10 @@ class DaftarBundelTab extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Pencatat: ${namaPencatat[b.pencatatId] ?? '—'}',
+                            b.prefix == prefixBundelPemilik
+                                ? 'Pemilik acara'
+                                : 'Pencatat: '
+                                      '${namaPencatat[b.pencatatId] ?? '—'}',
                           ),
                           const SizedBox(height: 7),
                           Row(

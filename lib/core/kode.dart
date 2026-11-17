@@ -28,6 +28,14 @@ String buatKodeBundel(String prefix, int nomor) {
   return '$prefix${nomor.toString().padLeft(3, '0')}';
 }
 
+/// Prefix bundel KHUSUS PEMILIK (Batch 20): koreksi pemilik setelah
+/// acara selesai masuk ke bundelnya sendiri — kode `PM001`,
+/// `PM002`, … — tidak bercampur dengan bundel pencatat (A, B, C, …).
+/// Dua huruf ini praktis tidak akan bertabrakan dengan prefix
+/// pencatat: hurufPrefix baru menghasilkan "PM" untuk pencatat
+/// ke-429 dalam satu acara.
+const String prefixBundelPemilik = 'PM';
+
 /// Normalisasi nama untuk pencocokan klaim undangan pencatat:
 /// huruf kecil, spasi berlebih dibuang. "  Budi   Santoso " -> "budi santoso".
 String normalisasiNama(String nama) {

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../core/kode.dart';
 import '../core/koreksi.dart';
 import '../core/pencatatan.dart';
 import '../models/acara.dart';
@@ -52,6 +53,58 @@ class KoreksiService {
       acara: acara,
       bundel: Bundel.fromFirestore(docBundel, acaraId: acaraId),
     );
+  }
+
+  /// Bundel khusus PEMILIK untuk koreksi (Batch 20): cari bundel
+  /// ber-prefix PM yang belum penuh; bila belum ada atau yang
+  /// terakhir sudah penuh, buat bundel PM baru (nomor berikutnya)
+  /// dan naikkan totalBundel acara — dalam satu batch tulis.
+  /// Koreksi pemilik tidak lagi bercampur ke bundel pencatat.
+  Future<Bundel> bundelPemilikAcara(String acaraId, String pemilikId) async {
+    final docAcara = await _refAcara(acaraId).get();
+    if (!docAcara.exists) {
+      throw const LayananException('Acara tidak ditemukan.');
+    }
+    final acara = Acara.fromFirestore(docAcara);
+    if (!acara.sudahSelesai) {
+      throw const LayananException(
+        'Bundel pemilik hanya untuk koreksi setelah acara selesai.',
+      );
+    }
+    final snap = await _refAcara(acaraId)
+        .collection('bundel')
+        .where('prefix', isEqualTo: prefixBundelPemilik)
+        .get();
+    final daftar = snap.docs
+        .map((d) => Bundel.fromFirestore(d, acaraId: acaraId))
+        .toList();
+    var nomorTerbesar = 0;
+    Bundel? terpilih;
+    for (final b in daftar) {
+      if (b.nomor > nomorTerbesar) nomorTerbesar = b.nomor;
+      if (!bundelPenuh(b.jumlahAmplop) &&
+          (terpilih == null || b.nomor > terpilih.nomor)) {
+        terpilih = b;
+      }
+    }
+    if (terpilih != null) return terpilih;
+
+    final refBaru = _refAcara(acaraId).collection('bundel').doc();
+    final baru = Bundel(
+      id: refBaru.id,
+      acaraId: acaraId,
+      pencatatId: pemilikId,
+      prefix: prefixBundelPemilik,
+      nomor: nomorTerbesar + 1,
+    );
+    final batch = _db.batch();
+    batch.set(refBaru, baru.toMap());
+    batch.update(_refAcara(acaraId), <String, dynamic>{
+      'totalBundel': FieldValue.increment(1),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await batch.commit();
+    return baru;
   }
 
   /// Tambah satu amplop ke bundel yang belum penuh.

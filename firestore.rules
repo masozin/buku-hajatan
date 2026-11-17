@@ -246,8 +246,15 @@ service cloud.firestore {
       // di Batch 1 supaya struktur lengkap sejak awal.
       match /bundel/{bundelId} {
         allow get, list: if pemilikAcara(acaraId) || pencatatAcara(acaraId);
-        allow create: if pencatatAcara(acaraId)
-          && request.resource.data.pencatatId == idPencatatSaya(acaraId);
+        // Buat: pencatat untuk bundelnya sendiri; ATAU pemilik
+        // membuat BUNDEL KHUSUS PEMILIK (Batch 20 — prefix 'PM',
+        // pencatatId = UID pemilik) untuk koreksi setelah acara
+        // selesai.
+        allow create: if (pencatatAcara(acaraId)
+              && request.resource.data.pencatatId == idPencatatSaya(acaraId))
+          || (pemilikAcara(acaraId) && acaraSudahSelesai(acaraId)
+              && request.resource.data.pencatatId == request.auth.uid
+              && request.resource.data.prefix == 'PM');
         // Pemilik menyentuh bundel hanya untuk koreksi SETELAH acara
         // selesai (Batch 6); pencatat seperti biasa selama aktif.
         allow update: if (pemilikAcara(acaraId)

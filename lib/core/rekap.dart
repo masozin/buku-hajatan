@@ -50,9 +50,15 @@ List<RingkasanPencatat> ringkasPerPencatat(
   }
   for (final b in semuaBundel) {
     final lama = perId[b.pencatatId];
+    // Bundel khusus pemilik (Batch 20, prefix PM) tidak punya
+    // dokumen pencatat — tampil sebagai "Pemilik".
     final dasar =
         lama ??
-        RingkasanPencatat(pencatatId: b.pencatatId, nama: '', prefix: b.prefix);
+        RingkasanPencatat(
+          pencatatId: b.pencatatId,
+          nama: b.prefix == prefixBundelPemilik ? 'Pemilik' : '',
+          prefix: b.prefix,
+        );
     perId[b.pencatatId] = RingkasanPencatat(
       pencatatId: dasar.pencatatId,
       nama: dasar.nama,

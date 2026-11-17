@@ -219,63 +219,59 @@ class DetailAcaraScreen extends ConsumerWidget {
   }
 
   /// Pemilik mengetuk FAB "Catat Koreksi": LANGSUNG ke form tambah
-  /// amplop (perbaikan 2026-11-17 — sebelumnya pemilik disuruh
-  /// memilih bundel dulu, membingungkan). Bundel tujuan dipilih
-  /// otomatis: bundel belum penuh yang paling akhir dibuat, alias
-  /// biasanya bundel terakhir acara. Di dalam form pemilik masih
-  /// bisa mengganti bundel bila ada pilihan lain. Bila semua bundel
-  /// penuh, tampilkan penjelasan — amplop tidak bisa dicatat di
-  /// luar bundel (satu bundel = 10 amplop, sesuai sistem fisiknya).
+  /// pengunjung (perbaikan 2026-11-17 — sebelumnya pemilik disuruh
+  /// memilih bundel dulu, membingungkan).
+  ///
+  /// Batch 20: tujuan utama kini BUNDEL KHUSUS PEMILIK (prefix PM,
+  /// kode PM001, PM002, …) — dicari yang belum penuh, dibuat baru
+  /// bila belum ada atau yang terakhir sudah penuh, jadi koreksi
+  /// selalu punya tempat dan tidak bercampur ke bundel pencatat.
+  /// Di dalam form pemilik tetap bisa mengganti ke bundel lain
+  /// yang belum penuh.
   Future<void> _catatKoreksi(
     BuildContext context,
     WidgetRef ref,
     Acara acara,
   ) async {
-    final semua = await ref
-        .read(pencatatanServiceProvider)
-        .semuaBundelStream(acara.id)
-        .first;
-    final belumPenuh = semua.where((b) => b.jumlahAmplop < 10).toList();
-    belumPenuh.sort((a, b) {
-      final ta = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final tb = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final bandingWaktu = tb.compareTo(ta);
-      if (bandingWaktu != 0) return bandingWaktu;
-      final bandingPrefix = b.prefix.compareTo(a.prefix);
-      return bandingPrefix != 0
-          ? bandingPrefix
-          : b.nomor.compareTo(a.nomor);
-    });
-    if (!context.mounted) return;
-    if (belumPenuh.isEmpty) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Semua bundel sudah penuh'),
-          content: const Text(
-            'Setiap amplop harus masuk ke bundel berisi maksimal 10, '
-            'dan saat ini semua bundel acara ini sudah penuh (10/10), '
-            'jadi belum ada tempat untuk amplop tambahan.',
+    final pengguna = ref.read(statusPenggunaProvider).valueOrNull;
+    if (pengguna == null) return;
+    try {
+      final bundelPemilik = await ref
+          .read(koreksiServiceProvider)
+          .bundelPemilikAcara(acara.id, pengguna.uid);
+      final semua = await ref
+          .read(pencatatanServiceProvider)
+          .semuaBundelStream(acara.id)
+          .first;
+      final lain = semua
+          .where((b) => b.id != bundelPemilik.id && b.jumlahAmplop < 10)
+          .toList();
+      lain.sort((a, b) {
+        final ta = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final tb = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bandingWaktu = tb.compareTo(ta);
+        if (bandingWaktu != 0) return bandingWaktu;
+        final bandingPrefix = b.prefix.compareTo(a.prefix);
+        return bandingPrefix != 0
+            ? bandingPrefix
+            : b.nomor.compareTo(a.nomor);
+      });
+      if (!context.mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => KoreksiAmplopScreen(
+            acaraId: acara.id,
+            bundel: bundelPemilik,
+            bundelLain: lain,
           ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Mengerti'),
-            ),
-          ],
         ),
       );
-      return;
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(pesanDari(e))));
     }
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => KoreksiAmplopScreen(
-          acaraId: acara.id,
-          bundel: belumPenuh.first,
-          bundelLain: belumPenuh.skip(1).toList(),
-        ),
-      ),
-    );
   }
 }
 
