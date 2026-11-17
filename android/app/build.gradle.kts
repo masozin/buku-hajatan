@@ -12,6 +12,19 @@ if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
 }
 
+// Konfigurasi tanda tangan RILIS (Batch 22): dibaca dari
+// android/key.properties — file lokal pembuat rilis, TIDAK ikut
+// git (sudah di-.gitignore; lihat key.properties.example). Selama
+// file itu belum dibuat, build rilis tetap memakai kunci debug
+// supaya alur lama tidak rusak; begitu ada, semua build rilis
+// otomatis bertanda tangan keystore tersebut — kunci yang sama
+// inilah yang membuat pembaruan bisa dipasang menimpa versi lama.
+val keystoreProperties = java.util.Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "id.my.ozinsq.bukuhajatan"
     compileSdk = flutter.compileSdkVersion
@@ -37,11 +50,25 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String?
+            keyPassword = keystoreProperties["keyPassword"] as String?
+            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+            storePassword = keystoreProperties["storePassword"] as String?
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Batch 22: keystore rilis bila android/key.properties
+            // sudah dibuat; sebelum itu kunci debug (perilaku lama,
+            // supaya `flutter run --release` tetap jalan).
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

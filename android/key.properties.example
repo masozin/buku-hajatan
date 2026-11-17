@@ -1,0 +1,14 @@
+# Contoh konfigurasi tanda tangan rilis (Batch 22).
+#
+# Salin file ini menjadi "key.properties" (di folder android/ yang
+# sama), lalu isi sesuai keystore kamu. File key.properties TIDAK
+# ikut git (sudah di-.gitignore) dan TIDAK BOLEH dibagikan ke
+# siapa pun — isinya kata sandi keystore.
+#
+# storeFile: path file .jks kamu. Di Windows pakai garis miring
+# biasa (/) seperti contoh, jangan garis miring terbalik (\).
+
+storePassword=ISI_SANDI_KEYSTORE
+keyPassword=ISI_SANDI_KEYSTORE
+keyAlias=upload
+storeFile=D:/Flutter/buku-hajatan/android/upload-keystore.jks

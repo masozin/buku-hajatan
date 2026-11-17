@@ -784,3 +784,14 @@ utama** — tanpa itu APK rilis tidak bisa online sama sekali
    menawarkan versi 9.9.9; "Nanti Saja" menutupnya; buka lagi
    aplikasi dan ketuk "Unduh Sekarang" → browser membuka unduhan.
 4. Hapus release uji itu di GitHub → aplikasi kembali tenang.
+
+## Batch 22 — Tanda tangan rilis (keystore)
+
+Gradle kini membaca `android/key.properties` (lokal, tidak ikut
+git; contoh di `android/key.properties.example`): bila file itu
+ada, build rilis ditandatangani keystore tersebut; bila belum
+ada, tetap kunci debug seperti sebelumnya. Langkah membuat
+keystore + merilis ke GitHub Releases ada di panduan terpisah
+(panduan-rilis-github-buku-hajatan.md, dibagikan ke Mark).
+Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
+`flutter build apk --release` (satu file), bukan split per ABI.
