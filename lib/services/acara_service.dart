@@ -103,17 +103,24 @@ class AcaraService {
           for (final docPencatat in qs.docs) {
             final acaraRef = docPencatat.reference.parent.parent;
             if (acaraRef == null) continue;
-            final docAcara = await acaraRef.get();
-            if (!docAcara.exists) continue;
-            hasil.add(
-              Keikutsertaan(
-                acara: Acara.fromFirestore(docAcara),
-                pencatat: Pencatat.fromFirestore(
-                  docPencatat,
-                  acaraId: acaraRef.id,
+            // Satu acara yang gagal dibaca (mis. rules sesaat
+            // belum mengakui sesi) tidak boleh mematikan seluruh
+            // daftar — lewati; snapshot berikutnya memperbaikinya.
+            try {
+              final docAcara = await acaraRef.get();
+              if (!docAcara.exists) continue;
+              hasil.add(
+                Keikutsertaan(
+                  acara: Acara.fromFirestore(docAcara),
+                  pencatat: Pencatat.fromFirestore(
+                    docPencatat,
+                    acaraId: acaraRef.id,
+                  ),
                 ),
-              ),
-            );
+              );
+            } catch (_) {
+              continue;
+            }
           }
           hasil.sort((a, b) => a.acara.tanggal.compareTo(b.acara.tanggal));
           return hasil;
@@ -327,16 +334,21 @@ class AcaraService {
 
   // --------------------------------------------------------------- gabung
 
-  /// Daftarkan dokumen sesi perangkat ini untuk pencatat [pencatatId]
-  /// (idempoten — aman dipanggil berulang). Dokumen terpisah dari
-  /// batch klaim agar rules sesi selalu melihat dokumen pencatat
-  /// yang sudah tersimpan.
-  Future<void> _pastikanSesi(
+  /// Masukkan penulisan dokumen sesi perangkat ini ke dalam [batch]
+  /// yang sama dengan penulisan dokumen pencatatnya (perbaikan
+  /// Batch 10). WAJIB satu batch: keanggotaan pencatat — dokumen
+  /// pencatat + dokumen sesi — harus tampak oleh rules & stream
+  /// secara atomik. Bila sesi ditulis terpisah sesudahnya, ada
+  /// sesaat ketika dokumen pencatat sudah terbaca stream tetapi
+  /// rules belum mengakui sesi → baca acara ditolak
+  /// (permission-denied) tepat setelah gabung.
+  void _tambahSesiKeBatch(
+    WriteBatch batch,
     String acaraId,
     String uid,
     String pencatatId,
-  ) async {
-    await _refSesi(acaraId, uid).set(<String, dynamic>{
+  ) {
+    batch.set(_refSesi(acaraId, uid), <String, dynamic>{
       'pencatatId': pencatatId,
       'uid': uid,
     });
@@ -378,10 +390,12 @@ class AcaraService {
     // (1) Sesi perangkat ini.
     final yangAda = await pencatatDi(acaraId, uid);
     if (yangAda != null) {
-      // Migrasi data lama: lengkapi uidAktif + undanganId bila
-      // dokumennya masih format Batch 1–9.
+      // Satu batch: lengkapi migrasi data lama (bila dokumennya
+      // masih format Batch 1–9) + pastikan dokumen sesi ada —
+      // atomik, lihat _tambahSesiKeBatch.
       final docRef = refAcara.collection('pencatat').doc(yangAda.id);
       final mentah = (await docRef.get()).data() ?? const {};
+      final batch = _db.batch();
       if (mentah['uidAktif'] == null) {
         var undanganId = yangAda.undanganId;
         if (undanganId == null) {
@@ -392,13 +406,14 @@ class AcaraService {
               .get();
           if (snapU.docs.isNotEmpty) undanganId = snapU.docs.first.id;
         }
-        await docRef.update(<String, dynamic>{
+        batch.update(docRef, <String, dynamic>{
           'uidAktif': uid,
           'userId': uid,
           if (undanganId != null) 'undanganId': undanganId,
         });
       }
-      await _pastikanSesi(acaraId, uid, yangAda.id);
+      _tambahSesiKeBatch(batch, acaraId, uid, yangAda.id);
+      await batch.commit();
       return yangAda;
     }
 
@@ -470,8 +485,8 @@ class AcaraService {
         'claimedBy': uid,
         'claimedAt': FieldValue.serverTimestamp(),
       });
+      _tambahSesiKeBatch(batch, acaraId, uid, pencatat.id);
       await batch.commit();
-      await _pastikanSesi(acaraId, uid, pencatat.id);
       return pencatat;
     }
 
@@ -497,8 +512,8 @@ class AcaraService {
       'pinPribadi': undangan.pinPribadi,
       'sesiMasukPada': FieldValue.serverTimestamp(),
     });
+    _tambahSesiKeBatch(batch, acaraId, uid, pencatat.id);
     await batch.commit();
-    await _pastikanSesi(acaraId, uid, pencatat.id);
     return Pencatat(
       id: pencatat.id,
       acaraId: pencatat.acaraId,

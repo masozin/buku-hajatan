@@ -211,13 +211,17 @@ service cloud.firestore {
         allow get: if pemilikAcara(acaraId)
           || (sudahMasuk() && request.auth.uid == uidSesi);
         allow list: if pemilikAcara(acaraId);
-        // Dibuat/diubah saat gabung: hanya untuk UID sendiri, dan
-        // dokumen pencatat yang ditunjuk harus sedang memegang
-        // uidAktif == UID ini.
+        // Dibuat/diubah saat gabung, selalu di batch yang sama
+        // dengan penulisan dokumen pencatatnya. Hanya untuk UID
+        // sendiri. Dokumen sesi SENDIRI tidak memberi hak apa pun:
+        // pencatatAcara() tetap memeriksa dokumen pencatat yang
+        // ditunjuk sedang memegang uidAktif == UID ini, jadi sesi
+        // tidak bisa dipalsukan untuk merebut keanggotaan orang
+        // lain (perbaikan Batch 10: pemeriksaan silang get() di
+        // sini dihapus agar batch klaim tidak bergantung padanya).
         allow create, update: if sudahMasuk()
           && request.auth.uid == uidSesi
-          && get(/databases/$(database)/documents/acara/$(acaraId)/pencatat/$(request.resource.data.pencatatId)).data.uidAktif
-              == request.auth.uid;
+          && request.resource.data.pencatatId is string;
         // Dihapus saat keluar (oleh perangkatnya) atau reset sesi /
         // nonaktif (oleh pemilik).
         allow delete: if pemilikAcara(acaraId)

@@ -401,3 +401,19 @@ tidak lagi mengosongkan daftar Bundel Saya.
    sesi), dan orangnya bisa masuk dari perangkat lain.
 6. Pemilik: ubah PIN pribadi lewat ikon kunci → PIN lama ditolak,
    PIN baru diterima.
+
+## Perbaikan Batch 10 — sesi ditulis atomik dengan klaim
+
+Gejala: gabung pencatat pertama tampak berhasil, tetapi tepat
+sesudahnya muncul `cloud_firestore/permission-denied`. Sebabnya:
+dokumen sesi semula ditulis TERPISAH sesudah batch klaim, jadi ada
+sesaat ketika dokumen pencatat sudah terbaca daftar "acara yang
+saya ikuti" tetapi rules belum mengakui sesinya — baca dokumen
+acara pun ditolak, dan error itu menempel di layar.
+
+Perbaikan: dokumen sesi kini ditulis di dalam batch yang sama
+dengan klaim/ambil-sesi/migrasi (atomik), rules sesi tidak lagi
+bergantung pada pemeriksaan silang dokumen lain, dan daftar
+keikutsertaan melewati acara yang sesaat gagal dibaca alih-alih
+gagal seluruhnya. **Tempel ulang `firestore.rules`** setelah
+menerapkan perbaikan ini; indeks tidak berubah.
