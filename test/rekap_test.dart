@@ -195,4 +195,80 @@ void main() {
       expect(buatNamaFile('  ', 'csv'), 'buku-hajatan-acara.csv');
     });
   });
+
+  group('rekapPerAlamat', () {
+    test('mengelompokkan per alamat, total terbesar dulu, '
+        'tanpa alamat paling akhir', () {
+      final data = [
+        BundelTerisi(
+          bundel: bundelUji(id: 'b1', pencatatId: 'uA', prefix: 'A', nomor: 1),
+          isi: [
+            amplopUji(
+              urut: 1,
+              nama: 'Budi',
+              alamat: 'Totorejo',
+              nominal: 100000,
+            ),
+            amplopUji(
+              urut: 2,
+              nama: 'Ani',
+              alamat: 'totorejo',
+              nominal: 50000,
+            ),
+            amplopUji(urut: 3, nama: 'Cici', nominal: 200000),
+          ],
+        ),
+        BundelTerisi(
+          bundel: bundelUji(id: 'b2', pencatatId: 'uA', prefix: 'A', nomor: 2),
+          isi: [
+            amplopUji(
+              urut: 1,
+              nama: 'Dedi',
+              alamat: 'Margo Mulyo',
+              nominal: 75000,
+            ),
+          ],
+        ),
+      ];
+      final hasil = rekapPerAlamat(data);
+      expect(hasil.length, 3);
+      // Totorejo: 2 pengunjung, Rp 150.000 — ejaan pertama menang,
+      // huruf besar/kecil menyatu.
+      expect(hasil[0].alamat, 'Totorejo');
+      expect(hasil[0].jumlahPengunjung, 2);
+      expect(hasil[0].totalRp, 150000);
+      expect(hasil[1].alamat, 'Margo Mulyo');
+      expect(hasil[1].totalRp, 75000);
+      // Tanpa alamat: total paling besar pun tetap paling akhir.
+      expect(hasil[2].alamat, '(Tanpa alamat)');
+      expect(hasil[2].jumlahPengunjung, 1);
+      expect(hasil[2].totalRp, 200000);
+    });
+
+    test('data kosong menghasilkan daftar kosong', () {
+      expect(rekapPerAlamat(const []), isEmpty);
+    });
+  });
+
+  group('ringkasPerPencatat bundel pemilik', () {
+    test('bundel PM tampil sebagai Pemilik', () {
+      final hasil = ringkasPerPencatat(
+        [
+          bundelUji(
+            id: 'bpm',
+            pencatatId: 'uidPemilik',
+            prefix: 'PM',
+            nomor: 1,
+            jumlahAmplop: 3,
+            totalRp: 150000,
+          ),
+        ],
+        const [],
+      );
+      expect(hasil.length, 1);
+      expect(hasil.single.nama, 'Pemilik');
+      expect(hasil.single.prefix, 'PM');
+      expect(hasil.single.jumlahAmplop, 3);
+    });
+  });
 }

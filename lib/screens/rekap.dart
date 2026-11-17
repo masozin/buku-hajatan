@@ -15,8 +15,10 @@ import '../widgets/keadaan.dart';
 /// Rekap acara (Batch 3) — layar pemilik.
 ///
 /// Realtime tanpa membakar kuota: total dari dokumen acara, rincian
-/// per pencatat & per bundel dari dokumen bundel (stream). Isi amplop
-/// hanya dibaca SEKALI saat pencarian nama atau ekspor dijalankan.
+/// per pencatat dari dokumen bundel (stream). Isi amplop hanya
+/// dibaca SEKALI saat rekap per alamat atau ekspor dijalankan.
+/// (Batch 20: pencarian nama di layar ini dihapus — sudah ada di
+/// tab Pengunjung; rincian per bundel diganti per alamat.)
 class RekapScreen extends ConsumerStatefulWidget {
   const RekapScreen({super.key, required this.acaraId});
 
@@ -27,42 +29,11 @@ class RekapScreen extends ConsumerStatefulWidget {
 }
 
 class _RekapScreenState extends ConsumerState<RekapScreen> {
-  final _kataCari = TextEditingController();
-  List<AmplopDitemukan>? _hasilCari;
-  bool _mencari = false;
   bool _mengekspor = false;
-
-  @override
-  void dispose() {
-    _kataCari.dispose();
-    super.dispose();
-  }
 
   void _beriTahu(String pesan) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(pesan)));
-  }
-
-  Future<void> _cari(Acara acara) async {
-    final kata = _kataCari.text.trim();
-    if (kata.length < 2) {
-      _beriTahu('Ketik minimal 2 huruf untuk mencari.');
-      return;
-    }
-    setState(() {
-      _mencari = true;
-      _hasilCari = null;
-    });
-    try {
-      final hasil = await ref
-          .read(rekapServiceProvider)
-          .cariNama(acara.id, kata);
-      if (mounted) setState(() => _hasilCari = hasil);
-    } catch (e) {
-      _beriTahu(pesanDari(e));
-    } finally {
-      if (mounted) setState(() => _mencari = false);
-    }
   }
 
   Future<void> _ekspor(Acara acara, {required bool excel}) async {
@@ -121,14 +92,9 @@ class _RekapScreenState extends ConsumerState<RekapScreen> {
                 onCsv: () => _ekspor(acara, excel: false),
               ),
               const SizedBox(height: 16),
-              _PerPencatatDanBundel(acaraId: acara.id),
+              _PerPencatat(acaraId: acara.id),
               const SizedBox(height: 16),
-              _KartuPencarian(
-                controller: _kataCari,
-                mencari: _mencari,
-                hasil: _hasilCari,
-                onCari: () => _cari(acara),
-              ),
+              _PerAlamat(acaraId: acara.id),
             ],
           );
         },
@@ -178,7 +144,7 @@ class _RingkasanTotal extends ConsumerWidget {
                 Expanded(
                   child: _MiniStatistik(
                     ikon: Icons.mail_outline_rounded,
-                    label: 'Amplop Kosong',
+                    label: 'Kosong',
                     nilai: '$kosong',
                   ),
                 ),
@@ -216,10 +182,15 @@ class _MiniStatistik extends StatelessWidget {
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final skema = tema.colorScheme;
+    // Batch 20: susunan MENUMPUK (ikon di atas, angka, label) —
+    // susunan lama (ikon di samping kolom teks setinggi ikon)
+    // memunculkan peringatan "height overflowed" di HP Mark.
+    // Kolom vertikal di dalam ListView tidak bisa meluap.
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: 40,
@@ -230,18 +201,18 @@ class _MiniStatistik extends StatelessWidget {
               ),
               child: Icon(ikon, color: skema.onTertiaryContainer, size: 20),
             ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(nilai, style: tema.textTheme.titleMedium),
-                Text(
-                  label,
-                  style: tema.textTheme.bodySmall?.copyWith(
-                    color: skema.onSurfaceVariant,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 10),
+            Text(
+              nilai,
+              style: tema.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            Text(
+              label,
+              style: tema.textTheme.bodySmall?.copyWith(
+                color: skema.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -309,9 +280,9 @@ class _KartuEkspor extends StatelessWidget {
   }
 }
 
-/// Rincian per pencatat + daftar per bundel dari stream bundel.
-class _PerPencatatDanBundel extends ConsumerWidget {
-  const _PerPencatatDanBundel({required this.acaraId});
+/// Rincian per pencatat dari stream bundel.
+class _PerPencatat extends ConsumerWidget {
+  const _PerPencatat({required this.acaraId});
 
   final String acaraId;
 
@@ -388,7 +359,7 @@ class _PerPencatatDanBundel extends ConsumerWidget {
                                       ),
                                       Text(
                                         '${r.jumlahBundel} bundel • '
-                                        '${r.jumlahAmplop} amplop • '
+                                        '${r.jumlahAmplop} pengunjung • '
                                         'kosong ${r.jumlahKosong} • '
                                         'tanpa nama ${r.jumlahTanpaNama}',
                                         style: tema.textTheme.bodySmall
@@ -421,64 +392,6 @@ class _PerPencatatDanBundel extends ConsumerWidget {
                         ),
                       ),
                     ),
-                const SizedBox(height: 16),
-                const JudulBagian(teks: 'Per Bundel'),
-                const SizedBox(height: 10),
-                if (bundels.isEmpty)
-                  const Text('Belum ada bundel.')
-                else
-                  for (final b in bundels)
-                    Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        leading: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: skema.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            b.kode,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          formatRupiah(b.totalRp),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Pencatat ${b.prefix} • ${b.jumlahAmplop}/10 '
-                          'amplop • kosong ${b.jumlahKosong} • '
-                          'tanpa nama ${b.jumlahTanpaNama}',
-                        ),
-                        trailing: Chip(
-                          label: Text(
-                            b.status == StatusBundel.penuh
-                                ? 'Penuh'
-                                : 'Terbuka',
-                          ),
-                          backgroundColor:
-                              b.status == StatusBundel.penuh
-                              ? skema.tertiaryContainer
-                              : skema.primaryContainer,
-                          labelStyle: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: b.status == StatusBundel.penuh
-                                ? skema.onTertiaryContainer
-                                : skema.onPrimaryContainer,
-                          ),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ),
               ],
             );
           },
@@ -487,87 +400,73 @@ class _PerPencatatDanBundel extends ConsumerWidget {
     );
   }
 }
+/// Rincian per alamat (Batch 20): semua pengunjung dibaca SEKALI
+/// (pola yang sama dengan ekspor), lalu dikelompokkan per alamat
+/// oleh rekapPerAlamat. Menggantikan rincian per bundel — rincian
+/// per bundel tetap ada di tab Bundel Detail Acara.
+class _PerAlamat extends ConsumerStatefulWidget {
+  const _PerAlamat({required this.acaraId});
 
-class _KartuPencarian extends StatelessWidget {
-  const _KartuPencarian({
-    required this.controller,
-    required this.mencari,
-    required this.hasil,
-    required this.onCari,
-  });
+  final String acaraId;
 
-  final TextEditingController controller;
-  final bool mencari;
-  final List<AmplopDitemukan>? hasil;
-  final VoidCallback onCari;
+  @override
+  ConsumerState<_PerAlamat> createState() => _PerAlamatState();
+}
+
+class _PerAlamatState extends ConsumerState<_PerAlamat> {
+  late final Future<List<BundelTerisi>> _data;
+
+  @override
+  void initState() {
+    super.initState();
+    _data = ref.read(rekapServiceProvider).ambilDataLengkap(widget.acaraId);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Cari Nama Tamu',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Berguna saat mau membalas amplop: siapa memberi berapa, '
-              'di bundel mana.',
-            ),
-            const SizedBox(height: 12),
-            Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const JudulBagian(teks: 'Per Alamat'),
+        const SizedBox(height: 10),
+        FutureBuilder<List<BundelTerisi>>(
+          future: _data,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const TampilMuat();
+            }
+            if (snapshot.hasError) {
+              return TampilGalat(pesan: pesanDari(snapshot.error!));
+            }
+            final ringkasan = rekapPerAlamat(
+              snapshot.data ?? const <BundelTerisi>[],
+            );
+            if (ringkasan.isEmpty) {
+              return const Text('Belum ada pengunjung tercatat.');
+            }
+            return Column(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      labelText: 'Nama / alamat',
+                for (final r in ringkasan)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: ListTile(
+                      title: Text(
+                        r.alamat,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text('${r.jumlahPengunjung} pengunjung'),
+                      trailing: Text(
+                        formatRupiah(r.totalRp),
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
                     ),
-                    onSubmitted: (_) => onCari(),
                   ),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: mencari ? null : onCari,
-                  child: mencari
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Cari'),
-                ),
               ],
-            ),
-            if (hasil != null) ...[
-              const SizedBox(height: 12),
-              if (hasil!.isEmpty)
-                const Text('Tidak ditemukan.')
-              else
-                for (final h in hasil!)
-                  ListTile(
-                    dense: true,
-                    title: Text(h.amplop.tampilNama),
-                    subtitle: Text(
-                      'Bundel ${h.kodeBundel} (pencatat '
-                      '${h.prefixPencatat})'
-                      '${h.amplop.alamat == null ? '' : ' • ${h.amplop.alamat}'}'
-                      ' • ${h.amplop.jenis.label}',
-                    ),
-                    trailing: Text(
-                      formatRupiah(h.amplop.nominal),
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
-            ],
-          ],
+            );
+          },
         ),
-      ),
+      ],
     );
   }
 }

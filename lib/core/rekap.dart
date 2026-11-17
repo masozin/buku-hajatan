@@ -281,3 +281,60 @@ List<String> saringSaranAlamat(List<String> saran, String teks) {
       .take(8)
       .toList();
 }
+
+/// Ringkasan satu alamat untuk Rekap per Alamat (Batch 20).
+class RingkasanAlamat {
+  const RingkasanAlamat({
+    required this.alamat,
+    required this.jumlahPengunjung,
+    required this.totalRp,
+  });
+
+  /// Alamat tampilan (ejaan pertama yang tercatat); alamat kosong
+  /// tampil sebagai '(Tanpa alamat)'.
+  final String alamat;
+  final int jumlahPengunjung;
+  final int totalRp;
+}
+
+/// Kelompokkan semua pengunjung per ALAMAT (Batch 20 — menggantikan
+/// rincian per bundel di layar Rekap; rincian per bundel tetap ada
+/// di tab Bundel). Pengelompokan tidak peka huruf/spasi berlebih;
+/// ejaan pertama yang menang untuk tampilan. Urut: total Rp
+/// terbesar dulu (seri → alamat A–Z); kelompok tanpa alamat selalu
+/// paling akhir.
+List<RingkasanAlamat> rekapPerAlamat(List<BundelTerisi> data) {
+  final tampil = <String, String>{};
+  final jumlah = <String, int>{};
+  final total = <String, int>{};
+  for (final bt in data) {
+    for (final a in bt.isi) {
+      final mentah = a.alamat?.trim() ?? '';
+      final kunci = normalisasiNama(mentah);
+      tampil.putIfAbsent(
+        kunci,
+        () => kunci.isEmpty ? '(Tanpa alamat)' : mentah,
+      );
+      jumlah[kunci] = (jumlah[kunci] ?? 0) + 1;
+      total[kunci] = (total[kunci] ?? 0) + a.nominal;
+    }
+  }
+  final hasil = [
+    for (final kunci in tampil.keys)
+      RingkasanAlamat(
+        alamat: tampil[kunci]!,
+        jumlahPengunjung: jumlah[kunci]!,
+        totalRp: total[kunci]!,
+      ),
+  ];
+  hasil.sort((x, y) {
+    final xKosong = x.alamat == '(Tanpa alamat)';
+    final yKosong = y.alamat == '(Tanpa alamat)';
+    if (xKosong != yKosong) return xKosong ? 1 : -1;
+    final bandingTotal = y.totalRp.compareTo(x.totalRp);
+    return bandingTotal != 0
+        ? bandingTotal
+        : normalisasiNama(x.alamat).compareTo(normalisasiNama(y.alamat));
+  });
+  return hasil;
+}
