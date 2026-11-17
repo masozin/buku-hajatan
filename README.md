@@ -600,3 +600,30 @@ Dua penyesuaian kecil (tanpa perubahan rules/data/dependensi):
    yang terbaru: nomor urut terbesar di atas, nomor 1 paling
    bawah — amplop yang baru diinput langsung terlihat tanpa
    menggulir.
+
+## Batch 16 — Logo & ikon aplikasi
+
+Logo resmi Buku Hajatan: dua tamu di belakang buku terbuka
+dengan pena emas, berwarna zamrud & emas sesuai tema.
+
+1. **Ikon launcher Android diganti** dari ikon bawaan Flutter:
+   ikon *legacy* (ic_launcher.png semua kepadatan) untuk Android
+   lama, dan **ikon adaptif** (Android 8+) — latar warna zamrud
+   #074C3C (disampling dari latar karya logo) + foreground logo
+   yang diskalakan 92% agar aman dari masker lingkaran/squircle
+   launcher. Manifest kini juga memasang `roundIcon`.
+2. **Logo di dalam aplikasi**: `LogoAplikasi` di layar Masuk kini
+   menampilkan gambar logo — versi terang di tema terang, versi
+   zamrud di tema gelap. Berkas induk ada di `assets/icon/`
+   (logo_terang.png & logo_zamrud.png, 1024×1024).
+
+## Cara uji Batch 16
+
+1. `flutter run`, lalu keluar ke layar utama HP: ikon Buku
+   Hajatan sudah menjadi logo buku + pena (bukan lagi ikon
+   Flutter). Bila ikon lama masih tampil, hapus instalan lama
+   dulu / bersihkan cache launcher — ikon kadang tersimpan di
+   cache launcher.
+2. Buka aplikasi: logo di atas tulisan "Buku Hajatan" pada layar
+   Masuk sudah berganti logo baru (terang; atau zamrud bila HP
+   memakai mode gelap).
