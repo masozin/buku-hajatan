@@ -64,4 +64,34 @@ void main() {
       expect(d.deltaTanpaNama, 0);
     });
   });
+
+  group('slotUrutKosong', () {
+    test('bundel kosong -> slot 1', () {
+      expect(slotUrutKosong(const []), 1);
+    });
+
+    test('isi berurutan 1..3 -> slot 4', () {
+      expect(slotUrutKosong(const [1, 2, 3]), 4);
+    });
+
+    test('hapus urut 5 dari bundel penuh -> slot 5, bukan 10', () {
+      // Kasus nyata: 9 isi bernomor 1,2,3,4,6,7,8,9,10. jumlah+1
+      // (= 10) sudah terpakai — slot kosongnya adalah 5.
+      expect(
+        slotUrutKosong(const [1, 2, 3, 4, 6, 7, 8, 9, 10]),
+        5,
+      );
+    });
+
+    test('hapus urut terakhir -> slot 10', () {
+      expect(slotUrutKosong(const [1, 2, 3, 4, 5, 6, 7, 8, 9]), 10);
+    });
+
+    test('bundel penuh 1..10 -> null', () {
+      expect(
+        slotUrutKosong(const [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        isNull,
+      );
+    });
+  });
 }

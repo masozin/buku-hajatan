@@ -79,10 +79,23 @@ class KoreksiService {
     final nominalEfektif = nominalSimpan(jenis, nominal);
     final menutup = amplopIniMenutupBundel(bundel.jumlahAmplop);
 
+    // Nomor urut dari slot kosong, bukan jumlah + 1: setelah hapus di
+    // tengah bundel, nomor lama tetap terpakai (lihat slotUrutKosong).
+    final refBundel = _refBundel(acaraId, bundelId);
+    final snapAmplop = await refBundel.collection('amplop').get();
+    final urut = slotUrutKosong(
+      snapAmplop.docs.map(
+        (d) => Amplop.fromFirestore(d, bundelId: bundelId).urut,
+      ),
+    );
+    if (urut == null) {
+      throw const LayananException('Bundel ini sudah penuh (10 amplop).');
+    }
+
     final amplop = Amplop(
       id: '',
       bundelId: bundelId,
-      urut: urutBerikutnya(bundel.jumlahAmplop),
+      urut: urut,
       nama: namaEfektif,
       alamat: (alamat == null || alamat.trim().isEmpty)
           ? null
@@ -96,7 +109,6 @@ class KoreksiService {
       createdBy: pemilikId,
     );
 
-    final refBundel = _refBundel(acaraId, bundelId);
     final batch = _db.batch();
     batch.set(refBundel.collection('amplop').doc(), amplop.toMap());
     batch.update(refBundel, <String, dynamic>{

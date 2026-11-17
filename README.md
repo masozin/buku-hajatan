@@ -155,7 +155,9 @@ flutter run
    nominal satu amplop (total bundel & Rekap harus bergeser sama),
    hapus satu amplop (jumlah berkurang; bundel penuh yang terhapus
    isinya terbuka lagi), tambah satu amplop ke bundel yang belum
-   penuh.
+   penuh. Uji tambahan: hapus amplop di TENGAH bundel (mis. urut 5
+   dari bundel penuh), lalu tambah penggantinya — amplop baru harus
+   memakai nomor 5 yang kosong, bukan duplikat nomor 10.
 5. Buka Rekap & ekspor Excel: angka akhirnya harus cocok dengan
    hasil koreksi.
 
