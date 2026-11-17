@@ -8,6 +8,8 @@ import '../models/bundel.dart';
 import '../models/pencatat.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
+import '../widgets/elemen.dart';
+import '../widgets/kartu_total.dart';
 import '../widgets/keadaan.dart';
 
 /// Rekap acara (Batch 3) — layar pemilik.
@@ -145,67 +147,105 @@ class _RingkasanTotal extends ConsumerWidget {
     final bundelStream = ref
         .watch(pencatatanServiceProvider)
         .semuaBundelStream(acara.id);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: StreamBuilder<List<Bundel>>(
-          stream: bundelStream,
-          builder: (context, snapshot) {
-            final bundels = snapshot.data ?? const <Bundel>[];
-            var kosong = 0;
-            var tanpaNama = 0;
-            for (final b in bundels) {
-              kosong += b.jumlahKosong;
-              tanpaNama += b.jumlahTanpaNama;
-            }
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return StreamBuilder<List<Bundel>>(
+      stream: bundelStream,
+      builder: (context, snapshot) {
+        final bundels = snapshot.data ?? const <Bundel>[];
+        var kosong = 0;
+        var tanpaNama = 0;
+        for (final b in bundels) {
+          kosong += b.jumlahKosong;
+          tanpaNama += b.jumlahTanpaNama;
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              acara.namaAcara,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Text(
+              '${acara.jenis} • ${formatTanggal(acara.tanggal)}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            KartuTotalAcara(acara: acara),
+            const SizedBox(height: 12),
+            Row(
               children: [
-                Text(
-                  acara.namaAcara,
-                  style: Theme.of(context).textTheme.titleMedium,
+                Expanded(
+                  child: _MiniStatistik(
+                    ikon: Icons.mail_outline_rounded,
+                    label: 'Amplop Kosong',
+                    nilai: '$kosong',
+                  ),
                 ),
-                Text(
-                  '${acara.jenis} • ${formatTanggal(acara.tanggal)}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _Angka(label: 'Amplop', nilai: '${acara.totalAmplop}'),
-                    _Angka(label: 'Bundel', nilai: '${acara.totalBundel}'),
-                    _Angka(label: 'Total', nilai: formatRupiah(acara.totalRp)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Di antaranya: $kosong amplop kosong, '
-                  '$tanpaNama tanpa nama.',
-                  style: Theme.of(context).textTheme.bodySmall,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _MiniStatistik(
+                    ikon: Icons.person_off_outlined,
+                    label: 'Tanpa Nama',
+                    nilai: '$tanpaNama',
+                  ),
                 ),
               ],
-            );
-          },
-        ),
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _Angka extends StatelessWidget {
-  const _Angka({required this.label, required this.nilai});
+/// Kartu statistik kecil (ikon + label + angka) di bawah kartu
+/// total Rekap.
+class _MiniStatistik extends StatelessWidget {
+  const _MiniStatistik({
+    required this.ikon,
+    required this.label,
+    required this.nilai,
+  });
 
+  final IconData ikon;
   final String label;
   final String nilai;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(nilai, style: Theme.of(context).textTheme.titleMedium),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
+    final tema = Theme.of(context);
+    final skema = tema.colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: skema.tertiaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(ikon, color: skema.onTertiaryContainer, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(nilai, style: tema.textTheme.titleMedium),
+                Text(
+                  label,
+                  style: tema.textTheme.bodySmall?.copyWith(
+                    color: skema.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -298,52 +338,120 @@ class _PerPencatatDanBundel extends ConsumerWidget {
           builder: (context, snapPencatat) {
             final pencatats = snapPencatat.data ?? const <Pencatat>[];
             final ringkasan = ringkasPerPencatat(bundels, pencatats);
+            final tema = Theme.of(context);
+            final skema = tema.colorScheme;
+            var totalTerbesar = 0;
+            for (final r in ringkasan) {
+              if (r.totalRp > totalTerbesar) totalTerbesar = r.totalRp;
+            }
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Per Pencatat',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
+                const JudulBagian(teks: 'Per Pencatat'),
+                const SizedBox(height: 10),
                 if (ringkasan.isEmpty)
                   const Text('Belum ada pencatat.')
                 else
                   for (final r in ringkasan)
                     Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(child: Text(r.prefix)),
-                        title: Text(
-                          r.nama.isEmpty ? 'Pencatat ${r.prefix}' : r.nama,
-                        ),
-                        subtitle: Text(
-                          '${r.jumlahBundel} bundel • ${r.jumlahAmplop} '
-                          'amplop • kosong ${r.jumlahKosong} • '
-                          'tanpa nama ${r.jumlahTanpaNama}',
-                        ),
-                        trailing: Text(
-                          formatRupiah(r.totalRp),
-                          style: Theme.of(context).textTheme.titleSmall,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: skema.primaryContainer,
+                                  child: Text(
+                                    r.prefix,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: skema.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        r.nama.isEmpty
+                                            ? 'Pencatat ${r.prefix}'
+                                            : r.nama,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${r.jumlahBundel} bundel • '
+                                        '${r.jumlahAmplop} amplop • '
+                                        'kosong ${r.jumlahKosong} • '
+                                        'tanpa nama ${r.jumlahTanpaNama}',
+                                        style: tema.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color:
+                                                  skema.onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  formatRupiah(r.totalRp),
+                                  style: tema.textTheme.titleSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            LinearProgressIndicator(
+                              value: totalTerbesar == 0
+                                  ? 0
+                                  : r.totalRp / totalTerbesar,
+                              minHeight: 6,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                 const SizedBox(height: 16),
-                Text(
-                  'Per Bundel',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
+                const JudulBagian(teks: 'Per Bundel'),
+                const SizedBox(height: 10),
                 if (bundels.isEmpty)
                   const Text('Belum ada bundel.')
                 else
                   for (final b in bundels)
                     Card(
-                      margin: const EdgeInsets.only(bottom: 8),
+                      margin: const EdgeInsets.only(bottom: 10),
                       child: ListTile(
-                        leading: CircleAvatar(child: Text(b.kode)),
+                        leading: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: skema.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            b.kode,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
                         title: Text(
-                          'Bundel ${b.kode} — ${formatRupiah(b.totalRp)}',
+                          formatRupiah(b.totalRp),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         subtitle: Text(
                           'Pencatat ${b.prefix} • ${b.jumlahAmplop}/10 '
@@ -355,6 +463,17 @@ class _PerPencatatDanBundel extends ConsumerWidget {
                             b.status == StatusBundel.penuh
                                 ? 'Penuh'
                                 : 'Terbuka',
+                          ),
+                          backgroundColor:
+                              b.status == StatusBundel.penuh
+                              ? skema.tertiaryContainer
+                              : skema.primaryContainer,
+                          labelStyle: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: b.status == StatusBundel.penuh
+                                ? skema.onTertiaryContainer
+                                : skema.onPrimaryContainer,
                           ),
                           visualDensity: VisualDensity.compact,
                         ),

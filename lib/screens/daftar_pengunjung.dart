@@ -295,8 +295,23 @@ class _BarisPengunjung extends StatelessWidget {
   final AmplopDitemukan ditemukan;
   final VoidCallback? onTap;
 
+  /// Inisial nama untuk avatar (dua kata pertama).
+  static String _inisial(String nama) {
+    final bersih = nama.replaceAll('(', '').replaceAll(')', '').trim();
+    final kata = bersih
+        .split(RegExp(r'\s+'))
+        .where((k) => k.isNotEmpty)
+        .toList();
+    if (kata.isEmpty) return '?';
+    if (kata.length == 1) return kata.first.substring(0, 1).toUpperCase();
+    return (kata[0].substring(0, 1) + kata[1].substring(0, 1))
+        .toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final skema = tema.colorScheme;
     final a = ditemukan.amplop;
     final rincian = [
       if (a.alamat != null && a.alamat!.isNotEmpty) a.alamat!,
@@ -306,9 +321,24 @@ class _BarisPengunjung extends StatelessWidget {
     ].join(' • ');
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
         onTap: onTap,
-        title: Text(a.tampilNama),
+        leading: CircleAvatar(
+          backgroundColor: skema.primaryContainer,
+          child: Text(
+            _inisial(a.tampilNama),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: skema.onPrimaryContainer,
+            ),
+          ),
+        ),
+        title: Text(
+          a.tampilNama,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
         subtitle: Text(
           [
             if (rincian.isNotEmpty) rincian,
@@ -319,7 +349,9 @@ class _BarisPengunjung extends StatelessWidget {
         isThreeLine: true,
         trailing: Text(
           formatRupiah(a.nominal),
-          style: Theme.of(context).textTheme.titleSmall,
+          style: tema.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
     );

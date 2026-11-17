@@ -72,16 +72,79 @@ class DaftarBundelTab extends ConsumerWidget {
               itemBuilder: (context, i) {
                 final b = daftar[i];
                 final penuh = b.status == StatusBundel.penuh;
+                final skema = Theme.of(context).colorScheme;
                 return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
+                  margin: const EdgeInsets.only(bottom: 10),
                   child: ExpansionTile(
-                    leading: CircleAvatar(child: Text(b.prefix)),
-                    title: Text('Bundel ${b.kode}'),
-                    subtitle: Text(
-                      '${b.jumlahAmplop}/10 amplop • '
-                      '${formatRupiah(b.totalRp)}'
-                      '${penuh ? ' • Penuh' : ''}'
-                      '\nPencatat: ${namaPencatat[b.pencatatId] ?? '—'}',
+                    leading: Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: skema.primaryContainer,
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        b.prefix,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: skema.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Bundel ${b.kode}',
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontSize: 15),
+                          ),
+                        ),
+                        if (penuh)
+                          Chip(
+                            label: const Text('Penuh'),
+                            backgroundColor: skema.tertiaryContainer,
+                            labelStyle: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: skema.onTertiaryContainer,
+                            ),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                      ],
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${formatRupiah(b.totalRp)} • '
+                            'Pencatat: ${namaPencatat[b.pencatatId] ?? '—'}',
+                          ),
+                          const SizedBox(height: 7),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: LinearProgressIndicator(
+                                  value: b.jumlahAmplop / 10,
+                                  minHeight: 6,
+                                  borderRadius: BorderRadius.circular(
+                                    999,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${b.jumlahAmplop}/10',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                     children: [
                       _IsiBundelDropdown(

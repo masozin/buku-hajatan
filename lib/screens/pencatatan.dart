@@ -9,6 +9,7 @@ import '../models/bundel.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../services/pencatatan_service.dart';
+import '../theme/tema_aplikasi.dart';
 import '../widgets/baris_amplop.dart';
 import '../widgets/keadaan.dart';
 import 'daftar_bundel.dart';
@@ -327,19 +328,24 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                 },
               ),
               const SizedBox(height: 8),
-              const Row(
+              Row(
                 children: [
                   Icon(
                     Icons.cloud_upload_outlined,
                     size: 16,
-                    color: Colors.orange,
+                    color: Theme.of(context).colorScheme.tertiary,
                   ),
-                  SizedBox(width: 4),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      'oranye = menunggu sinkron (tersimpan di HP, '
+                      'emas = menunggu sinkron (tersimpan di HP, '
                       'terkirim saat ada jaringan)',
-                      style: TextStyle(fontSize: 12),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                     ),
                   ),
                 ],
@@ -352,6 +358,9 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   }
 }
 
+/// Kartu bundel aktif (Batch 12): panel gradasi zamrud — kode
+/// bundel besar, lencana kemajuan n/10, batang kemajuan putih,
+/// dan total bundel. Titik fokus layar pencatatan.
 class _KartuBundelAktif extends StatelessWidget {
   const _KartuBundelAktif({required this.bundel});
 
@@ -359,37 +368,102 @@ class _KartuBundelAktif extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    bundel.kode,
-                    style: Theme.of(context).textTheme.headlineMedium,
+    final putihRedup = Colors.white.withValues(alpha: 0.78);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: TemaAplikasi.gradasiPahlawan,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: TemaAplikasi.zamrud.withValues(alpha: 0.28),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bundel Aktif',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: putihRedup,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      bundel.kode,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${bundel.jumlahAmplop}/10 amplop',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
                 ),
-                Text(
-                  '${bundel.jumlahAmplop}/10',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(value: bundel.jumlahAmplop / 10),
-            const SizedBox(height: 8),
-            Text('Total bundel: ${formatRupiah(bundel.totalRp)}'),
-            if (bundel.jumlahKosong > 0 || bundel.jumlahTanpaNama > 0)
-              Text(
-                'Kosong: ${bundel.jumlahKosong} • '
-                'Tanpa nama: ${bundel.jumlahTanpaNama}',
               ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          LinearProgressIndicator(
+            value: bundel.jumlahAmplop / 10,
+            minHeight: 7,
+            borderRadius: BorderRadius.circular(999),
+            backgroundColor: Colors.white.withValues(alpha: 0.25),
+            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text('Total bundel', style: TextStyle(color: putihRedup)),
+              const Spacer(),
+              Text(
+                formatRupiah(bundel.totalRp),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          if (bundel.jumlahKosong > 0 || bundel.jumlahTanpaNama > 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Kosong: ${bundel.jumlahKosong} • '
+              'Tanpa nama: ${bundel.jumlahTanpaNama}',
+              style: TextStyle(fontSize: 12.5, color: putihRedup),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -426,7 +500,7 @@ class _FormAmplop extends StatelessWidget {
     final kosong = jenis == JenisAmplop.kosong;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -456,8 +530,6 @@ class _FormAmplop extends StatelessWidget {
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
                 labelText: tanpaNama ? 'Nama (otomatis "(Tanpa Nama)")' : 'Nama tamu',
-                border: const OutlineInputBorder(),
-                isDense: true,
               ),
               onSubmitted: (_) => sibuk ? null : onSimpan(),
             ),
@@ -467,8 +539,6 @@ class _FormAmplop extends StatelessWidget {
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Alamat',
-                border: OutlineInputBorder(),
-                isDense: true,
               ),
               onSubmitted: (_) => sibuk ? null : onSimpan(),
             ),
@@ -479,8 +549,6 @@ class _FormAmplop extends StatelessWidget {
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: const InputDecoration(
                 labelText: 'Dusun (angka, boleh kosong)',
-                border: OutlineInputBorder(),
-                isDense: true,
               ),
               onSubmitted: (_) => sibuk ? null : onSimpan(),
             ),
@@ -490,11 +558,13 @@ class _FormAmplop extends StatelessWidget {
               enabled: !kosong,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
+              ),
               decoration: InputDecoration(
                 labelText: kosong ? 'Nominal (amplop kosong = Rp 0)' : 'Nominal (Rp)',
                 prefixText: kosong ? null : 'Rp ',
-                border: const OutlineInputBorder(),
-                isDense: true,
               ),
               onSubmitted: (_) => sibuk ? null : onSimpan(),
             ),
@@ -504,8 +574,6 @@ class _FormAmplop extends StatelessWidget {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Keterangan (boleh kosong)',
-                border: OutlineInputBorder(),
-                isDense: true,
               ),
               onSubmitted: (_) => sibuk ? null : onSimpan(),
             ),
