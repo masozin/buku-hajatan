@@ -182,7 +182,10 @@ class DetailAcaraScreen extends ConsumerWidget {
                     const SizedBox(height: 80),
                   ],
                 ),
-                DaftarPengunjungTab(acaraId: acara.id),
+                DaftarPengunjungTab(
+                  acaraId: acara.id,
+                  sudahSelesai: acara.sudahSelesai,
+                ),
               ],
             ),
           ),

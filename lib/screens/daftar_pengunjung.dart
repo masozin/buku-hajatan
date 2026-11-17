@@ -65,6 +65,82 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
     await baru;
   }
 
+  /// Pratinjau satu pengunjung (Batch 9): data lengkap amplopnya
+  /// dalam lembar bawah. Bila acara sudah selesai, pemilik bisa
+  /// langsung mengedit dari sini (form koreksi); sesudah form
+  /// ditutup daftar dimuat ulang agar perubahan terlihat.
+  Future<void> _tampilkanDetail(
+    AmplopDitemukan ditemukan,
+    Bundel? bundel,
+  ) async {
+    final a = ditemukan.amplop;
+    final baris = <(String, String)>[
+      ('Nominal', formatRupiah(a.nominal)),
+      ('Bundel', '${ditemukan.kodeBundel} • nomor ${a.urut}'),
+      if (a.alamat != null && a.alamat!.isNotEmpty) ('Alamat', a.alamat!),
+      if (a.dusun != null) ('Dusun', '${a.dusun}'),
+      if (a.keterangan != null && a.keterangan!.isNotEmpty)
+        ('Keterangan', a.keterangan!),
+      ('Jenis', a.jenis.label),
+      if (a.createdAt != null) ('Dicatat', formatTanggalJam(a.createdAt!)),
+    ];
+    final mauUbah = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                a.tampilNama,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 12),
+              for (final (label, nilai) in baris)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 96,
+                        child: Text(
+                          label,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                      Expanded(child: Text(nilai)),
+                    ],
+                  ),
+                ),
+              if (widget.sudahSelesai && bundel != null) ...[
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Ubah Amplop'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+    if (mauUbah != true || bundel == null || !mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => KoreksiAmplopScreen(
+          acaraId: widget.acaraId,
+          bundel: bundel,
+          amplopLama: a,
+        ),
+      ),
+    );
+    if (mounted) await _segarkan();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -119,9 +195,13 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
               if (snapshot.hasError) {
                 return TampilGalat(pesan: pesanDari(snapshot.error!));
               }
-              final semua = semuaPengunjung(
-                snapshot.data ?? const <BundelTerisi>[],
-              );
+              final dataLengkap = snapshot.data ?? const <BundelTerisi>[];
+              // Peta kode bundel → bundelnya, untuk membuka form
+              // koreksi dari pratinjau (Batch 9).
+              final petaBundel = <String, Bundel>{
+                for (final bt in dataLengkap) bt.bundel.kode: bt.bundel,
+              };
+              final semua = semuaPengunjung(dataLengkap);
               final tampil = urutkanPengunjung(
                 saringPengunjung(semua, _kataKunci),
                 _urutan,
@@ -149,7 +229,14 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
                         ),
                       );
                     }
-                    return _BarisPengunjung(ditemukan: tampil[i - 1]);
+                    final ditemukan = tampil[i - 1];
+                    return _BarisPengunjung(
+                      ditemukan: ditemukan,
+                      onTap: () => _tampilkanDetail(
+                        ditemukan,
+                        petaBundel[ditemukan.kodeBundel],
+                      ),
+                    );
                   },
                 ),
               );
@@ -162,9 +249,10 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
 }
 
 class _BarisPengunjung extends StatelessWidget {
-  const _BarisPengunjung({required this.ditemukan});
+  const _BarisPengunjung({required this.ditemukan, this.onTap});
 
   final AmplopDitemukan ditemukan;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -178,6 +266,7 @@ class _BarisPengunjung extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        onTap: onTap,
         title: Text(a.tampilNama),
         subtitle: Text(
           [
