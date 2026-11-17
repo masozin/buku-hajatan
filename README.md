@@ -627,3 +627,22 @@ dengan pena emas, berwarna zamrud & emas sesuai tema.
 2. Buka aplikasi: logo di atas tulisan "Buku Hajatan" pada layar
    Masuk sudah berganti logo baru (terang; atau zamrud bila HP
    memakai mode gelap).
+
+## Batch 17 — Ikon launcher memakai logo terang
+
+Menindaklanjuti Batch 16: ikon di layar HP kini memakai logo
+**versi terang** (bukan zamrud). Agar seluruh logo selalu
+terlihat utuh apa pun bentuk ikon launcher (lingkaran,
+squircle, tetes air, dsb.), foreground ikon adaptif diskalakan
+ke **72%** di tengah kanvas — seluruh gambar berada di zona
+aman masker — dengan latar warna kertas #FBF3E9 yang disampling
+dari latar karya logo. Ikon legacy semua kepadatan juga dibuat
+ulang dari logo terang. Logo di dalam aplikasi tidak berubah
+(terang/zamrud mengikuti tema).
+
+## Cara uji Batch 17
+
+1. `flutter run`, keluar ke layar utama: ikon Buku Hajatan
+   tampil terang dan utuh (tidak ada bagian terpotong).
+2. Bila launcher HP-mu menyediakan pilihan bentuk ikon (tema
+   ikon), ganti-ganti bentuknya: logo tetap terlihat semua.

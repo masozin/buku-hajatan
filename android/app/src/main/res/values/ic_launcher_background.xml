@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Warna latar ikon adaptif (Batch 16): disampling dari latar
-         karya logo zamrud (#074C3C) agar tepi gambar menyatu. -->
-    <color name="ic_launcher_background">#074C3C</color>
+    <!-- Warna latar ikon adaptif (Batch 17): disampling dari latar
+         karya logo terang (#FBF3E9) agar tepi gambar menyatu. -->
+    <color name="ic_launcher_background">#FBF3E9</color>
 </resources>
