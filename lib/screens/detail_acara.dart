@@ -64,7 +64,46 @@ class DetailAcaraScreen extends ConsumerWidget {
         }
         if (!sebagaiPemilik) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Detail Acara')),
+            appBar: AppBar(
+              title: const Text('Detail Acara'),
+              // Pencatat kini bermuara langsung ke panel ini
+              // (Batch 8) — beri jalan keluar sesi di sini.
+              actions: [
+                IconButton(
+                  tooltip: 'Keluar',
+                  icon: const Icon(Icons.logout),
+                  onPressed: () async {
+                    final yakin = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Keluar dari aplikasi?'),
+                        content: const Text(
+                          'Data yang sudah tersinkron tetap aman di '
+                          'server. Untuk masuk lagi sebagai pencatat, '
+                          'kamu perlu kode acara dan PIN dari pemilik '
+                          'acara.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.of(context).pop(false),
+                            child: const Text('Batal'),
+                          ),
+                          FilledButton(
+                            onPressed: () =>
+                                Navigator.of(context).pop(true),
+                            child: const Text('Keluar'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (yakin == true && context.mounted) {
+                      await ref.read(authServiceProvider).keluar();
+                    }
+                  },
+                ),
+              ],
+            ),
             floatingActionButton: acara.sudahSelesai
                 ? null
                 : _FabPencatat(acara: acara),
