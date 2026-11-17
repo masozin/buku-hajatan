@@ -546,13 +546,11 @@ class _KelolaPencatat extends ConsumerStatefulWidget {
 
 class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
   final _namaBaru = TextEditingController();
-  final _pinBaru = TextEditingController();
   bool _sibuk = false;
 
   @override
   void dispose() {
     _namaBaru.dispose();
-    _pinBaru.dispose();
     super.dispose();
   }
 
@@ -657,14 +655,9 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
     try {
       final undangan = await ref
           .read(acaraServiceProvider)
-          .tambahUndangan(
-            widget.acara.id,
-            _namaBaru.text,
-            pinPribadi: _pinBaru.text,
-          );
+          .tambahUndangan(widget.acara.id, _namaBaru.text);
       if (!mounted) return;
       _namaBaru.clear();
-      _pinBaru.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -722,15 +715,6 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                   child: const Text('Tambah'),
                 ),
               ],
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _pinBaru,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'PIN pencatat baru '
-                    '(kosongkan = dibuatkan otomatis)',
-              ),
             ),
             const SizedBox(height: 12),
             StreamBuilder<List<UndanganPencatat>>(

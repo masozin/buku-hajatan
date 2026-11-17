@@ -230,24 +230,15 @@ class AcaraService {
 
   /// Daftarkan nama pencatat baru; prefix otomatis = huruf berikutnya
   /// setelah jumlah (pencatat terdaftar + undangan yang masih menunggu).
-  /// [pinPribadi] (Batch 10): PIN pribadinya untuk masuk dari
-  /// perangkat mana pun; kosong → dibuatkan acak 4 digit.
-  Future<UndanganPencatat> tambahUndangan(
-    String acaraId,
-    String nama, {
-    String? pinPribadi,
-  }) async {
+  /// PIN pribadinya SELALU dibuatkan acak 4 digit (Batch 19 —
+  /// pemilik tidak lagi mengisi PIN saat mendaftarkan; PIN tetap
+  /// bisa diganti sesudahnya lewat aturPinPribadi).
+  Future<UndanganPencatat> tambahUndangan(String acaraId, String nama) async {
     final namaBersih = nama.trim();
     if (namaBersih.isEmpty) {
       throw const LayananException('Nama pencatat belum diisi.');
     }
-    var pin = pinPribadi?.trim() ?? '';
-    if (pin.isEmpty) {
-      pin = (1000 + Random().nextInt(9000)).toString();
-    } else {
-      final galatPin = validasiPinPribadi(pin);
-      if (galatPin != null) throw LayananException(galatPin);
-    }
+    final pin = (1000 + Random().nextInt(9000)).toString();
     final refAcara = _acara.doc(acaraId);
 
     final snapPencatat = await refAcara.collection('pencatat').get();
