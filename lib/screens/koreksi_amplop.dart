@@ -12,16 +12,22 @@ import '../widgets/keadaan.dart';
 /// Form koreksi amplop oleh pemilik SETELAH acara selesai (Batch 6):
 /// tambah amplop yang terlewat, atau ubah amplop yang salah catat.
 /// Validasi & aturan jenis memakai logika pencatatan yang sama.
+///
+/// Pada mode tambah, [bundel] adalah tujuan awal (dari FAB: bundel
+/// belum penuh yang terakhir); bila [bundelLain] tidak kosong,
+/// pemilik bisa mengganti bundel tujuan dari dalam form.
 class KoreksiAmplopScreen extends ConsumerStatefulWidget {
   const KoreksiAmplopScreen({
     super.key,
     required this.acaraId,
     required this.bundel,
+    this.bundelLain = const [],
     this.amplopLama,
   });
 
   final String acaraId;
   final Bundel bundel;
+  final List<Bundel> bundelLain;
 
   /// Null = mode tambah; terisi = mode ubah amplop ini.
   final Amplop? amplopLama;
@@ -38,6 +44,7 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
   late final TextEditingController _nominal;
   late final TextEditingController _keterangan;
   late JenisAmplop _jenis;
+  late Bundel _bundel;
   bool _sibuk = false;
   String? _galat;
 
@@ -46,6 +53,7 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
   @override
   void initState() {
     super.initState();
+    _bundel = widget.bundel;
     final lama = widget.amplopLama;
     _nama = TextEditingController(text: lama?.nama ?? '');
     _alamat = TextEditingController(text: lama?.alamat ?? '');
@@ -91,7 +99,7 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
       if (_modeUbah) {
         await koreksi.ubahAmplop(
           acaraId: widget.acaraId,
-          bundelId: widget.bundel.id,
+          bundelId: _bundel.id,
           amplopLama: widget.amplopLama!,
           nama: _nama.text,
           alamat: _alamat.text,
@@ -103,7 +111,7 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
       } else {
         await koreksi.tambahAmplop(
           acaraId: widget.acaraId,
-          bundelId: widget.bundel.id,
+          bundelId: _bundel.id,
           pemilikId: pengguna.uid,
           nama: _nama.text,
           alamat: _alamat.text,
@@ -131,6 +139,32 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
     }
   }
 
+  Future<void> _gantiBundel() async {
+    final semua = [widget.bundel, ...widget.bundelLain];
+    final terpilih = await showModalBottomSheet<Bundel>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('Masukkan ke bundel mana?')),
+            for (final b in semua)
+              ListTile(
+                leading: CircleAvatar(child: Text(b.prefix)),
+                title: Text('Bundel ${b.kode}'),
+                subtitle: Text('${b.jumlahAmplop}/10 amplop'),
+                trailing: b.id == _bundel.id
+                    ? const Icon(Icons.check)
+                    : null,
+                onTap: () => Navigator.of(context).pop(b),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (terpilih != null) setState(() => _bundel = terpilih);
+  }
+
   @override
   Widget build(BuildContext context) {
     final tanpaNama = _jenis == JenisAmplop.tanpaNama;
@@ -139,8 +173,8 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
       appBar: AppBar(
         title: Text(
           _modeUbah
-              ? 'Ubah Amplop — Bundel ${widget.bundel.kode}'
-              : 'Tambah Amplop — Bundel ${widget.bundel.kode}',
+              ? 'Ubah Amplop — Bundel ${_bundel.kode}'
+              : 'Tambah Amplop — Bundel ${_bundel.kode}',
         ),
       ),
       body: SingleChildScrollView(
@@ -152,6 +186,24 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
               'Mode koreksi: perubahan langsung menyesuaikan total '
               'bundel & acara.',
             ),
+            if (!_modeUbah) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Amplop ini masuk ke bundel ${_bundel.kode} '
+                      '(${_bundel.jumlahAmplop}/10).',
+                    ),
+                  ),
+                  if (widget.bundelLain.isNotEmpty)
+                    TextButton(
+                      onPressed: _gantiBundel,
+                      child: const Text('Ganti Bundel'),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 16),
             SegmentedButton<JenisAmplop>(
               segments: const [

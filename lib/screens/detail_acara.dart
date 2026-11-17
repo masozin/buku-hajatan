@@ -94,7 +94,7 @@ class DetailAcaraScreen extends ConsumerWidget {
             ),
             floatingActionButton: acara.sudahSelesai
                 ? FloatingActionButton.extended(
-                    onPressed: () => _pilihBundelKoreksi(context, ref, acara),
+                    onPressed: () => _catatKoreksi(context, ref, acara),
                     icon: const Icon(Icons.add),
                     label: const Text('Catat Koreksi'),
                   )
@@ -152,62 +152,62 @@ class DetailAcaraScreen extends ConsumerWidget {
     );
   }
 
-  /// Pemilik mengetuk FAB "Catat Koreksi": pilih dulu bundel yang
-  /// belum penuh, lalu form tambah amplop koreksi untuk bundel itu.
-  Future<void> _pilihBundelKoreksi(
+  /// Pemilik mengetuk FAB "Catat Koreksi": LANGSUNG ke form tambah
+  /// amplop (perbaikan 2026-11-17 — sebelumnya pemilik disuruh
+  /// memilih bundel dulu, membingungkan). Bundel tujuan dipilih
+  /// otomatis: bundel belum penuh yang paling akhir dibuat, alias
+  /// biasanya bundel terakhir acara. Di dalam form pemilik masih
+  /// bisa mengganti bundel bila ada pilihan lain. Bila semua bundel
+  /// penuh, tampilkan penjelasan — amplop tidak bisa dicatat di
+  /// luar bundel (satu bundel = 10 amplop, sesuai sistem fisiknya).
+  Future<void> _catatKoreksi(
     BuildContext context,
     WidgetRef ref,
     Acara acara,
   ) async {
-    final terpilih = await showModalBottomSheet<Bundel>(
-      context: context,
-      builder: (context) => StreamBuilder<List<Bundel>>(
-        stream: ref.read(pencatatanServiceProvider).semuaBundelStream(
-          acara.id,
-        ),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SizedBox(height: 160, child: TampilMuat());
-          }
-          final semua = snapshot.data ?? const <Bundel>[];
-          final belumPenuh = semua
-              .where((b) => b.jumlahAmplop < 10)
-              .toList();
-          if (belumPenuh.isEmpty) {
-            return const SizedBox(
-              height: 160,
-              child: TampilKosong(
-                teks: 'Semua bundel sudah penuh — tambah koreksi '
-                    'tidak tersedia.',
-                ikon: Icons.inventory_2_outlined,
-              ),
-            );
-          }
-          return SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const ListTile(
-                  title: Text('Tambah koreksi ke bundel mana?'),
-                ),
-                for (final b in belumPenuh)
-                  ListTile(
-                    leading: CircleAvatar(child: Text(b.prefix)),
-                    title: Text('Bundel ${b.kode}'),
-                    subtitle: Text('${b.jumlahAmplop}/10 amplop'),
-                    onTap: () => Navigator.of(context).pop(b),
-                  ),
-              ],
+    final semua = await ref
+        .read(pencatatanServiceProvider)
+        .semuaBundelStream(acara.id)
+        .first;
+    final belumPenuh = semua.where((b) => b.jumlahAmplop < 10).toList();
+    belumPenuh.sort((a, b) {
+      final ta = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final tb = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bandingWaktu = tb.compareTo(ta);
+      if (bandingWaktu != 0) return bandingWaktu;
+      final bandingPrefix = b.prefix.compareTo(a.prefix);
+      return bandingPrefix != 0
+          ? bandingPrefix
+          : b.nomor.compareTo(a.nomor);
+    });
+    if (!context.mounted) return;
+    if (belumPenuh.isEmpty) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Semua bundel sudah penuh'),
+          content: const Text(
+            'Setiap amplop harus masuk ke bundel berisi maksimal 10, '
+            'dan saat ini semua bundel acara ini sudah penuh (10/10), '
+            'jadi belum ada tempat untuk amplop tambahan.',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Mengerti'),
             ),
-          );
-        },
-      ),
-    );
-    if (terpilih == null || !context.mounted) return;
+          ],
+        ),
+      );
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) =>
-            KoreksiAmplopScreen(acaraId: acara.id, bundel: terpilih),
+        builder: (_) => KoreksiAmplopScreen(
+          acaraId: acara.id,
+          bundel: belumPenuh.first,
+          bundelLain: belumPenuh.skip(1).toList(),
+        ),
       ),
     );
   }
