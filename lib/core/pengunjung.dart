@@ -7,8 +7,9 @@ import 'rekap.dart';
 /// Firebase — diuji di test/pengunjung_test.dart.
 
 /// Pilihan urutan daftar pengunjung. Sejak Batch 13: urutan
-/// bundel & dusun dihapus; sebagai gantinya ada urutan **desa**
-/// (berdasarkan alamat), dan tampilan bawaan adalah terbaru.
+/// bundel & dusun dihapus; sebagai gantinya ada urutan alamat
+/// (Batch 15: namanya diganti dari "Desa" menjadi "Alamat"),
+/// dan tampilan bawaan adalah terbaru.
 enum UrutanPengunjung {
   terbaru('Terbaru'),
   terlama('Terlama'),
@@ -16,7 +17,7 @@ enum UrutanPengunjung {
   namaZA('Nama Z–A'),
   nominalBesar('Nominal terbesar'),
   nominalKecil('Nominal terkecil'),
-  desa('Desa');
+  alamat('Alamat');
 
   const UrutanPengunjung(this.label);
 
@@ -96,9 +97,9 @@ List<AmplopDitemukan> urutkanPengunjung(
         final n = x.amplop.nominal.compareTo(y.amplop.nominal);
         return n != 0 ? n : bandingBundel(x, y);
       });
-    case UrutanPengunjung.desa:
-      // Urut berdasarkan alamat (desa tamu); yang alamatnya
-      // kosong ditaruh paling belakang.
+    case UrutanPengunjung.alamat:
+      // Urut berdasarkan alamat tamu; yang alamatnya kosong
+      // ditaruh paling belakang.
       hasil.sort((x, y) {
         final ax = normalisasiNama(x.amplop.alamat ?? '');
         final ay = normalisasiNama(y.amplop.alamat ?? '');

@@ -312,7 +312,13 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                   if (snapshotIsi.hasError) {
                     return TampilGalat(pesan: pesanDari(snapshotIsi.error!));
                   }
-                  final isi = snapshotIsi.data ?? const <AmplopTercatat>[];
+                  // Batch 15: isi bundel ditampilkan dari yang
+                  // TERBARU (urut terbesar di atas, nomor 1 paling
+                  // bawah) — yang baru diinput langsung terlihat.
+                  final isi = [...(snapshotIsi.data ?? const <AmplopTercatat>[])]
+                    ..sort(
+                      (a, b) => b.amplop.urut.compareTo(a.amplop.urut),
+                    );
                   if (isi.isEmpty) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),

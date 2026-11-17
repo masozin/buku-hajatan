@@ -588,3 +588,15 @@ perubahan rules, data, atau dependensi.** Isinya:
    pratinjau "= Rp 50.000" dan hasil simpan Rp 50.000.
 4. Buka form Ubah Amplop: nominal tampil & tersimpan sebagai
    angka penuh (tidak dikali 1000).
+
+## Batch 15 — Nama urutan "Alamat" + isi bundel terbaru di atas
+
+Dua penyesuaian kecil (tanpa perubahan rules/data/dependensi):
+
+1. Pilihan urutan **Desa** di tab Pengunjung diganti namanya
+   menjadi **Alamat** (cara urutnya sama: berdasarkan alamat,
+   yang kosong paling belakang).
+2. Di layar pencatatan, daftar **Isi bundel** kini urut dari
+   yang terbaru: nomor urut terbesar di atas, nomor 1 paling
+   bawah — amplop yang baru diinput langsung terlihat tanpa
+   menggulir.

@@ -130,10 +130,10 @@ void main() {
       ]);
     });
 
-    test('desa menaik berdasarkan alamat, yang kosong paling belakang', () {
+    test('alamat menaik, yang kosong paling belakang', () {
       final hasil = urutkanPengunjung(
         semuaPengunjung(data),
-        UrutanPengunjung.desa,
+        UrutanPengunjung.alamat,
       );
       expect(hasil.map((d) => d.amplop.nama).toList(), [
         'Dedi',
