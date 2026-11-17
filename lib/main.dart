@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'providers.dart';
 import 'screens/belum_konfigurasi.dart';
 import 'screens/daftar_acara.dart';
+import 'screens/detail_acara.dart';
 import 'screens/diblokir.dart';
 import 'screens/gabung_acara.dart';
 import 'screens/masuk.dart';
@@ -144,6 +145,16 @@ class _GerbangPencatat extends ConsumerWidget {
           );
         }
         final daftar = snapshot.data ?? const [];
+        // Pencatat yang hanya mengikuti SATU acara langsung masuk
+        // ke panel acaranya (Batch 8) — tidak perlu mengetuk daftar
+        // dulu. Lebih dari satu acara: pilih dari daftar seperti
+        // biasa.
+        if (daftar.length == 1) {
+          return DetailAcaraScreen(
+            acaraId: daftar.first.acara.id,
+            sebagaiPemilik: false,
+          );
+        }
         if (daftar.isNotEmpty) return const DaftarAcaraScreen();
         return Scaffold(
           appBar: AppBar(

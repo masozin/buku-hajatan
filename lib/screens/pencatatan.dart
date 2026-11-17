@@ -12,6 +12,7 @@ import '../services/pencatatan_service.dart';
 import '../widgets/baris_amplop.dart';
 import '../widgets/keadaan.dart';
 import 'daftar_bundel.dart';
+import 'koreksi_amplop.dart';
 
 /// Layar utama pencatat di hari-H (Batch 2).
 ///
@@ -302,7 +303,24 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                     child: Column(
                       children: [
                         for (final tercatat in isi)
-                          BarisAmplop(tercatat: tercatat),
+                          BarisAmplop(
+                            tercatat: tercatat,
+                            // Pencatat boleh mengubah amplop yang ia
+                            // input sendiri (Batch 8) — tombol pensil
+                            // di tiap baris.
+                            onUbah: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => KoreksiAmplopScreen(
+                                    acaraId: widget.acaraId,
+                                    bundel: bundel,
+                                    amplopLama: tercatat.amplop,
+                                    pencatatId: widget.pencatatId,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                       ],
                     ),
                   );

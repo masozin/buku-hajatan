@@ -207,9 +207,23 @@ service cloud.firestore {
             && request.resource.data.jenis in ['normal', 'kosong', 'tanpa_nama']
             && request.resource.data.urut >= 1
             && request.resource.data.urut <= 10;
-          // Ubah/hapus hanya pemilik, hanya setelah acara selesai —
-          // selama acara berlangsung data terkunci untuk semua.
-          allow update, delete: if pemilikAcara(acaraId)
+          // Ubah: pemilik setelah acara selesai (koreksi Batch 6),
+          // ATAU pencatat penginputnya sendiri selama acara aktif
+          // (Batch 8 — hanya field isi yang boleh berubah, bukan
+          // urut/createdBy). Hapus tetap khusus pemilik pasca-selesai.
+          allow update: if (pemilikAcara(acaraId)
+              && acaraSudahSelesai(acaraId))
+            || (pencatatAcara(acaraId)
+                && resource.data.createdBy == request.auth.uid
+                && !acaraSudahSelesai(acaraId)
+                && request.resource.data
+                    .diff(resource.data)
+                    .changedKeys()
+                    .hasOnly([
+                      'nama', 'alamat', 'dusun', 'keterangan',
+                      'nominal', 'jenis',
+                    ]));
+          allow delete: if pemilikAcara(acaraId)
             && acaraSudahSelesai(acaraId);
         }
       }

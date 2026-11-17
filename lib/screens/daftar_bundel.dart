@@ -273,6 +273,16 @@ class IsiBundelScreen extends ConsumerWidget {
                           child: Text('Bundel ini masih kosong.'),
                         );
                       }
+                      // Pencatat yang membuka bundel MILIKNYA saat
+                      // acara aktif juga dapat tombol ubah (Batch 8,
+                      // hanya untuk amplop inputannya sendiri —
+                      // ditegakkan service & rules).
+                      final bisaUbahPencatat =
+                          !bisaKoreksi &&
+                          acara != null &&
+                          !acara.sudahSelesai &&
+                          pengguna != null &&
+                          segar.pencatatId == pengguna?.uid;
                       return Card(
                         child: Column(
                           children: [
@@ -289,6 +299,22 @@ class IsiBundelScreen extends ConsumerWidget {
                                                   bundel: segar,
                                                   amplopLama:
                                                       tercatat.amplop,
+                                                ),
+                                          ),
+                                        );
+                                      }
+                                    : bisaUbahPencatat
+                                    ? () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                KoreksiAmplopScreen(
+                                                  acaraId: acaraId,
+                                                  bundel: segar,
+                                                  amplopLama:
+                                                      tercatat.amplop,
+                                                  pencatatId:
+                                                      segar.pencatatId,
                                                 ),
                                           ),
                                         );

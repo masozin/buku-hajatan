@@ -23,6 +23,7 @@ class KoreksiAmplopScreen extends ConsumerStatefulWidget {
     required this.bundel,
     this.bundelLain = const [],
     this.amplopLama,
+    this.pencatatId,
   });
 
   final String acaraId;
@@ -31,6 +32,11 @@ class KoreksiAmplopScreen extends ConsumerStatefulWidget {
 
   /// Null = mode tambah; terisi = mode ubah amplop ini.
   final Amplop? amplopLama;
+
+  /// Terisi = mode ubah oleh PENCATAT penginput (Batch 8, acara
+  /// masih aktif, simpan lewat PencatatanService). Kosong = mode
+  /// pemilik (koreksi setelah selesai, lewat KoreksiService).
+  final String? pencatatId;
 
   @override
   ConsumerState<KoreksiAmplopScreen> createState() =>
@@ -95,6 +101,29 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
       _galat = null;
     });
     try {
+      if (widget.pencatatId != null) {
+        // Mode pencatat (Batch 8): ubah amplop inputan sendiri.
+        await ref
+            .read(pencatatanServiceProvider)
+            .ubahAmplop(
+              acaraId: widget.acaraId,
+              pencatatId: widget.pencatatId!,
+              bundelId: _bundel.id,
+              amplopLama: widget.amplopLama!,
+              nama: _nama.text,
+              alamat: _alamat.text,
+              dusun: int.tryParse(_dusun.text.trim()),
+              keterangan: _keterangan.text,
+              jenis: _jenis,
+              nominal: nominal,
+            );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Amplop diperbarui.')),
+        );
+        Navigator.of(context).pop();
+        return;
+      }
       final koreksi = ref.read(koreksiServiceProvider);
       if (_modeUbah) {
         await koreksi.ubahAmplop(
@@ -182,9 +211,13 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Mode koreksi: perubahan langsung menyesuaikan total '
-              'bundel & acara.',
+            Text(
+              widget.pencatatId != null
+                  ? 'Kamu mengubah amplop yang kamu input sendiri. '
+                        'Perubahan langsung menyesuaikan total bundel '
+                        '& acara.'
+                  : 'Mode koreksi: perubahan langsung menyesuaikan total '
+                        'bundel & acara.',
             ),
             if (!_modeUbah) ...[
               const SizedBox(height: 8),

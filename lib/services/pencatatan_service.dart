@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../core/koreksi.dart';
 import '../core/pencatatan.dart';
 import '../models/acara.dart';
 import '../models/amplop.dart';
@@ -331,5 +332,109 @@ class PencatatanService {
       menutupBundel: menutup,
       bundelBaru: bundelBaru,
     );
+  }
+
+  /// Ubah satu amplop oleh pencatat yang MENGINPUTNYA (Batch 8),
+  /// selama acara masih aktif — untuk membetulkan salah ketik di
+  /// tempat. Setelah acara selesai, hak ubah berpindah ke pemilik
+  /// (mode koreksi Batch 6). Agregat digeser sebesar delta saja
+  /// (deltaUbahAmplop), jumlah amplop tidak berubah. Hapus TIDAK
+  /// dibuka untuk pencatat.
+  Future<void> ubahAmplop({
+    required String acaraId,
+    required String pencatatId,
+    required String bundelId,
+    required Amplop amplopLama,
+    required String nama,
+    String? alamat,
+    int? dusun,
+    String? keterangan,
+    required JenisAmplop jenis,
+    required int nominal,
+  }) async {
+    final galat = validasiAmplop(jenis: jenis, nama: nama, nominal: nominal);
+    if (galat != null) throw LayananException(galat);
+
+    final refAcara = _db.collection('acara').doc(acaraId);
+    final docAcara = await refAcara.get();
+    if (!docAcara.exists) {
+      throw const LayananException('Acara tidak ditemukan.');
+    }
+    if (Acara.fromFirestore(docAcara).sudahSelesai) {
+      throw const LayananException(
+        'Acara sudah selesai — perubahan sekarang lewat pemilik acara.',
+      );
+    }
+    final docPencatat = await refAcara
+        .collection('pencatat')
+        .doc(pencatatId)
+        .get();
+    if (!docPencatat.exists) {
+      throw const LayananException('Kamu belum terdaftar di acara ini.');
+    }
+    final pencatat = Pencatat.fromFirestore(docPencatat, acaraId: acaraId);
+    if (!pencatat.aktif) {
+      throw const LayananException(
+        'Statusmu sedang dinonaktifkan pemilik acara.',
+      );
+    }
+
+    final refBundel = _bundelRef(acaraId).doc(bundelId);
+    final docBundel = await refBundel.get();
+    if (!docBundel.exists) {
+      throw const LayananException('Bundel tidak ditemukan. Buka lagi.');
+    }
+    final bundelKini = Bundel.fromFirestore(docBundel, acaraId: acaraId);
+    if (bundelKini.pencatatId != pencatatId) {
+      throw const LayananException('Bundel ini milik pencatat lain.');
+    }
+
+    // Baca ulang amplopnya: delta dihitung dari nilai tersimpan,
+    // dan hanya penginput asli yang boleh mengubah.
+    final refAmplop = refBundel.collection('amplop').doc(amplopLama.id);
+    final docAmplop = await refAmplop.get();
+    if (!docAmplop.exists) {
+      throw const LayananException('Amplop tidak ditemukan. Muat ulang.');
+    }
+    final tersimpan = Amplop.fromFirestore(docAmplop, bundelId: bundelId);
+    if (tersimpan.createdBy != pencatatId) {
+      throw const LayananException(
+        'Hanya pencatat yang menginput amplop ini yang boleh mengubahnya.',
+      );
+    }
+
+    final nominalEfektif = nominalSimpan(jenis, nominal);
+    final delta = deltaUbahAmplop(
+      jenisLama: tersimpan.jenis,
+      nominalLama: tersimpan.nominal,
+      jenisBaru: jenis,
+      nominalBaru: nominalEfektif,
+    );
+
+    final batch = _db.batch();
+    batch.update(refAmplop, <String, dynamic>{
+      'nama': namaSimpan(jenis, nama),
+      'alamat': (alamat == null || alamat.trim().isEmpty)
+          ? null
+          : alamat.trim(),
+      'dusun': dusun,
+      'keterangan': (keterangan == null || keterangan.trim().isEmpty)
+          ? null
+          : keterangan.trim(),
+      'nominal': nominalEfektif,
+      'jenis': jenis.nilaiSimpan,
+    });
+    batch.update(refBundel, <String, dynamic>{
+      'totalRp': FieldValue.increment(delta.deltaRp),
+      if (delta.deltaKosong != 0)
+        'jumlahKosong': FieldValue.increment(delta.deltaKosong),
+      if (delta.deltaTanpaNama != 0)
+        'jumlahTanpaNama': FieldValue.increment(delta.deltaTanpaNama),
+    });
+    batch.update(refAcara, <String, dynamic>{
+      'totalRp': FieldValue.increment(delta.deltaRp),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await batch.commit();
   }
 }
