@@ -417,3 +417,37 @@ bergantung pada pemeriksaan silang dokumen lain, dan daftar
 keikutsertaan melewati acara yang sesaat gagal dibaca alih-alih
 gagal seluruhnya. **Tempel ulang `firestore.rules`** setelah
 menerapkan perbaikan ini; indeks tidak berubah.
+
+## Batch 11 — Tab Pengunjung & Bundel untuk pencatat
+
+Patch ini **TIDAK mengubah `firestore.rules`** — tidak perlu
+tempel ulang rules, tidak ada indeks baru.
+
+Halaman Detail Acara pencatat kini memakai tiga tab seperti
+pemilik: **Ringkasan** (seperti sebelumnya), **Pengunjung**, dan
+**Bundel**.
+
+1. **Tab Pengunjung (pencatat):** menampilkan SEMUA pengunjung
+   yang tercatat di acara (lintas pencatat), lengkap dengan
+   pencarian & urutan seperti di halaman pemilik. Ketuk satu nama
+   untuk melihat pratinjau lengkapnya — tombol **Ubah Amplop**
+   hanya muncul untuk amplop yang **ia input sendiri** dan hanya
+   selama acara masih aktif. Pratinjau catatan pencatat lain
+   diberi catatan bahwa ia hanya bisa melihatnya; setelah acara
+   selesai, pengubahan sepenuhnya lewat pemilik.
+2. **Tab Bundel (pencatat):** dropdown per bundel seperti di
+   halaman pemilik (kode, jumlah amplop, total Rp, isi daftar
+   pengunjung), tetapi hanya menampilkan **bundel miliknya**.
+   Selama acara aktif, amplop di dalamnya bisa diubah (pensil) —
+   tanpa hapus dan tanpa tambah koreksi, sesuai hak pencatat.
+
+## Cara uji Batch 11
+
+1. Masuk sebagai pencatat → Detail Acara kini bertab tiga.
+2. Tab Pengunjung: semua pengunjung lintas pencatat tampil.
+   Ketuk pengunjung inputanmu → ada tombol Ubah Amplop → ubah
+   nominal → total berubah. Ketuk pengunjung inputan pencatat
+   lain → hanya pratinjau + catatan, tanpa tombol ubah.
+3. Tab Bundel: hanya bundel milikmu yang tampil; buka dropdown
+   satu bundel → daftar pengunjungnya tampil dan bisa diubah
+   selama acara aktif.
