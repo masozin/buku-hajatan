@@ -24,8 +24,10 @@ import 'tab_bundel.dart';
 ///   "Pengunjung" (daftar semua amplop, bisa dicari & diurutkan),
 ///   dan "Bundel" (tiap bundel sebagai dropdown berisi daftar
 ///   pengunjungnya).
-/// - Untuk pencatat: info acara + kartu prefix miliknya + tombol
-///   "Mulai Mencatat" menuju layar pencatatan amplop (Batch 2).
+/// - Untuk pencatat (Batch 11): tiga tab juga — "Ringkasan"
+///   (info acara + kartu prefix miliknya), "Pengunjung" (semua
+///   amplop acara; yang bisa ia ubah hanya inputannya sendiri,
+///   selama acara aktif), dan "Bundel" (hanya bundel miliknya).
 ///
 /// Tombol catat melayang (FAB) mengikuti aturan main Batch 6/7:
 /// selama acara AKTIF hanya pencatat yang melihatnya (menuju layar
@@ -66,12 +68,27 @@ class DetailAcaraScreen extends ConsumerWidget {
           );
         }
         if (!sebagaiPemilik) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Detail Acara'),
-              // Pencatat kini bermuara langsung ke panel ini
-              // (Batch 8) — beri jalan keluar sesi di sini.
-              actions: [
+          return DefaultTabController(
+            length: 3,
+            child: Scaffold(
+              appBar: AppBar(
+                title: const Text('Detail Acara'),
+                bottom: const TabBar(
+                  tabs: [
+                    Tab(
+                      icon: Icon(Icons.summarize_outlined),
+                      text: 'Ringkasan',
+                    ),
+                    Tab(icon: Icon(Icons.people_outline), text: 'Pengunjung'),
+                    Tab(
+                      icon: Icon(Icons.inventory_2_outlined),
+                      text: 'Bundel',
+                    ),
+                  ],
+                ),
+                // Pencatat kini bermuara langsung ke panel ini
+                // (Batch 8) — beri jalan keluar sesi di sini.
+                actions: [
                 IconButton(
                   tooltip: 'Keluar',
                   icon: const Icon(Icons.logout),
@@ -123,18 +140,10 @@ class DetailAcaraScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            floatingActionButton: acara.sudahSelesai
-                ? null
-                : _FabPencatat(acara: acara),
-            body: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _InfoAcara(acara: acara),
-                const SizedBox(height: 16),
-                _TotalAcara(acara: acara),
-                const SizedBox(height: 16),
-                _KartuPencatatSaya(acara: acara),
-              ],
+              floatingActionButton: acara.sudahSelesai
+                  ? null
+                  : _FabPencatat(acara: acara),
+              body: _TabPencatatDetail(acara: acara),
             ),
           );
         }
@@ -260,6 +269,61 @@ class DetailAcaraScreen extends ConsumerWidget {
           bundelLain: belumPenuh.skip(1).toList(),
         ),
       ),
+    );
+  }
+}
+
+/// Isi tab Detail Acara untuk pencatat (Batch 11): Ringkasan
+/// (info acara + total + kartu saya), Pengunjung (semua amplop
+/// acara; ubah hanya inputan sendiri selama aktif), dan Bundel
+/// (hanya bundel miliknya). Identitas tetap pencatat dicari dari
+/// stream pencatat acara ini — yang uidAktif-nya = perangkat ini.
+class _TabPencatatDetail extends ConsumerWidget {
+  const _TabPencatatDetail({required this.acara});
+
+  final Acara acara;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uidSaya = ref.watch(statusPenggunaProvider).valueOrNull?.uid;
+    return StreamBuilder<List<Pencatat>>(
+      stream: ref.watch(acaraServiceProvider).pencatatStream(acara.id),
+      builder: (context, snapPencatat) {
+        Pencatat? saya;
+        for (final p in snapPencatat.data ?? const <Pencatat>[]) {
+          if (p.uidAktif == uidSaya) {
+            saya = p;
+            break;
+          }
+        }
+        return TabBarView(
+          children: [
+            ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _InfoAcara(acara: acara),
+                const SizedBox(height: 16),
+                _TotalAcara(acara: acara),
+                const SizedBox(height: 16),
+                _KartuPencatatSaya(acara: acara),
+              ],
+            ),
+            DaftarPengunjungTab(
+              acaraId: acara.id,
+              sudahSelesai: acara.sudahSelesai,
+              modePencatat: true,
+              pencatatIdSaya: saya?.id,
+            ),
+            saya == null
+                ? const TampilKosong(
+                    teks: 'Kamu belum terdaftar sebagai pencatat di '
+                        'acara ini.',
+                    ikon: Icons.inventory_2_outlined,
+                  )
+                : DaftarBundelTab(acara: acara, pencatatIdSaya: saya.id),
+          ],
+        );
+      },
     );
   }
 }
