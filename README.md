@@ -694,3 +694,53 @@ berubah. Tanpa perubahan rules/data.
 3. Ganti PIN-nya lewat ikon kunci selagi pencatat itu sedang
    aktif di perangkat lain: perangkat itu tetap bisa mencatat;
    setelah keluar, gabung lagi harus memakai PIN baru.
+
+## Batch 20 — Dialog status, bundel khusus pemilik, kata "pengunjung", Rekap per alamat
+
+Lima perubahan:
+
+1. **Dialog konfirmasi ganti status acara.** Menekan "Tandai Acara
+   Selesai" atau "Aktifkan Kembali" kini membuka dialog yang
+   menjelaskan apa yang akan terjadi (pencatat berhenti bisa
+   mencatat; koreksi pemilik dibuka/ditutup; dst) — status hanya
+   berubah setelah pemilik menekan tombol konfirmasi.
+2. **Bundel khusus pemilik (kode PM).** Koreksi "Catat Koreksi"
+   kini masuk ke bundel milik pemilik sendiri — prefix `PM`
+   (PM001, PM002, …), dibuat otomatis saat pertama dibutuhkan dan
+   dibuka lagi setelah penuh — TIDAK lagi bercampur ke bundel
+   pencatat. Di dalam form, pemilik tetap bisa mengganti ke bundel
+   lain yang belum penuh; tambah per bundel dari tab Bundel juga
+   tetap ada. Di tab Bundel bundel ini berlabel "Pemilik acara";
+   di Rekap Per Pencatat tampil sebagai "Pemilik". **WAJIB tempel
+   ulang firestore.rules** (aturan buat bundel bertambah cabang
+   pemilik) — tanpa itu pembuatan bundel PM ditolak
+   (permission-denied).
+3. **Kata "amplop" → "pengunjung"** di seluruh teks yang terlihat
+   pengguna: tombol, judul, pesan, sampai ekspor (sheet Excel
+   "Buku Pengunjung", judul "REKAP PENGUNJUNG"). Nama field data
+   di Firestore TIDAK berubah — data lama aman.
+4. **FAB koreksi pemilik ikon saja** (sebelumnya tombol panjang
+   "Catat Koreksi"), sama seperti FAB pencatat.
+5. **Rekap diperbaiki:** kartu statistik "Kosong"/"Tanpa Nama"
+   disusun menumpuk (peringatan "height overflowed" hilang);
+   bagian "Per Bundel" diganti **"Per Alamat"** (pengunjung
+   dikelompokkan per alamat: jumlah + total, terbesar dulu, tanpa
+   alamat paling akhir); **pencarian di Rekap dihapus** (sudah ada
+   di tab Pengunjung).
+
+## Cara uji Batch 20
+
+0. Tempel ulang firestore.rules di Firebase Console, Publish.
+1. Tandai acara selesai → dialog penjelasan muncul; Batal tidak
+   mengubah apa pun; "Tandai Selesai" mengubah status. Aktifkan
+   kembali → dialog versi sebaliknya.
+2. Setelah selesai, ketuk FAB koreksi (ikon saja): form membuka
+   dengan tujuan bundel **PM001**. Simpan satu pengunjung →
+   tab Bundel menampilkan PM001 berlabel "Pemilik acara".
+   Isi sampai 10 → koreksi berikutnya membuka PM002.
+3. Kata "pengunjung" tampil di tombol/judul/pesan (mis. "Catat
+   Pengunjung", "Simpan Pengunjung", ekspor Excel sheet
+   "Buku Pengunjung").
+4. Rekap: tidak ada lagi kartu pencarian; ada bagian "Per
+   Alamat"; kartu Kosong/Tanpa Nama tampil tanpa peringatan
+   overflow (garis kuning-hitam) di bagian bawah layar.
