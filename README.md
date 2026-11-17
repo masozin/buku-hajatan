@@ -178,6 +178,42 @@ ini (aturan ubah amplop berubah).
 5. Tandai acara selesai: tombol ubah pencatat hilang; koreksi
    pemilik berjalan seperti sebelumnya.
 
+## Batch 9 — Reset gabung pencatat, Pengunjung bisa diketuk, tab Bundel
+
+Patch ini **TIDAK mengubah `firestore.rules`** — tidak perlu
+tempel ulang rules.
+
+1. **Lepas HP (reset gabung).** Di bagian Pencatat (tab Ringkasan,
+   buka lipatannya), tiap pencatat yang sudah bergabung kini punya
+   tombol ikon HP: melepas ikatan HP lamanya. Sesudah dilepas,
+   orangnya bisa bergabung lagi dari HP baru dengan kode + PIN +
+   nama yang sama. Bundel & amplop yang sudah ia catat TIDAK ikut
+   terhapus, dan nomor bundel berikutnya disambung dari bundel
+   terakhir prefix-nya (tidak ada kode bundel kembar).
+2. **Pengunjung bisa diketuk.** Ketuk satu nama di tab Pengunjung
+   → muncul pratinjau data lengkapnya. Bila acara sudah selesai,
+   ada tombol **Ubah Amplop** yang membuka form koreksi langsung
+   dari situ.
+3. **Tab Bundel baru** di samping tab Pengunjung (tombol "Lihat
+   Semua Bundel" di Ringkasan dihapus): tiap bundel tampil sebagai
+   dropdown berisi kode bundel, jumlah amplop, total Rp, dan nama
+   pencatatnya — ketuk untuk membuka daftar pengunjung di
+   dalamnya. Setelah acara selesai, baris di dalam dropdown ikut
+   bisa diubah/dihapus, dan ada "Tambah amplop ke bundel ini"
+   untuk bundel yang belum penuh.
+
+## Cara uji Batch 9
+
+1. Pemilik: buka lipatan Pencatat → pada pencatat yang sudah
+   bergabung ketuk ikon HP → konfirmasi. Lalu dari HP lain (atau
+   setelah keluar) gabung lagi dengan nama itu: harus berhasil,
+   dan bundel barunya menyambung nomor terakhir prefix-nya.
+2. Ketuk satu nama di tab Pengunjung → pratinjau tampil; pada
+   acara yang sudah selesai, ketuk Ubah Amplop → ubah nominal →
+   total berubah.
+3. Buka tab Bundel: tiap bundel tampil ringkas; ketuk satu bundel
+   → daftar pengunjungnya terbuka.
+
 ## Cara uji Batch 7
 
 1. `flutter run` (tanpa tempel rules). Sebagai pencatat di acara

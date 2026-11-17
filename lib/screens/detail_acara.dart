@@ -14,13 +14,16 @@ import 'daftar_pengunjung.dart';
 import 'koreksi_amplop.dart';
 import 'pencatatan.dart';
 import 'rekap.dart';
+import 'tab_bundel.dart';
 
 /// Detail satu acara.
 ///
-/// - Untuk pemilik (Batch 7): dua tab — "Ringkasan" (info acara,
-///   jumlah pengunjung & total, kode gabung + PIN, kelola pencatat,
-///   tombol tandai selesai) dan "Pengunjung" (daftar semua amplop,
-///   bisa dicari & diurutkan).
+/// - Untuk pemilik (Batch 7, tab ketiga Batch 9): tiga tab —
+///   "Ringkasan" (info acara, jumlah pengunjung & total, kode
+///   gabung + PIN, kelola pencatat, tombol tandai selesai),
+///   "Pengunjung" (daftar semua amplop, bisa dicari & diurutkan),
+///   dan "Bundel" (tiap bundel sebagai dropdown berisi daftar
+///   pengunjungnya).
 /// - Untuk pencatat: info acara + kartu prefix miliknya + tombol
 ///   "Mulai Mencatat" menuju layar pencatatan amplop (Batch 2).
 ///
@@ -120,7 +123,7 @@ class DetailAcaraScreen extends ConsumerWidget {
           );
         }
         return DefaultTabController(
-          length: 2,
+          length: 3,
           child: Scaffold(
             appBar: AppBar(
               title: const Text('Detail Acara'),
@@ -128,6 +131,10 @@ class DetailAcaraScreen extends ConsumerWidget {
                 tabs: [
                   Tab(icon: Icon(Icons.summarize_outlined), text: 'Ringkasan'),
                   Tab(icon: Icon(Icons.people_outline), text: 'Pengunjung'),
+                  Tab(
+                    icon: Icon(Icons.inventory_2_outlined),
+                    text: 'Bundel',
+                  ),
                 ],
               ),
             ),
@@ -153,21 +160,6 @@ class DetailAcaraScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
                     _TombolStatus(acara: acara),
                     const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => DaftarBundelScreen(
-                              acaraId: acara.id,
-                              sebagaiPemilik: true,
-                            ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.inventory_2_outlined),
-                      label: const Text('Lihat Semua Bundel'),
-                    ),
-                    const SizedBox(height: 8),
                     FilledButton.icon(
                       onPressed: () {
                         Navigator.of(context).push(
@@ -186,6 +178,7 @@ class DetailAcaraScreen extends ConsumerWidget {
                   acaraId: acara.id,
                   sudahSelesai: acara.sudahSelesai,
                 ),
+                DaftarBundelTab(acara: acara),
               ],
             ),
           ),
