@@ -12,7 +12,9 @@ import '../widgets/keadaan.dart';
 /// sebelumnya PIN acara). Dipakai LANGSUNG di tab Pencatat layar
 /// Masuk (Batch 14 — gerbang menahan sesi anonim tanpa acara di
 /// layar Masuk, jadi form aman di sana) dan sebagai layar
-/// tersendiri untuk gabung acara lain.
+/// tersendiri untuk gabung acara lain. Batch 18: form inilah yang
+/// membuat sesi anonim (di _gabung, saat tombol ditekan) — tab
+/// Pencatat tidak lagi membuatnya otomatis saat dibuka.
 class GabungAcaraForm extends ConsumerStatefulWidget {
   const GabungAcaraForm({
     super.key,

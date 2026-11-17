@@ -87,77 +87,25 @@ class MasukScreen extends StatelessWidget {
 /// (Batch 13), dan form gabung kode+nama+PIN kini LANGSUNG di
 /// tab ini (Batch 14) — gerbang menahan sesi anonim tanpa acara
 /// di layar Masuk sehingga form tidak hancur di tengah jalan.
-/// SENGAJA tidak ditaruh di sini lagi (perbaikan gabung
-/// 2026-11-17): form itu masuk anonim dulu baru mengklaim, dan
-/// gerbang menukar layar begitu sesi muncul — form hancur di tengah
-/// jalan dan klaim tidak pernah selesai. Sekarang: ketuk tombol →
-/// sesi anonim dibuat → gerbang menampilkan form gabung sebagai
-/// beranda pencatat (form stabil di sana, galat tampil normal).
-class _TabPencatat extends ConsumerStatefulWidget {
+/// Tab Pencatat layar Masuk: kartu penjelasan + form gabung
+/// langsung (Batch 14) + tombol keluar sesi bila ada sesi anonim.
+///
+/// Batch 18: sesi anonim TIDAK lagi dibuat otomatis saat tab
+/// dibuka (cara Batch 13) — sesi baru dibuat oleh form saat
+/// tombol Gabung ditekan (permintaan Mark: berpindah tab tidak
+/// memicu muat ulang layar, dan tombol keluar sesi tidak muncul
+/// sebelum pengguna benar-benar mencoba bergabung). Cara malas
+/// ini aman dari bug gabung lama karena gerbang _GerbangMasuk
+/// menjaga subtree layar Masuk tetap hidup saat sesi dibuat:
+/// form tidak hancur di tengah klaim dan galat tampil normal.
+class _TabPencatat extends ConsumerWidget {
   const _TabPencatat();
 
-  @override
-  ConsumerState<_TabPencatat> createState() => _TabPencatatState();
-}
-
-class _TabPencatatState extends ConsumerState<_TabPencatat> {
-  bool _sibuk = false;
-  bool _sudahMulai = false;
-  String? _galat;
-  TabController? _kontrolTab;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final kontrol = DefaultTabController.of(context);
-    if (kontrol != _kontrolTab) {
-      _kontrolTab?.removeListener(_periksaTab);
-      _kontrolTab = kontrol;
-      _kontrolTab?.addListener(_periksaTab);
-    }
-    _periksaTab();
-  }
-
-  @override
-  void dispose() {
-    _kontrolTab?.removeListener(_periksaTab);
-    super.dispose();
-  }
-
-  /// Batch 13: sesi anonim dibuat OTOMATIS begitu tab Pencatat
-  /// dibuka — tidak perlu mengetuk tombol lagi. Tombol tetap ada
-  /// sebagai jalan mencoba ulang bila pembuatan sesi gagal.
-  void _periksaTab() {
-    if (_kontrolTab?.index == 1 && !_sudahMulai && !_sibuk) {
-      _masuk();
-    }
-  }
-
-  Future<void> _masuk() async {
-    if (_sudahMulai) return;
-    _sudahMulai = true;
-    setState(() {
-      _sibuk = true;
-      _galat = null;
-    });
-    try {
-      await ref.read(authServiceProvider).masukAnonim();
-      // Berhasil: gerbang berpindah ke form gabung pencatat.
-    } on LayananException catch (e) {
-      _sudahMulai = false;
-      if (mounted) setState(() => _galat = e.pesan);
-    } catch (e) {
-      _sudahMulai = false;
-      if (mounted) setState(() => _galat = pesanDari(e));
-    } finally {
-      if (mounted) setState(() => _sibuk = false);
-    }
-  }
-
   /// Keluar dari sesi anonim (Batch 14): untuk pengguna yang
-  /// membuka tab Pencatat tetapi batal bergabung — melepas sesi
-  /// perangkat lalu sign out, kembali ke keadaan belum masuk.
-  Future<void> _keluarSesi() async {
+  /// sudah membuat sesi (mis. lewat percobaan gabung) tetapi
+  /// batal bergabung — melepas sesi perangkat lalu sign out,
+  /// kembali ke keadaan belum masuk.
+  Future<void> _keluarSesi(WidgetRef ref) async {
     final auth = ref.read(authServiceProvider);
     final layananAcara = ref.read(acaraServiceProvider);
     final uid = ref.read(statusPenggunaProvider).valueOrNull?.uid;
@@ -172,7 +120,7 @@ class _TabPencatatState extends ConsumerState<_TabPencatat> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final skema = Theme.of(context).colorScheme;
     final pengguna = ref.watch(statusPenggunaProvider).valueOrNull;
     final sesiAktif = pengguna?.isAnonymous ?? false;
@@ -187,11 +135,7 @@ class _TabPencatatState extends ConsumerState<_TabPencatat> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.badge_rounded,
-                    color: skema.primary,
-                    size: 28,
-                  ),
+                  Icon(Icons.badge_rounded, color: skema.primary, size: 28),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
@@ -204,21 +148,11 @@ class _TabPencatatState extends ConsumerState<_TabPencatat> {
               ),
             ),
           ),
-          if (_galat != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              _galat!,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-              ),
-            ),
-          ],
           const SizedBox(height: 16),
           // Batch 14: form gabung LANGSUNG di tab ini (permintaan
-          // Mark) — bukan halaman tersendiri lagi. Aman dari bug
-          // gabung lama karena gerbang kini menahan sesi anonim
-          // tanpa acara di layar Masuk (tab Pencatat), jadi form
-          // tidak hancur saat sesi dibuat.
+          // Mark) — bukan halaman tersendiri lagi. Batch 18: sesi
+          // dibuat di dalam form ini saat Gabung ditekan; gerbang
+          // _GerbangMasuk menjaga form tetap hidup selama klaim.
           GabungAcaraForm(
             tampilkanPengantar: false,
             onBerhasil: (pencatat) {
@@ -237,7 +171,7 @@ class _TabPencatatState extends ConsumerState<_TabPencatat> {
           if (sesiAktif) ...[
             const SizedBox(height: 8),
             TextButton.icon(
-              onPressed: _keluarSesi,
+              onPressed: () => _keluarSesi(ref),
               icon: const Icon(Icons.logout, size: 18),
               label: const Text('Keluar sesi pencatat'),
             ),
