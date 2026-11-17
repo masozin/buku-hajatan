@@ -672,3 +672,25 @@ setelah percobaan gabung). Tanpa perubahan rules/data.
    (paksa berhenti dulu): pencatat yang sudah punya acara tetap
    langsung masuk ke acaranya (layar muat sebentar, tanpa
    kedipan layar Masuk).
+
+## Batch 19 — PIN pencatat selalu dibuatkan otomatis
+
+Form tambah pencatat di Kelola Pencatat tidak lagi punya kolom
+PIN: PIN pribadi SELALU dibuatkan acak 4 digit oleh aplikasi
+dan ditampilkan di pemberitahuan setelah pencatat ditambahkan
+("… — PIN: 1234. Bagikan ke orangnya.") serta di daftar pencatat.
+Pemilik tetap bisa MENGGANTI PIN sesudahnya lewat ikon kunci
+(atur PIN) — PIN baru berlaku untuk gabung berikutnya; sesi
+pencatat yang sedang aktif tidak terganggu dan datanya tidak
+berubah. Tanpa perubahan rules/data.
+
+## Cara uji Batch 19
+
+1. Kelola Pencatat → tambah nama baru: tidak ada lagi kolom
+   PIN; setelah menekan Tambah, pemberitahuan menampilkan PIN
+   yang dibuatkan.
+2. Gabung sebagai pencatat itu dengan PIN dari pemberitahuan:
+   berhasil.
+3. Ganti PIN-nya lewat ikon kunci selagi pencatat itu sedang
+   aktif di perangkat lain: perangkat itu tetap bisa mencatat;
+   setelah keluar, gabung lagi harus memakai PIN baru.
