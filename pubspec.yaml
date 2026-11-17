@@ -73,6 +73,11 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Logo aplikasi (Batch 16): versi terang & zamrud, dipakai
+  # LogoAplikasi di dalam aplikasi.
+  assets:
+    - assets/icon/
+
   # Font aplikasi (Batch 12): Plus Jakarta Sans, dibundel sebagai
   # aset agar tetap tampil tanpa jaringan (aplikasi offline-first).
   fonts:

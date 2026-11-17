@@ -5,9 +5,10 @@ import '../theme/tema_aplikasi.dart';
 
 /// Elemen merek & potongan tampilan bersama (Batch 12).
 
-/// Tanda merek aplikasi: kotak membulat bergradasi zamrud dengan
-/// ikon amplop putih dan titik emas — dipakai di layar Masuk dan
-/// tempat lain yang membutuhkan identitas aplikasi.
+/// Tanda merek aplikasi: logo Buku Hajatan — dua tamu di belakang
+/// buku terbuka dengan pena emas (Batch 16). Versi terang dipakai
+/// di tema terang, versi zamrud di tema gelap — dipakai di layar
+/// Masuk dan tempat lain yang membutuhkan identitas aplikasi.
 class LogoAplikasi extends StatelessWidget {
   const LogoAplikasi({super.key, this.ukuran = 64});
 
@@ -15,11 +16,11 @@ class LogoAplikasi extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gelap = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: ukuran,
       height: ukuran,
       decoration: BoxDecoration(
-        gradient: TemaAplikasi.gradasiPahlawan,
         borderRadius: BorderRadius.circular(ukuran * 0.3),
         boxShadow: [
           BoxShadow(
@@ -29,28 +30,16 @@ class LogoAplikasi extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          Center(
-            child: Icon(
-              Icons.mail_rounded,
-              color: Colors.white,
-              size: ukuran * 0.52,
-            ),
-          ),
-          Positioned(
-            top: ukuran * 0.14,
-            right: ukuran * 0.14,
-            child: Container(
-              width: ukuran * 0.16,
-              height: ukuran * 0.16,
-              decoration: const BoxDecoration(
-                color: TemaAplikasi.emasTerang,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(ukuran * 0.3),
+        child: Image.asset(
+          gelap
+              ? 'assets/icon/logo_zamrud.png'
+              : 'assets/icon/logo_terang.png',
+          width: ukuran,
+          height: ukuran,
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
