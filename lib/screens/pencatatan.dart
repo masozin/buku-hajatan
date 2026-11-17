@@ -39,7 +39,9 @@ class PencatatanScreen extends ConsumerStatefulWidget {
 class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   final _nama = TextEditingController();
   final _alamat = TextEditingController();
+  final _dusun = TextEditingController();
   final _nominal = TextEditingController();
+  final _keterangan = TextEditingController();
   final _fokusNama = FocusNode();
   var _jenis = JenisAmplop.normal;
   var _sibuk = false;
@@ -56,7 +58,9 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   void dispose() {
     _nama.dispose();
     _alamat.dispose();
+    _dusun.dispose();
     _nominal.dispose();
+    _keterangan.dispose();
     _fokusNama.dispose();
     super.dispose();
   }
@@ -115,6 +119,8 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
             jenis: _jenis,
             nama: _nama.text,
             alamat: _alamat.text,
+            dusun: int.tryParse(_dusun.text.trim()),
+            keterangan: _keterangan.text,
             nominal: nominal,
           );
       if (!mounted) return;
@@ -124,7 +130,9 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
       final nominalTampil = nominalSimpan(_jenis, nominal);
       _nama.clear();
       _alamat.clear();
+      _dusun.clear();
       _nominal.clear();
+      _keterangan.clear();
       setState(() => _jenis = JenisAmplop.normal);
       _fokusNama.requestFocus();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -257,7 +265,9 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                 onJenis: _gantiJenis,
                 nama: _nama,
                 alamat: _alamat,
+                dusun: _dusun,
                 nominal: _nominal,
+                keterangan: _keterangan,
                 fokusNama: _fokusNama,
                 sibuk: _sibuk,
                 onSimpan: () => _simpan(bundel),
@@ -373,7 +383,9 @@ class _FormAmplop extends StatelessWidget {
     required this.onJenis,
     required this.nama,
     required this.alamat,
+    required this.dusun,
     required this.nominal,
+    required this.keterangan,
     required this.fokusNama,
     required this.sibuk,
     required this.onSimpan,
@@ -383,7 +395,9 @@ class _FormAmplop extends StatelessWidget {
   final ValueChanged<JenisAmplop> onJenis;
   final TextEditingController nama;
   final TextEditingController alamat;
+  final TextEditingController dusun;
   final TextEditingController nominal;
+  final TextEditingController keterangan;
   final FocusNode fokusNama;
   final bool sibuk;
   final VoidCallback onSimpan;
@@ -442,6 +456,18 @@ class _FormAmplop extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             TextField(
+              controller: dusun,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Dusun (angka, boleh kosong)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onSubmitted: (_) => sibuk ? null : onSimpan(),
+            ),
+            const SizedBox(height: 12),
+            TextField(
               controller: nominal,
               enabled: !kosong,
               keyboardType: TextInputType.number,
@@ -450,6 +476,17 @@ class _FormAmplop extends StatelessWidget {
                 labelText: kosong ? 'Nominal (amplop kosong = Rp 0)' : 'Nominal (Rp)',
                 prefixText: kosong ? null : 'Rp ',
                 border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              onSubmitted: (_) => sibuk ? null : onSimpan(),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: keterangan,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Keterangan (boleh kosong)',
+                border: OutlineInputBorder(),
                 isDense: true,
               ),
               onSubmitted: (_) => sibuk ? null : onSimpan(),

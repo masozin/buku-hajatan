@@ -24,6 +24,9 @@ class BarisAmplop extends StatelessWidget {
     final amplop = tercatat.amplop;
     final keterangan = [
       if (amplop.alamat != null && amplop.alamat!.isNotEmpty) amplop.alamat!,
+      if (amplop.dusun != null) 'Dusun ${amplop.dusun}',
+      if (amplop.keterangan != null && amplop.keterangan!.isNotEmpty)
+        amplop.keterangan!,
       if (amplop.jenis.label != 'Normal') amplop.jenis.label,
     ].join(' • ');
     return ListTile(

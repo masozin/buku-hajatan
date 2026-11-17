@@ -87,6 +87,9 @@ class BarisEkspor {
     required this.alamat,
     required this.nominal,
     required this.jenis,
+    this.dusun,
+    this.keterangan,
+    this.waktu,
   });
 
   final String kodeBundel;
@@ -95,6 +98,11 @@ class BarisEkspor {
   final String alamat;
   final int nominal;
   final JenisAmplop jenis;
+
+  /// Kolom Batch 7: nomor dusun, catatan, timestamp pencatatan.
+  final int? dusun;
+  final String? keterangan;
+  final DateTime? waktu;
 }
 
 /// Ratakan data ekspor menjadi baris-baris, urut bundel (prefix, nomor)
@@ -120,6 +128,9 @@ List<BarisEkspor> buatBarisEkspor(List<BundelTerisi> data) {
           alamat: a.alamat ?? '',
           nominal: a.nominal,
           jenis: a.jenis,
+          dusun: a.dusun,
+          keterangan: a.keterangan,
+          waktu: a.createdAt,
         ),
       );
     }
@@ -141,7 +152,9 @@ String selCsv(String nilai) {
 /// SETIAP baris supaya mudah diolah lagi (filter/pivot) di komputer.
 String buatCsv(List<BarisEkspor> baris) {
   final sb = StringBuffer();
-  sb.writeln('Kode Bundel,No,Nama,Alamat,Nominal (Rp),Jenis');
+  sb.writeln(
+    'Kode Bundel,No,Nama,Alamat,Dusun,Nominal (Rp),Jenis,Keterangan,Waktu',
+  );
   for (final b in baris) {
     sb.writeln(
       [
@@ -149,12 +162,23 @@ String buatCsv(List<BarisEkspor> baris) {
         b.urut.toString(),
         selCsv(b.nama),
         selCsv(b.alamat),
+        b.dusun?.toString() ?? '',
         b.nominal.toString(),
         selCsv(b.jenis.label),
+        selCsv(b.keterangan ?? ''),
+        selCsv(b.waktu == null ? '' : formatWaktuCsv(b.waktu!)),
       ].join(','),
     );
   }
   return sb.toString();
+}
+
+/// Timestamp untuk CSV: "2026-11-16 14:35" (tanpa intl, supaya
+/// core/rekap tetap bebas dependensi format tampilan).
+String formatWaktuCsv(DateTime w) {
+  String dua(int n) => n.toString().padLeft(2, '0');
+  return '${w.year}-${dua(w.month)}-${dua(w.day)} '
+      '${dua(w.hour)}:${dua(w.minute)}';
 }
 
 /// Nama file ekspor yang aman: "Pernikahan Sari & Budi" ->
@@ -180,10 +204,10 @@ class AmplopDitemukan {
   final String prefixPencatat;
 }
 
-/// Cari amplop yang namanya (atau alamatnya) mengandung [kataKunci],
-/// tidak peka huruf besar/kecil. Pencarian di memori atas data yang
-/// sudah dibaca — untuk skala hajatan (±1.000 amplop) ini cukup dan
-/// tidak membakar kuota baca tambahan.
+/// Cari amplop yang nama/alamat/dusun/keterangannya mengandung
+/// [kataKunci], tidak peka huruf besar/kecil. Pencarian di memori
+/// atas data yang sudah dibaca — untuk skala hajatan (±1.000
+/// amplop) ini cukup dan tidak membakar kuota baca tambahan.
 List<AmplopDitemukan> cariDalamData(List<BundelTerisi> data, String kataKunci) {
   final kunci = normalisasiNama(kataKunci);
   if (kunci.isEmpty) return const [];
@@ -193,7 +217,11 @@ List<AmplopDitemukan> cariDalamData(List<BundelTerisi> data, String kataKunci) {
       final cocokNama = normalisasiNama(a.nama).contains(kunci);
       final cocokAlamat =
           a.alamat != null && normalisasiNama(a.alamat!).contains(kunci);
-      if (cocokNama || cocokAlamat) {
+      final cocokDusun =
+          a.dusun != null && 'dusun ${a.dusun}'.contains(kunci);
+      final cocokKeterangan = a.keterangan != null &&
+          normalisasiNama(a.keterangan!).contains(kunci);
+      if (cocokNama || cocokAlamat || cocokDusun || cocokKeterangan) {
         hasil.add(
           AmplopDitemukan(
             amplop: a,

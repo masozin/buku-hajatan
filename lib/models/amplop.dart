@@ -54,6 +54,8 @@ class Amplop {
     required this.urut,
     required this.nama,
     this.alamat,
+    this.dusun,
+    this.keterangan,
     required this.nominal,
     this.jenis = JenisAmplop.normal,
     this.createdAt,
@@ -67,8 +69,16 @@ class Amplop {
   final int urut;
   final String nama;
   final String? alamat;
+
+  /// Nomor dusun asal tamu (Batch 7 — isinya angka, boleh kosong).
+  final int? dusun;
+
+  /// Catatan bebas (Batch 7, boleh kosong).
+  final String? keterangan;
   final int nominal;
   final JenisAmplop jenis;
+
+  /// Timestamp pencatatan (server) — kolom "waktu" Batch 7.
   final DateTime? createdAt;
 
   /// UID pencatat yang menginput.
@@ -93,6 +103,8 @@ class Amplop {
       urut: (data['urut'] as num?)?.toInt() ?? 0,
       nama: (data['nama'] as String?) ?? '',
       alamat: data['alamat'] as String?,
+      dusun: (data['dusun'] as num?)?.toInt(),
+      keterangan: data['keterangan'] as String?,
       nominal: (data['nominal'] as num?)?.toInt() ?? 0,
       jenis: JenisAmplop.dariString(data['jenis'] as String?),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
@@ -105,6 +117,8 @@ class Amplop {
       'urut': urut,
       'nama': nama,
       'alamat': alamat,
+      'dusun': dusun,
+      'keterangan': keterangan,
       'nominal': nominal,
       'jenis': jenis.nilaiSimpan,
       'createdAt': createdAt == null

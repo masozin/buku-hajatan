@@ -42,8 +42,11 @@ class EksporService {
     sheet.setColumnWidth(1, 5);
     sheet.setColumnWidth(2, 32);
     sheet.setColumnWidth(3, 36);
-    sheet.setColumnWidth(4, 16);
-    sheet.setColumnWidth(5, 13);
+    sheet.setColumnWidth(4, 8);
+    sheet.setColumnWidth(5, 16);
+    sheet.setColumnWidth(6, 13);
+    sheet.setColumnWidth(7, 28);
+    sheet.setColumnWidth(8, 17);
 
     void tulisSel(
       int kolom,
@@ -72,8 +75,11 @@ class EksporService {
       'No',
       'Nama',
       'Alamat',
+      'Dusun',
       'Nominal (Rp)',
       'Jenis',
+      'Keterangan',
+      'Waktu',
     ];
     for (var k = 0; k < judulKolom.length; k++) {
       tulisSel(k, barisHeader, TextCellValue(judulKolom[k]), tebal: true);
@@ -93,8 +99,15 @@ class EksporService {
         tulisSel(1, r, IntCellValue(b.urut));
         tulisSel(2, r, TextCellValue(b.nama));
         tulisSel(3, r, TextCellValue(b.alamat));
-        tulisSel(4, r, IntCellValue(b.nominal));
-        tulisSel(5, r, TextCellValue(b.jenis.label));
+        if (b.dusun != null) tulisSel(4, r, IntCellValue(b.dusun!));
+        tulisSel(5, r, IntCellValue(b.nominal));
+        tulisSel(6, r, TextCellValue(b.jenis.label));
+        if (b.keterangan != null && b.keterangan!.isNotEmpty) {
+          tulisSel(7, r, TextCellValue(b.keterangan!));
+        }
+        if (b.waktu != null) {
+          tulisSel(8, r, TextCellValue(formatWaktuCsv(b.waktu!)));
+        }
         totalRp += b.nominal;
         if (b.jenis == JenisAmplop.kosong) jumlahKosong++;
         if (b.jenis == JenisAmplop.tanpaNama) jumlahTanpaNama++;
@@ -115,7 +128,7 @@ class EksporService {
 
     r += 1;
     tulisSel(2, r, TextCellValue('TOTAL'), tebal: true);
-    tulisSel(4, r, IntCellValue(totalRp), tebal: true);
+    tulisSel(5, r, IntCellValue(totalRp), tebal: true);
     r += 1;
     tulisSel(
       2,

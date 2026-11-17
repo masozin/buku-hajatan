@@ -23,3 +23,13 @@ String formatTanggal(DateTime tanggal) => _formatTgl.format(tanggal);
 /// "16 Nov 2026"
 String formatTanggalSingkat(DateTime tanggal) =>
     _formatTglSingkat.format(tanggal);
+
+final DateFormat _formatJam = DateFormat('HH:mm');
+
+/// "14:35" — jam dari timestamp pencatatan amplop (Batch 7).
+String formatJam(DateTime waktu) => _formatJam.format(waktu);
+
+final DateFormat _formatTglJam = DateFormat('d MMM y HH:mm', 'id_ID');
+
+/// "16 Nov 2026 14:35"
+String formatTanggalJam(DateTime waktu) => _formatTglJam.format(waktu);

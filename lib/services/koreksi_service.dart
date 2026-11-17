@@ -61,6 +61,8 @@ class KoreksiService {
     required String pemilikId,
     required String nama,
     String? alamat,
+    int? dusun,
+    String? keterangan,
     required JenisAmplop jenis,
     required int nominal,
   }) async {
@@ -85,6 +87,10 @@ class KoreksiService {
       alamat: (alamat == null || alamat.trim().isEmpty)
           ? null
           : alamat.trim(),
+      dusun: dusun,
+      keterangan: (keterangan == null || keterangan.trim().isEmpty)
+          ? null
+          : keterangan.trim(),
       nominal: nominalEfektif,
       jenis: jenis,
       createdBy: pemilikId,
@@ -118,6 +124,8 @@ class KoreksiService {
     required Amplop amplopLama,
     required String nama,
     String? alamat,
+    int? dusun,
+    String? keterangan,
     required JenisAmplop jenis,
     required int nominal,
   }) async {
@@ -142,6 +150,10 @@ class KoreksiService {
         'alamat': (alamat == null || alamat.trim().isEmpty)
             ? null
             : alamat.trim(),
+        'dusun': dusun,
+        'keterangan': (keterangan == null || keterangan.trim().isEmpty)
+            ? null
+            : keterangan.trim(),
         'nominal': nominalEfektif,
         'jenis': jenis.nilaiSimpan,
       },

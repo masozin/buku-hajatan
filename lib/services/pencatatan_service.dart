@@ -203,6 +203,8 @@ class PencatatanService {
     required JenisAmplop jenis,
     required String nama,
     String? alamat,
+    int? dusun,
+    String? keterangan,
     required int nominal,
   }) async {
     final galat = validasiAmplop(jenis: jenis, nama: nama, nominal: nominal);
@@ -262,6 +264,10 @@ class PencatatanService {
       urut: urut,
       nama: namaEfektif,
       alamat: alamatEfektif,
+      dusun: dusun,
+      keterangan: (keterangan == null || keterangan.trim().isEmpty)
+          ? null
+          : keterangan.trim(),
       nominal: nominalEfektif,
       jenis: jenis,
       createdBy: pencatatId,

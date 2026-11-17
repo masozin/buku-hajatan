@@ -34,7 +34,9 @@ class KoreksiAmplopScreen extends ConsumerStatefulWidget {
 class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
   late final TextEditingController _nama;
   late final TextEditingController _alamat;
+  late final TextEditingController _dusun;
   late final TextEditingController _nominal;
+  late final TextEditingController _keterangan;
   late JenisAmplop _jenis;
   bool _sibuk = false;
   String? _galat;
@@ -47,9 +49,13 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
     final lama = widget.amplopLama;
     _nama = TextEditingController(text: lama?.nama ?? '');
     _alamat = TextEditingController(text: lama?.alamat ?? '');
+    _dusun = TextEditingController(
+      text: lama?.dusun == null ? '' : '${lama!.dusun}',
+    );
     _nominal = TextEditingController(
       text: lama == null ? '' : '${lama.nominal}',
     );
+    _keterangan = TextEditingController(text: lama?.keterangan ?? '');
     _jenis = lama?.jenis ?? JenisAmplop.normal;
   }
 
@@ -57,7 +63,9 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
   void dispose() {
     _nama.dispose();
     _alamat.dispose();
+    _dusun.dispose();
     _nominal.dispose();
+    _keterangan.dispose();
     super.dispose();
   }
 
@@ -87,6 +95,8 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
           amplopLama: widget.amplopLama!,
           nama: _nama.text,
           alamat: _alamat.text,
+          dusun: int.tryParse(_dusun.text.trim()),
+          keterangan: _keterangan.text,
           jenis: _jenis,
           nominal: nominal,
         );
@@ -97,6 +107,8 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
           pemilikId: pengguna.uid,
           nama: _nama.text,
           alamat: _alamat.text,
+          dusun: int.tryParse(_dusun.text.trim()),
+          keterangan: _keterangan.text,
           jenis: _jenis,
           nominal: nominal,
         );
@@ -183,6 +195,16 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
             ),
             const SizedBox(height: 12),
             TextField(
+              controller: _dusun,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Dusun (angka, boleh kosong)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
               controller: _nominal,
               enabled: !kosong,
               keyboardType: TextInputType.number,
@@ -193,6 +215,15 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
                     : 'Nominal (Rp)',
                 prefixText: kosong ? null : 'Rp ',
                 border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _keterangan,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Keterangan (boleh kosong)',
+                border: OutlineInputBorder(),
               ),
             ),
             if (_galat != null) ...[
