@@ -330,3 +330,74 @@ tempel ulang rules.
 6. Uji offline: matikan data/Wi-Fi, catat 1 amplop — barisnya
    berpenanda oranye "menunggu sinkron"; hidupkan lagi, penanda
    berubah hijau.
+
+## Batch 10 — Identitas pencatat tetap + PIN pribadi + kunci sesi
+
+Identitas pencatat tidak lagi menempel ke HP. Pencatat kini punya
+catatan tetap atas namanya dan **PIN pribadi** sendiri; ia bisa
+masuk dari perangkat mana pun dengan **kode acara + nama + PIN
+pribadi** (PIN acara bersama tidak lagi dipakai untuk gabung).
+Satu nama hanya boleh dipegang **satu perangkat dalam satu waktu**
+(kunci sesi): perangkat kedua **ditolak** sampai perangkat pertama
+keluar, atau pemilik menekan **Reset Sesi**. Karena identitasnya
+tetap, bundel-bundelnya selalu tampil sebagai miliknya — ganti HP
+tidak lagi mengosongkan daftar Bundel Saya.
+
+**WAJIB — 2 langkah di Firebase Console setelah menerapkan patch:**
+
+1. **Tempel ulang `firestore.rules`** (Firestore Database → Rules
+   → Edit rules → tempel seluruh isi file → Publish). Rules lama
+   tidak mengenal dokumen sesi dan akan menolak pencatatan model
+   baru.
+2. **Buat pengecualian indeks baru** untuk query "acara yang saya
+   ikuti" model baru: Firestore Database → **Indexes** → tab
+   **Single field** → **Add exemption**: Collection ID `pencatat`,
+   Field `uidAktif`, centang **Collection group**, Ascending →
+   Save. (Persis seperti pengecualian `userId` dulu; yang lama
+   boleh dibiarkan.)
+
+**Yang berubah di aplikasi:**
+
+- Form gabung: kolom PIN kini **PIN Pribadimu**.
+- Pemilik mendaftarkan pencatat: ada kolom PIN pribadi — kosongkan
+  untuk dibuatkan otomatis (PIN tampil di pesan setelah menambah
+  dan di daftar pencatat; bagikan ke orangnya). Ikon kunci di tiap
+  baris untuk mengatur/mengganti PIN pribadi.
+- Tombol **Lepas HP** digantikan **Reset Sesi**: melepas kunci
+  sesi dari perangkat yang memegangnya. Identitas, bundel, dan
+  amplop pencatat tidak berubah sama sekali.
+- Keluar dari aplikasi kini melepas sesi perangkat ini dulu —
+  jadi pencatat yang keluar bisa langsung masuk dari HP lain.
+- Menonaktifkan pencatat juga memutus sesinya seketika.
+- Kartu "Kode Gabung & PIN Pencatat" kini hanya menampilkan kode;
+  PIN pribadi tiap pencatat ada di bagian Pencatat.
+
+**Catatan migrasi data yang sudah ada:**
+
+- Pencatat yang **sedang masuk** di HP-nya tetap bisa mencatat
+  seperti biasa — sesinya dikenali otomatis oleh versi baru.
+- Undangan & pencatat lama **belum punya PIN pribadi**: sebelum
+  orangnya bisa masuk dari perangkat lain, pemilik mengatur PIN
+  pribadinya dulu lewat ikon kunci di bagian Pencatat.
+- Bila sesi lama tertinggal (mis. HP lama sudah tidak dipakai),
+  pemilik menekan **Reset Sesi** — setelah itu orangnya masuk
+  dengan nama + PIN pribadinya dari HP mana pun.
+
+## Cara uji Batch 10
+
+1. Terapkan patch → tempel ulang rules → buat pengecualian indeks
+   `uidAktif` (langkah Console di atas) → `flutter run`.
+2. Pemilik: daftarkan pencatat baru — pesan setelah menambah
+   menampilkan PIN pribadinya. Pencatat gabung dari HP dengan
+   kode + nama + PIN pribadi itu: berhasil, mencatat seperti biasa.
+3. Tanpa keluar dari HP pertama, coba gabung dengan nama + PIN
+   yang sama dari perangkat/sesi lain: harus **ditolak** dengan
+   pesan sesi sedang dipakai perangkat lain.
+4. Keluar dari HP pertama, lalu gabung lagi dari perangkat kedua:
+   harus berhasil, dan daftar **Bundel Saya** menampilkan
+   bundel-bundel yang dicatat dari HP pertama (tidak kosong).
+5. Pemilik: tekan **Reset Sesi** pada pencatat yang sedang masuk
+   di HP pertama → HP pertama tidak bisa mencatat lagi (pesan
+   sesi), dan orangnya bisa masuk dari perangkat lain.
+6. Pemilik: ubah PIN pribadi lewat ikon kunci → PIN lama ditolak,
+   PIN baru diterima.
