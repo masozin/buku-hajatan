@@ -744,3 +744,43 @@ Lima perubahan:
 4. Rekap: tidak ada lagi kartu pencarian; ada bagian "Per
    Alamat"; kartu Kosong/Tanpa Nama tampil tanpa peringatan
    overflow (garis kuning-hitam) di bagian bawah layar.
+
+## Batch 21 — Aplikasi memeriksa pembaruan sendiri (GitHub Releases)
+
+Sekali setiap aplikasi dibuka, aplikasi bertanya ke GitHub
+Releases repo ini apakah ada rilis lebih baru dari versi yang
+terpasang. Bila ada: dialog "Ada Pembaruan Aplikasi" (versi baru
++ catatan rilis) dengan tombol **Unduh Sekarang** (membuka unduhan
+APK di browser) dan **Nanti Saja**. Pemeriksaan gagal (offline
+dsb.) diam saja. Versi aplikasi naik ke **1.1.0+2**.
+
+Aturan main merilis (PENTING, ikuti persis):
+
+1. Naikkan `version:` di pubspec.yaml (angka di belakang `+`
+   WAJIB selalu naik — itu yang dibandingkan).
+2. Build APK rilis, buat release di GitHub dengan **tag = `v` +
+   versi pubspec persis** (mis. `v1.1.0+2`), lampirkan file
+   APK-nya sebagai aset, Publish sebagai rilis penuh (bukan
+   pre-release/draft — endpoint "latest" mengabaikannya).
+3. Bila sebuah rilis WAJIB dipasang semua orang (mis. perubahan
+   model data), tulis penanda **[WAJIB]** di catatan rilisnya:
+   dialog pembaruannya tidak bisa ditunda/ditutup.
+4. Catatan rilis tampil apa adanya di dialog — tulis ringkas
+   dengan bahasa pengguna.
+
+Sekali ini saja pemasangan versi 1.1.0 masih manual (aplikasi
+lama belum punya pemeriksa); setelah itu pembaruan terdeteksi
+sendiri. Batch ini juga menambahkan **izin INTERNET ke manifest
+utama** — tanpa itu APK rilis tidak bisa online sama sekali
+(selama ini terbantu manifest debug milik `flutter run`).
+
+## Cara uji Batch 21
+
+1. `flutter pub get` (ada 2 dependensi baru), lalu pasang build
+   dari patch ini ke HP seperti biasa.
+2. Di GitHub repo ini: buat release UJI dengan tag `v9.9.9+99`,
+   lampirkan APK apa pun sebagai aset, Publish.
+3. Buka aplikasi → dalam beberapa detik dialog pembaruan muncul
+   menawarkan versi 9.9.9; "Nanti Saja" menutupnya; buka lagi
+   aplikasi dan ketuk "Unduh Sekarang" → browser membuka unduhan.
+4. Hapus release uji itu di GitHub → aplikasi kembali tenang.
