@@ -3,37 +3,72 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers.dart';
 import '../services/layanan_exception.dart';
+import '../widgets/elemen.dart';
 import '../widgets/keadaan.dart';
 
 /// Layar masuk: dua tab sesuai Auth Opsi A.
 /// - Pemilik: email + kata sandi. Sejak Batch 5 akun pemilik
 ///   DIBUATKAN oleh admin — tidak ada pendaftaran mandiri di sini.
 /// - Pencatat: gabung acara dengan kode + nama + PIN, tanpa email.
+///
+/// Ditata ulang Batch 12: kepala merek (logo + nama + tagline)
+/// dan pemilih tab berbentuk pil ala kendali segmen.
 class MasukScreen extends StatelessWidget {
   const MasukScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final skema = tema.colorScheme;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Buku Hajatan'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.home_outlined), text: 'Pemilik Acara'),
-              Tab(icon: Icon(Icons.badge_outlined), text: 'Pencatat'),
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 40),
+              const Center(child: LogoAplikasi(ukuran: 76)),
+              const SizedBox(height: 18),
+              Text(
+                'Buku Hajatan',
+                textAlign: TextAlign.center,
+                style: tema.textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
+                  'Buku tamu digital untuk amplop hajatan — rapi, '
+                  'aman, dan tersinkron realtime.',
+                  textAlign: TextAlign.center,
+                  style: tema.textTheme.bodyMedium?.copyWith(
+                    color: skema.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: skema.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const TabBar(
+                  tabs: [
+                    Tab(text: 'Pemilik Acara'),
+                    Tab(text: 'Pencatat'),
+                  ],
+                ),
+              ),
+              const Expanded(
+                child: TabBarView(
+                  children: [_TabPemilik(), _TabPencatat()],
+                ),
+              ),
             ],
           ),
-        ),
-        body: const TabBarView(
-          children: [
-            _TabPemilik(),
-            SingleChildScrollView(
-              padding: EdgeInsets.all(20),
-              child: _TabPencatat(),
-            ),
-          ],
         ),
       ),
     );
@@ -77,15 +112,35 @@ class _TabPencatatState extends ConsumerState<_TabPencatat> {
 
   @override
   Widget build(BuildContext context) {
+    final skema = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Untuk petugas pencatat amplop. Kamu akan diminta kode '
-            'acara, namamu (sesuai yang didaftarkan pemilik), dan PIN '
-            'pribadimu di langkah berikutnya.',
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.badge_rounded,
+                    color: skema.primary,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Untuk petugas pencatat amplop. Kamu akan '
+                      'diminta kode acara, namamu (sesuai yang '
+                      'didaftarkan pemilik), dan PIN pribadimu di '
+                      'langkah berikutnya.',
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           if (_galat != null) ...[
             const SizedBox(height: 12),
@@ -194,10 +249,13 @@ class _TabPemilikState extends ConsumerState<_TabPemilik> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             'Masuk sebagai pemilik acara untuk memantau acara '
             'hajatanmu. Akun dibuatkan oleh admin Buku Hajatan — '
             'hubungi admin bila belum punya akun.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -205,7 +263,7 @@ class _TabPemilikState extends ConsumerState<_TabPemilik> {
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(
               labelText: 'Email',
-              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.mail_outline_rounded),
             ),
           ),
           const SizedBox(height: 12),
@@ -214,7 +272,7 @@ class _TabPemilikState extends ConsumerState<_TabPemilik> {
             obscureText: true,
             decoration: const InputDecoration(
               labelText: 'Kata Sandi',
-              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.lock_outline_rounded),
             ),
           ),
           if (_galat != null) ...[

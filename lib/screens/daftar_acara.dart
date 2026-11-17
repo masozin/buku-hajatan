@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/format.dart';
 import '../models/acara.dart';
 import '../providers.dart';
+import '../widgets/elemen.dart';
 import '../widgets/keadaan.dart';
 import 'detail_acara.dart';
 import 'gabung_acara.dart';
@@ -57,34 +58,27 @@ class DaftarAcaraScreen extends ConsumerWidget {
         children: [
           if (!anonim) ...[
             _SapaanPemilik(uid: pengguna.uid),
-            const SizedBox(height: 16),
-            Text('Acara Saya', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
+            const JudulBagian(teks: 'Acara Saya'),
+            const SizedBox(height: 10),
             _DaftarMilikSaya(uid: pengguna.uid),
           ],
           if (anonim) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Saya Ikuti sebagai Pencatat',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const GabungAcaraScreen(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.group_add_outlined),
-                  label: const Text('Gabung'),
-                ),
-              ],
+            JudulBagian(
+              teks: 'Saya Ikuti sebagai Pencatat',
+              aksi: TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const GabungAcaraScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.group_add_outlined),
+                label: const Text('Gabung'),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             _DaftarDiikuti(uid: pengguna.uid),
           ],
         ],
@@ -241,26 +235,102 @@ class _KartuAcara extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final skema = tema.colorScheme;
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: onKetuk,
-        title: Text(acara.namaAcara),
-        subtitle: Text(
-          [
-            '${acara.jenis} • ${formatTanggalSingkat(acara.tanggal)}',
-            'Tuan rumah: ${acara.tuanRumah}',
-            if (keteranganTambahan != null) keteranganTambahan!,
-            'Total sementara: ${formatRupiah(acara.totalRp)} '
-                '(${acara.totalAmplop} amplop)',
-          ].join('\n'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      acara.namaAcara,
+                      style: tema.textTheme.titleMedium,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ChipStatusAcara(status: acara.status),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _MetaAcara(
+                ikon: Icons.celebration_rounded,
+                teks:
+                    '${acara.jenis} • ${formatTanggalSingkat(acara.tanggal)}',
+              ),
+              const SizedBox(height: 4),
+              _MetaAcara(
+                ikon: Icons.home_rounded,
+                teks: 'Tuan rumah: ${acara.tuanRumah}',
+              ),
+              if (keteranganTambahan != null) ...[
+                const SizedBox(height: 4),
+                _MetaAcara(
+                  ikon: Icons.badge_rounded,
+                  teks: keteranganTambahan!,
+                ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Text(
+                    formatRupiah(acara.totalRp),
+                    style: tema.textTheme.titleMedium?.copyWith(
+                      color: skema.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    '  •  ${acara.totalAmplop} amplop',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: skema.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: skema.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        trailing: Chip(
-          label: Text(acara.status.label),
-          visualDensity: VisualDensity.compact,
-        ),
-        isThreeLine: true,
       ),
+    );
+  }
+}
+
+/// Satu baris meta berketerangan ikon di kartu acara.
+class _MetaAcara extends StatelessWidget {
+  const _MetaAcara({required this.ikon, required this.teks});
+
+  final IconData ikon;
+  final String teks;
+
+  @override
+  Widget build(BuildContext context) {
+    final skema = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(ikon, size: 16, color: skema.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            teks,
+            style: TextStyle(fontSize: 13.5, color: skema.onSurfaceVariant),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -273,13 +343,27 @@ class _SapaanPemilik extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
     return FutureBuilder(
       future: ref.read(authServiceProvider).ambilProfilPemilik(uid),
       builder: (context, snapshot) {
         final nama = snapshot.data?.nama;
-        return Text(
-          nama == null ? 'Halo!' : 'Halo, $nama!',
-          style: Theme.of(context).textTheme.titleLarge,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              nama == null ? 'Halo!' : 'Halo, $nama!',
+              style: tema.textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Kelola acara hajatanmu — pantau amplop masuk '
+              'secara realtime.',
+              style: tema.textTheme.bodyMedium?.copyWith(
+                color: tema.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         );
       },
     );

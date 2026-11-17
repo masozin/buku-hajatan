@@ -8,6 +8,9 @@ import '../models/bundel.dart';
 import '../models/pencatat.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
+import '../theme/tema_aplikasi.dart';
+import '../widgets/elemen.dart';
+import '../widgets/kartu_total.dart';
 import '../widgets/keadaan.dart';
 import 'daftar_bundel.dart';
 import 'daftar_pengunjung.dart';
@@ -372,11 +375,12 @@ class _InfoAcara extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Text(
@@ -384,14 +388,32 @@ class _InfoAcara extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
-                Chip(label: Text(acara.status.label)),
+                const SizedBox(width: 8),
+                ChipStatusAcara(status: acara.status),
               ],
             ),
-            const SizedBox(height: 8),
-            Text('Tuan rumah: ${acara.tuanRumah}'),
-            Text('Jenis: ${acara.jenis}'),
-            Text('Tanggal: ${formatTanggal(acara.tanggal)}'),
-            if (acara.lokasi != null) Text('Lokasi: ${acara.lokasi}'),
+            const SizedBox(height: 12),
+            _BarisInfo(
+              ikon: Icons.celebration_rounded,
+              label: 'Jenis',
+              nilai: acara.jenis,
+            ),
+            _BarisInfo(
+              ikon: Icons.home_rounded,
+              label: 'Tuan rumah',
+              nilai: acara.tuanRumah,
+            ),
+            _BarisInfo(
+              ikon: Icons.calendar_month_rounded,
+              label: 'Tanggal',
+              nilai: formatTanggal(acara.tanggal),
+            ),
+            if (acara.lokasi != null)
+              _BarisInfo(
+                ikon: Icons.place_rounded,
+                label: 'Lokasi',
+                nilai: acara.lokasi!,
+              ),
           ],
         ),
       ),
@@ -399,6 +421,53 @@ class _InfoAcara extends StatelessWidget {
   }
 }
 
+/// Satu baris label–nilai berikon di kartu info acara.
+class _BarisInfo extends StatelessWidget {
+  const _BarisInfo({
+    required this.ikon,
+    required this.label,
+    required this.nilai,
+  });
+
+  final IconData ikon;
+  final String label;
+  final String nilai;
+
+  @override
+  Widget build(BuildContext context) {
+    final skema = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(ikon, size: 20, color: skema.primary),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 92,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: skema.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              nilai,
+              style: const TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Total acara kini memakai kartu sorotan bersama (Batch 12).
 class _TotalAcara extends StatelessWidget {
   const _TotalAcara({required this.acara});
 
@@ -406,36 +475,7 @@ class _TotalAcara extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _Angka(label: 'Pengunjung', nilai: '${acara.totalAmplop}'),
-            _Angka(label: 'Bundel', nilai: '${acara.totalBundel}'),
-            _Angka(label: 'Total', nilai: formatRupiah(acara.totalRp)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Angka extends StatelessWidget {
-  const _Angka({required this.label, required this.nilai});
-
-  final String label;
-  final String nilai;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(nilai, style: Theme.of(context).textTheme.titleMedium),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
-    );
+    return KartuTotalAcara(acara: acara);
   }
 }
 
@@ -879,18 +919,29 @@ class _KartuPencatatSaya extends ConsumerWidget {
               );
             }
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                CircleAvatar(
-                  radius: 30,
-                  child: Text(
-                    saya.prefix,
-                    style: Theme.of(context).textTheme.headlineSmall,
+                Center(
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: const BoxDecoration(
+                      gradient: TemaAplikasi.gradasiPahlawan,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      saya.prefix,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(color: Colors.white),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
                   'Kamu pencatat ${saya.prefix} — ${saya.nama}',
                   style: Theme.of(context).textTheme.titleMedium,
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -900,6 +951,9 @@ class _KartuPencatatSaya extends ConsumerWidget {
                             : 'Bundel terakhirmu: ${saya.nomorBundelTerakhir}.'
                       : 'Statusmu sedang dinonaktifkan pemilik acara.',
                   textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 if (saya.aktif && !acara.sudahSelesai) ...[
                   const SizedBox(height: 12),
