@@ -75,7 +75,8 @@ class MasukScreen extends StatelessWidget {
   }
 }
 
-/// Tab Pencatat: tombol masuk anonim saja. Form kode+nama+PIN
+/// Tab Pencatat: sesi anonim dibuat otomatis saat tab dibuka
+/// (Batch 13; sebelumnya lewat tombol). Form kode+nama+PIN
 /// SENGAJA tidak ditaruh di sini lagi (perbaikan gabung
 /// 2026-11-17): form itu masuk anonim dulu baru mengklaim, dan
 /// gerbang menukar layar begitu sesi muncul — form hancur di tengah
@@ -91,9 +92,40 @@ class _TabPencatat extends ConsumerStatefulWidget {
 
 class _TabPencatatState extends ConsumerState<_TabPencatat> {
   bool _sibuk = false;
+  bool _sudahMulai = false;
   String? _galat;
+  TabController? _kontrolTab;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final kontrol = DefaultTabController.of(context);
+    if (kontrol != _kontrolTab) {
+      _kontrolTab?.removeListener(_periksaTab);
+      _kontrolTab = kontrol;
+      _kontrolTab?.addListener(_periksaTab);
+    }
+    _periksaTab();
+  }
+
+  @override
+  void dispose() {
+    _kontrolTab?.removeListener(_periksaTab);
+    super.dispose();
+  }
+
+  /// Batch 13: sesi anonim dibuat OTOMATIS begitu tab Pencatat
+  /// dibuka — tidak perlu mengetuk tombol lagi. Tombol tetap ada
+  /// sebagai jalan mencoba ulang bila pembuatan sesi gagal.
+  void _periksaTab() {
+    if (_kontrolTab?.index == 1 && !_sudahMulai && !_sibuk) {
+      _masuk();
+    }
+  }
 
   Future<void> _masuk() async {
+    if (_sudahMulai) return;
+    _sudahMulai = true;
     setState(() {
       _sibuk = true;
       _galat = null;
@@ -102,8 +134,10 @@ class _TabPencatatState extends ConsumerState<_TabPencatat> {
       await ref.read(authServiceProvider).masukAnonim();
       // Berhasil: gerbang berpindah ke form gabung pencatat.
     } on LayananException catch (e) {
+      _sudahMulai = false;
       if (mounted) setState(() => _galat = e.pesan);
     } catch (e) {
+      _sudahMulai = false;
       if (mounted) setState(() => _galat = pesanDari(e));
     } finally {
       if (mounted) setState(() => _sibuk = false);

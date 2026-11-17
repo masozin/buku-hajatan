@@ -12,7 +12,6 @@ import '../theme/tema_aplikasi.dart';
 import '../widgets/elemen.dart';
 import '../widgets/kartu_total.dart';
 import '../widgets/keadaan.dart';
-import 'daftar_bundel.dart';
 import 'daftar_pengunjung.dart';
 import 'koreksi_amplop.dart';
 import 'pencatatan.dart';
@@ -120,25 +119,31 @@ class DetailAcaraScreen extends ConsumerWidget {
                         ],
                       ),
                     );
-                    if (yakin == true && context.mounted) {
-                      // Batch 10: lepas sesi perangkat ini dulu.
-                      final uidSaya = ref
-                          .read(statusPenggunaProvider)
-                          .valueOrNull
-                          ?.uid;
-                      if (uidSaya != null) {
-                        try {
-                          await ref
-                              .read(acaraServiceProvider)
-                              .lepaskanSemuaSesi(uidSaya);
-                        } catch (_) {
-                          // Abaikan — keluar tetap jalan.
-                        }
-                      }
-                      if (context.mounted) {
-                        await ref.read(authServiceProvider).keluar();
+                    if (yakin != true) return;
+                    // Perbaikan Batch 13 (keluar harus dua kali):
+                    // tangkap layanan & uid SEBELUM menunggu lagi.
+                    // Begitu sesi lepas, gerbang menukar layar ini
+                    // dengan halaman gabung dan widget terlepas —
+                    // pemeriksaan mounted di tengah jalan dulu
+                    // membatalkan keluar() diam-diam, sehingga
+                    // pengguna terdampar di halaman gabung dan
+                    // harus keluar sekali lagi. Kini keluar()
+                    // dipanggil tanpa syarat lewat rujukan yang
+                    // sudah ditangkap.
+                    final auth = ref.read(authServiceProvider);
+                    final layananAcara = ref.read(acaraServiceProvider);
+                    final uidSaya = ref
+                        .read(statusPenggunaProvider)
+                        .valueOrNull
+                        ?.uid;
+                    if (uidSaya != null) {
+                      try {
+                        await layananAcara.lepaskanSemuaSesi(uidSaya);
+                      } catch (_) {
+                        // Abaikan — keluar tetap jalan.
                       }
                     }
+                    await auth.keluar();
                   },
                 ),
               ],
@@ -345,7 +350,8 @@ class _FabPencatat extends ConsumerWidget {
       builder: (context, snapshot) {
         final saya = snapshot.data;
         if (saya == null || !saya.aktif) return const SizedBox.shrink();
-        return FloatingActionButton.extended(
+        // Batch 13: tombol melayang pencatat cukup ikon saja.
+        return FloatingActionButton(
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -356,8 +362,8 @@ class _FabPencatat extends ConsumerWidget {
               ),
             );
           },
-          icon: const Icon(Icons.edit_note_outlined),
-          label: const Text('Catat Amplop'),
+          tooltip: 'Catat Amplop',
+          child: const Icon(Icons.edit_note_rounded),
         );
       },
     );
@@ -949,21 +955,8 @@ class _KartuPencatatSaya extends ConsumerWidget {
                     icon: const Icon(Icons.edit_note_outlined),
                     label: const Text('Mulai Mencatat'),
                   ),
-                  TextButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => DaftarBundelScreen(
-                            acaraId: acara.id,
-                            pencatatId: saya.id,
-                            sebagaiPemilik: false,
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.list_alt_outlined),
-                    label: const Text('Daftar Bundel Saya'),
-                  ),
+                  // Batch 13: tombol "Daftar Bundel Saya" dihapus —
+                  // bundel milik pencatat kini ada di tab Bundel.
                 ],
               ],
             );

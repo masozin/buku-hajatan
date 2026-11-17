@@ -12,7 +12,6 @@ import '../services/pencatatan_service.dart';
 import '../theme/tema_aplikasi.dart';
 import '../widgets/baris_amplop.dart';
 import '../widgets/keadaan.dart';
-import 'daftar_bundel.dart';
 import 'koreksi_amplop.dart';
 
 /// Layar utama pencatat di hari-H (Batch 2).
@@ -187,26 +186,9 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
     // ConsumerState.build hanya menerima context; ref adalah properti.
     final layanan = ref.watch(pencatatanServiceProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mencatat Amplop'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.list_alt_outlined),
-            tooltip: 'Daftar Bundel Saya',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => DaftarBundelScreen(
-                    acaraId: widget.acaraId,
-                    pencatatId: widget.pencatatId,
-                    sebagaiPemilik: false,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+      // Batch 13: tombol "Daftar Bundel Saya" di sini dihapus —
+      // fungsinya digantikan tab Bundel di Detail Acara.
+      appBar: AppBar(title: const Text('Mencatat Amplop')),
       body: StreamBuilder<List<Bundel>>(
         stream: layanan.bundelPencatatStream(
           widget.acaraId,
