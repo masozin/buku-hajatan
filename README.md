@@ -103,6 +103,43 @@ flutter run
   ke status selesai) — tempel ulang seluruh isinya. Tidak ada
   dependensi baru.
 
+- **Batch 7 (kolom dusun/keterangan/waktu, tab Detail Acara, FAB
+  catat)**: amplop bertambah kolom **Dusun** (angka, setelah alamat)
+  dan **Keterangan** (teks bebas) di form pencatatan & koreksi, ikut
+  tampil di baris amplop, daftar pengunjung, dan ekspor (Excel & CSV
+  juga mendapat kolom **Waktu** dari timestamp pencatatan yang
+  memang sudah tersimpan sejak Batch 2). Detail Acara pemilik
+  menjadi dua tab: **Ringkasan** (jumlah Pengunjung & Total Rp,
+  kode gabung, kelola pencatat, status) dan **Pengunjung** (semua
+  amplop lintas bundel, ada pencarian nama/alamat/dusun/keterangan
+  dan urutan: bundel, nama, nominal, dusun, terbaru/terlama; data
+  dibaca sekali jalan + tombol muat ulang). **Tombol catat
+  melayang**: acara AKTIF → hanya pencatat yang melihatnya (Catat
+  Amplop); acara SELESAI → hanya pemilik (Catat Koreksi, pilih
+  bundel belum penuh dulu). Bagian "Saya Ikuti sebagai Pencatat"
+  di beranda disembunyikan untuk sesi pemilik (tetap ada untuk
+  sesi anonim pencatat, karena itu beranda mereka). Rules TIDAK
+  berubah di batch ini; tidak ada dependensi baru.
+
+## Cara uji Batch 7
+
+1. `flutter run` (tanpa tempel rules). Sebagai pencatat di acara
+   aktif: tombol melayang **Catat Amplop** tampil di Detail Acara;
+   catat satu amplop mengisi Dusun (angka) & Keterangan — keduanya
+   tampil di baris isi bundel.
+2. Sebagai pemilik di acara AKTIF yang sama: Detail Acara kini
+   bertab; tab Pengunjung menampilkan semua amplop — coba cari
+   berdasarkan dusun ("dusun 1") dan urutkan Nominal terbesar.
+   Tombol catat TIDAK tampil untuk pemilik.
+3. Tandai acara Selesai → tombol **Catat Koreksi** muncul untuk
+   pemilik (dan hilang dari pencatat); ketuk → pilih bundel belum
+   penuh → tambah amplop koreksi dengan dusun & keterangan.
+4. Ekspor Excel & CSV dari Rekap: kolom Dusun, Keterangan, Waktu
+   terisi.
+5. Beranda pemilik tidak lagi menampilkan bagian "Saya Ikuti
+   sebagai Pencatat"; masuk sebagai pencatat (anonim) bagian itu
+   tetap ada.
+
 ## Cara uji Batch 6
 
 1. Tempel ulang rules, lalu `flutter run`. Masuk sebagai admin →

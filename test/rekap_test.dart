@@ -149,13 +149,16 @@ void main() {
     test('csv mengutip sel berkoma/berkutip', () {
       final csv = buatCsv(buatBarisEkspor(data));
       final barisCsv = csv.trim().split('\n');
-      expect(barisCsv[0], 'Kode Bundel,No,Nama,Alamat,Nominal (Rp),Jenis');
+      expect(
+        barisCsv[0],
+        'Kode Bundel,No,Nama,Alamat,Dusun,Nominal (Rp),Jenis,Keterangan,Waktu',
+      );
       expect(
         barisCsv[1],
-        'A001,1,"Sari, S.Pd","Dusun ""Melati""",200000,Normal',
+        'A001,1,"Sari, S.Pd","Dusun ""Melati""",,200000,Normal,,',
       );
-      expect(barisCsv[2], 'A001,2,(Tanpa Nama),,50000,Tanpa Nama');
-      expect(barisCsv[3], 'B001,1,Dedi,,100000,Normal');
+      expect(barisCsv[2], 'A001,2,(Tanpa Nama),,,50000,Tanpa Nama,,');
+      expect(barisCsv[3], 'B001,1,Dedi,,,100000,Normal,,');
     });
   });
 
