@@ -8,7 +8,6 @@ import 'screens/belum_konfigurasi.dart';
 import 'screens/daftar_acara.dart';
 import 'screens/detail_acara.dart';
 import 'screens/diblokir.dart';
-import 'screens/gabung_acara.dart';
 import 'screens/masuk.dart';
 import 'screens/panel_admin.dart';
 import 'widgets/keadaan.dart';
@@ -112,8 +111,11 @@ class _GerbangPengguna extends ConsumerWidget {
 /// pernah terlihat. Pencatat berakhir di beranda kosong.
 ///
 /// SEKARANG: pencatat anonim yang BELUM mengikuti acara apa pun
-/// mendarat di form gabung sebagai berandanya (sesinya sudah aktif,
-/// form stabil, galat tampil normal). Begitu klaim berhasil, stream
+/// ditahan di layar Masuk dengan tab Pencatat terbuka (Batch 14;
+/// sebelumnya form gabung menjadi beranda tersendiri di sini).
+/// Form gabung kini langsung di tab itu — karena layar tujuannya
+/// sama-sama Masuk, form tidak hancur saat sesi dibuat/diisi,
+/// galat tampil normal. Begitu klaim berhasil, stream
 /// keikutsertaan terisi dan gerbang berpindah ke Daftar Acara
 /// dengan sendirinya.
 class _GerbangPencatat extends ConsumerWidget {
@@ -170,35 +172,12 @@ class _GerbangPencatat extends ConsumerWidget {
           );
         }
         if (daftar.isNotEmpty) return const DaftarAcaraScreen();
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Gabung Acara'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.logout),
-                tooltip: 'Keluar',
-                onPressed: () => _keluar(ref),
-              ),
-            ],
-          ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: GabungAcaraForm(
-              onBerhasil: (pencatat) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Selamat datang, ${pencatat.nama}. Kamu pencatat '
-                      'prefix ${pencatat.prefix}.',
-                    ),
-                  ),
-                );
-                // Gerbang berpindah ke Daftar Acara dengan sendirinya
-                // begitu stream keikutsertaan terisi.
-              },
-            ),
-          ),
-        );
+        // Batch 14: belum mengikuti acara apa pun → kembali ke
+        // layar Masuk dengan tab Pencatat terbuka; form gabung
+        // kini LANGSUNG di tab itu (bukan halaman tersendiri).
+        // Karena tujuannya layar Masuk juga, form tidak hancur
+        // saat sesi dibuat — bug gabung lama tidak terulang.
+        return const MasukScreen(tabAwal: 1);
       },
     );
   }

@@ -9,16 +9,22 @@ import '../widgets/keadaan.dart';
 
 /// Form gabung pencatat: kode acara + nama (sesuai yang
 /// didaftarkan pemilik) + PIN PRIBADI pencatat itu (Batch 10;
-/// sebelumnya PIN acara). Dipakai sebagai beranda
-/// pencatat anonim yang belum mengikuti acara (lewat gerbang di
-/// main.dart) dan sebagai layar tersendiri untuk gabung acara lain.
-/// TIDAK dipakai lagi di tab Pencatat layar Masuk — di sana sesi
-/// belum ada, dan masuk anonim di tengah form membuat gerbang
-/// menukar layar sebelum klaim selesai (bug gabung 2026-11-17).
+/// sebelumnya PIN acara). Dipakai LANGSUNG di tab Pencatat layar
+/// Masuk (Batch 14 — gerbang menahan sesi anonim tanpa acara di
+/// layar Masuk, jadi form aman di sana) dan sebagai layar
+/// tersendiri untuk gabung acara lain.
 class GabungAcaraForm extends ConsumerStatefulWidget {
-  const GabungAcaraForm({super.key, required this.onBerhasil});
+  const GabungAcaraForm({
+    super.key,
+    required this.onBerhasil,
+    this.tampilkanPengantar = true,
+  });
 
   final void Function(Pencatat pencatat) onBerhasil;
+
+  /// Teks pengantar di atas form. Di tab Pencatat layar Masuk
+  /// sudah ada kartu penjelasan sendiri, jadi di sana dimatikan.
+  final bool tampilkanPengantar;
 
   @override
   ConsumerState<GabungAcaraForm> createState() => _GabungAcaraFormState();
@@ -73,12 +79,14 @@ class _GabungAcaraFormState extends ConsumerState<GabungAcaraForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Untuk petugas pencatat amplop. Kode acara & PIN pribadimu '
-          'didapat dari pemilik acara; namamu harus sudah didaftarkan '
-          'pemilik acara.',
-        ),
-        const SizedBox(height: 16),
+        if (widget.tampilkanPengantar) ...[
+          const Text(
+            'Untuk petugas pencatat amplop. Kode acara & PIN '
+            'pribadimu didapat dari pemilik acara; namamu harus '
+            'sudah didaftarkan pemilik acara.',
+          ),
+          const SizedBox(height: 16),
+        ],
         TextField(
           controller: _kode,
           textCapitalization: TextCapitalization.characters,

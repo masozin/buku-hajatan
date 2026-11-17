@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../widgets/elemen.dart';
+import 'gabung_acara.dart';
 import '../widgets/keadaan.dart';
 
 /// Layar masuk: dua tab sesuai Auth Opsi A.
@@ -14,7 +15,13 @@ import '../widgets/keadaan.dart';
 /// Ditata ulang Batch 12: kepala merek (logo + nama + tagline)
 /// dan pemilih tab berbentuk pil ala kendali segmen.
 class MasukScreen extends StatelessWidget {
-  const MasukScreen({super.key});
+  const MasukScreen({super.key, this.tabAwal = 0});
+
+  /// Tab yang dibuka pertama kali: 0 = Pemilik, 1 = Pencatat.
+  /// Gerbang memakai 1 untuk sesi anonim yang belum mengikuti
+  /// acara apa pun (Batch 14) — form gabung kini langsung di tab
+  /// Pencatat, bukan halaman tersendiri.
+  final int tabAwal;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +29,7 @@ class MasukScreen extends StatelessWidget {
     final skema = tema.colorScheme;
     return DefaultTabController(
       length: 2,
+      initialIndex: tabAwal,
       child: Scaffold(
         body: SafeArea(
           child: Column(
@@ -76,7 +84,9 @@ class MasukScreen extends StatelessWidget {
 }
 
 /// Tab Pencatat: sesi anonim dibuat otomatis saat tab dibuka
-/// (Batch 13; sebelumnya lewat tombol). Form kode+nama+PIN
+/// (Batch 13), dan form gabung kode+nama+PIN kini LANGSUNG di
+/// tab ini (Batch 14) — gerbang menahan sesi anonim tanpa acara
+/// di layar Masuk sehingga form tidak hancur di tengah jalan.
 /// SENGAJA tidak ditaruh di sini lagi (perbaikan gabung
 /// 2026-11-17): form itu masuk anonim dulu baru mengklaim, dan
 /// gerbang menukar layar begitu sesi muncul — form hancur di tengah
@@ -144,9 +154,28 @@ class _TabPencatatState extends ConsumerState<_TabPencatat> {
     }
   }
 
+  /// Keluar dari sesi anonim (Batch 14): untuk pengguna yang
+  /// membuka tab Pencatat tetapi batal bergabung — melepas sesi
+  /// perangkat lalu sign out, kembali ke keadaan belum masuk.
+  Future<void> _keluarSesi() async {
+    final auth = ref.read(authServiceProvider);
+    final layananAcara = ref.read(acaraServiceProvider);
+    final uid = ref.read(statusPenggunaProvider).valueOrNull?.uid;
+    if (uid != null) {
+      try {
+        await layananAcara.lepaskanSemuaSesi(uid);
+      } catch (_) {
+        // Abaikan — keluar tetap jalan.
+      }
+    }
+    await auth.keluar();
+  }
+
   @override
   Widget build(BuildContext context) {
     final skema = Theme.of(context).colorScheme;
+    final pengguna = ref.watch(statusPenggunaProvider).valueOrNull;
+    final sesiAktif = pengguna?.isAnonymous ?? false;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -166,10 +195,9 @@ class _TabPencatatState extends ConsumerState<_TabPencatat> {
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
-                      'Untuk petugas pencatat amplop. Kamu akan '
-                      'diminta kode acara, namamu (sesuai yang '
-                      'didaftarkan pemilik), dan PIN pribadimu di '
-                      'langkah berikutnya.',
+                      'Untuk petugas pencatat amplop. Isi kode '
+                      'acara, namamu (sesuai yang didaftarkan '
+                      'pemilik), dan PIN-mu untuk bergabung.',
                     ),
                   ),
                 ],
@@ -186,17 +214,34 @@ class _TabPencatatState extends ConsumerState<_TabPencatat> {
             ),
           ],
           const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: _sibuk ? null : _masuk,
-            icon: _sibuk
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.badge_outlined),
-            label: const Text('Masuk sebagai Pencatat'),
+          // Batch 14: form gabung LANGSUNG di tab ini (permintaan
+          // Mark) — bukan halaman tersendiri lagi. Aman dari bug
+          // gabung lama karena gerbang kini menahan sesi anonim
+          // tanpa acara di layar Masuk (tab Pencatat), jadi form
+          // tidak hancur saat sesi dibuat.
+          GabungAcaraForm(
+            tampilkanPengantar: false,
+            onBerhasil: (pencatat) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Selamat datang, ${pencatat.nama}. Kamu pencatat '
+                    'prefix ${pencatat.prefix}.',
+                  ),
+                ),
+              );
+              // Gerbang berpindah sendiri begitu stream
+              // keikutsertaan terisi.
+            },
           ),
+          if (sesiAktif) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: _keluarSesi,
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text('Keluar sesi pencatat'),
+            ),
+          ],
         ],
       ),
     );
