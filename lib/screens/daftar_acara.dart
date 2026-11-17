@@ -12,8 +12,9 @@ import 'panel_admin.dart';
 /// Halaman utama setelah masuk:
 /// - "Acara Saya" — milik pemilik yang sedang masuk (disembunyikan
 ///   untuk sesi anonim pencatat).
-/// - "Saya Ikuti sebagai Pencatat" — acara tempat pengguna menjadi
-///   pencatat (untuk semua jenis sesi).
+/// - "Saya Ikuti sebagai Pencatat" — HANYA untuk sesi anonim
+///   pencatat (beranda mereka). Untuk sesi pemilik bagian ini
+///   disembunyikan sejak Batch 7 atas permintaan Mark.
 class DaftarAcaraScreen extends ConsumerWidget {
   const DaftarAcaraScreen({super.key});
 
@@ -60,31 +61,32 @@ class DaftarAcaraScreen extends ConsumerWidget {
             Text('Acara Saya', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             _DaftarMilikSaya(uid: pengguna.uid),
-            const SizedBox(height: 24),
           ],
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Saya Ikuti sebagai Pencatat',
-                  style: Theme.of(context).textTheme.titleMedium,
+          if (anonim) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Saya Ikuti sebagai Pencatat',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
-              ),
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const GabungAcaraScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.group_add_outlined),
-                label: const Text('Gabung'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _DaftarDiikuti(uid: pengguna.uid),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const GabungAcaraScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.group_add_outlined),
+                  label: const Text('Gabung'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _DaftarDiikuti(uid: pengguna.uid),
+          ],
         ],
       ),
     );
@@ -138,7 +140,8 @@ class _DaftarMilikSaya extends ConsumerWidget {
         final daftar = snapshot.data ?? const <Acara>[];
         if (daftar.isEmpty) {
           return const TampilKosong(
-            teks: 'Belum ada acara. Ketuk "Buat Acara" untuk memulai.',
+            teks: 'Belum ada acara. Acara dibuatkan oleh admin '
+                'untukmu — hubungi admin bila belum dibuatkan.',
             ikon: Icons.celebration_outlined,
           );
         }

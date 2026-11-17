@@ -4,21 +4,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
 import '../models/acara.dart';
+import '../models/bundel.dart';
 import '../models/pencatat.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../widgets/keadaan.dart';
 import 'daftar_bundel.dart';
+import 'daftar_pengunjung.dart';
+import 'koreksi_amplop.dart';
 import 'pencatatan.dart';
 import 'rekap.dart';
 
 /// Detail satu acara.
 ///
-/// - Untuk pemilik: info acara, total berjalan, kode gabung + PIN,
-///   kelola pencatat (daftar undangan + pencatat yang sudah bergabung),
-///   dan tombol tandai selesai.
+/// - Untuk pemilik (Batch 7): dua tab — "Ringkasan" (info acara,
+///   jumlah pengunjung & total, kode gabung + PIN, kelola pencatat,
+///   tombol tandai selesai) dan "Pengunjung" (daftar semua amplop,
+///   bisa dicari & diurutkan).
 /// - Untuk pencatat: info acara + kartu prefix miliknya + tombol
 ///   "Mulai Mencatat" menuju layar pencatatan amplop (Batch 2).
+///
+/// Tombol catat melayang (FAB) mengikuti aturan main Batch 6/7:
+/// selama acara AKTIF hanya pencatat yang melihatnya (menuju layar
+/// pencatatan); setelah acara SELESAI hanya pemilik (menuju tambah
+/// koreksi). Selain itu FAB disembunyikan.
 class DetailAcaraScreen extends ConsumerWidget {
   const DetailAcaraScreen({
     super.key,
@@ -32,69 +41,209 @@ class DetailAcaraScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stream = ref.watch(acaraServiceProvider).acaraStream(acaraId);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Detail Acara')),
-      body: StreamBuilder<Acara?>(
-        stream: stream,
+    return StreamBuilder<Acara?>(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: TampilMuat());
+        }
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Detail Acara')),
+            body: TampilGalat(pesan: pesanDari(snapshot.error!)),
+          );
+        }
+        final acara = snapshot.data;
+        if (acara == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Detail Acara')),
+            body: const TampilKosong(
+              teks: 'Acara tidak ditemukan (mungkin sudah dihapus).',
+            ),
+          );
+        }
+        if (!sebagaiPemilik) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Detail Acara')),
+            floatingActionButton: acara.sudahSelesai
+                ? null
+                : _FabPencatat(acara: acara),
+            body: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _InfoAcara(acara: acara),
+                const SizedBox(height: 16),
+                _TotalAcara(acara: acara),
+                const SizedBox(height: 16),
+                _KartuPencatatSaya(acara: acara),
+              ],
+            ),
+          );
+        }
+        return DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Detail Acara'),
+              bottom: const TabBar(
+                tabs: [
+                  Tab(icon: Icon(Icons.summarize_outlined), text: 'Ringkasan'),
+                  Tab(icon: Icon(Icons.people_outline), text: 'Pengunjung'),
+                ],
+              ),
+            ),
+            floatingActionButton: acara.sudahSelesai
+                ? FloatingActionButton.extended(
+                    onPressed: () => _pilihBundelKoreksi(context, ref, acara),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Catat Koreksi'),
+                  )
+                : null,
+            body: TabBarView(
+              children: [
+                ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _InfoAcara(acara: acara),
+                    const SizedBox(height: 16),
+                    _TotalAcara(acara: acara),
+                    const SizedBox(height: 16),
+                    _KartuKodeGabung(acara: acara),
+                    const SizedBox(height: 16),
+                    _KelolaPencatat(acara: acara),
+                    const SizedBox(height: 16),
+                    _TombolStatus(acara: acara),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => DaftarBundelScreen(
+                              acaraId: acara.id,
+                              sebagaiPemilik: true,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.inventory_2_outlined),
+                      label: const Text('Lihat Semua Bundel'),
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => RekapScreen(acaraId: acara.id),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.summarize_outlined),
+                      label: const Text('Rekap & Ekspor'),
+                    ),
+                    const SizedBox(height: 80),
+                  ],
+                ),
+                DaftarPengunjungTab(acaraId: acara.id),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Pemilik mengetuk FAB "Catat Koreksi": pilih dulu bundel yang
+  /// belum penuh, lalu form tambah amplop koreksi untuk bundel itu.
+  Future<void> _pilihBundelKoreksi(
+    BuildContext context,
+    WidgetRef ref,
+    Acara acara,
+  ) async {
+    final terpilih = await showModalBottomSheet<Bundel>(
+      context: context,
+      builder: (context) => StreamBuilder<List<Bundel>>(
+        stream: ref.read(pencatatanServiceProvider).semuaBundelStream(
+          acara.id,
+        ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const TampilMuat();
+            return const SizedBox(height: 160, child: TampilMuat());
           }
-          if (snapshot.hasError) {
-            return TampilGalat(pesan: pesanDari(snapshot.error!));
-          }
-          final acara = snapshot.data;
-          if (acara == null) {
-            return const TampilKosong(
-              teks: 'Acara tidak ditemukan (mungkin sudah dihapus).',
+          final semua = snapshot.data ?? const <Bundel>[];
+          final belumPenuh = semua
+              .where((b) => b.jumlahAmplop < 10)
+              .toList();
+          if (belumPenuh.isEmpty) {
+            return const SizedBox(
+              height: 160,
+              child: TampilKosong(
+                teks: 'Semua bundel sudah penuh — tambah koreksi '
+                    'tidak tersedia.',
+                ikon: Icons.inventory_2_outlined,
+              ),
             );
           }
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _InfoAcara(acara: acara),
-              const SizedBox(height: 16),
-              _TotalAcara(acara: acara),
-              const SizedBox(height: 16),
-              if (sebagaiPemilik) ...[
-                _KartuKodeGabung(acara: acara),
-                const SizedBox(height: 16),
-                _KelolaPencatat(acara: acara),
-                const SizedBox(height: 16),
-                _TombolStatus(acara: acara),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => DaftarBundelScreen(
-                          acaraId: acara.id,
-                          sebagaiPemilik: true,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.inventory_2_outlined),
-                  label: const Text('Lihat Semua Bundel'),
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const ListTile(
+                  title: Text('Tambah koreksi ke bundel mana?'),
                 ),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => RekapScreen(acaraId: acara.id),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.summarize_outlined),
-                  label: const Text('Rekap & Ekspor'),
-                ),
-              ] else
-                _KartuPencatatSaya(acara: acara),
-            ],
+                for (final b in belumPenuh)
+                  ListTile(
+                    leading: CircleAvatar(child: Text(b.prefix)),
+                    title: Text('Bundel ${b.kode}'),
+                    subtitle: Text('${b.jumlahAmplop}/10 amplop'),
+                    onTap: () => Navigator.of(context).pop(b),
+                  ),
+              ],
+            ),
           );
         },
       ),
+    );
+    if (terpilih == null || !context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            KoreksiAmplopScreen(acaraId: acara.id, bundel: terpilih),
+      ),
+    );
+  }
+}
+
+/// FAB "Catat Amplop" untuk pencatat pada acara yang masih aktif —
+/// tampil hanya bila pengguna memang pencatat aktif di acara ini.
+class _FabPencatat extends ConsumerWidget {
+  const _FabPencatat({required this.acara});
+
+  final Acara acara;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pengguna = ref.watch(statusPenggunaProvider).valueOrNull;
+    if (pengguna == null) return const SizedBox.shrink();
+    return FutureBuilder<Pencatat?>(
+      future: ref.read(acaraServiceProvider).pencatatDi(acara.id, pengguna.uid),
+      builder: (context, snapshot) {
+        final saya = snapshot.data;
+        if (saya == null || !saya.aktif) return const SizedBox.shrink();
+        return FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PencatatanScreen(
+                  acaraId: acara.id,
+                  pencatatId: saya.id,
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Icons.edit_note_outlined),
+          label: const Text('Catat Amplop'),
+        );
+      },
     );
   }
 }
@@ -148,7 +297,7 @@ class _TotalAcara extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _Angka(label: 'Amplop', nilai: '${acara.totalAmplop}'),
+            _Angka(label: 'Pengunjung', nilai: '${acara.totalAmplop}'),
             _Angka(label: 'Bundel', nilai: '${acara.totalBundel}'),
             _Angka(label: 'Total', nilai: formatRupiah(acara.totalRp)),
           ],
