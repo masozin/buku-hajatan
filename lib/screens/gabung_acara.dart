@@ -89,7 +89,6 @@ class _GabungAcaraFormState extends ConsumerState<GabungAcaraForm> {
           decoration: const InputDecoration(
             labelText: 'Kode Acara',
             hintText: 'mis. K7QX2M',
-            border: OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 12),
@@ -98,7 +97,6 @@ class _GabungAcaraFormState extends ConsumerState<GabungAcaraForm> {
           textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(
             labelText: 'Namamu (sesuai pendaftaran)',
-            border: OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 12),
@@ -112,7 +110,6 @@ class _GabungAcaraFormState extends ConsumerState<GabungAcaraForm> {
           ],
           decoration: const InputDecoration(
             labelText: 'PIN Pribadimu',
-            border: OutlineInputBorder(),
           ),
         ),
         if (_galat != null) ...[

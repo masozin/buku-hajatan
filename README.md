@@ -451,3 +451,48 @@ pemilik: **Ringkasan** (seperti sebelumnya), **Pengunjung**, dan
 3. Tab Bundel: hanya bundel milikmu yang tampil; buka dropdown
    satu bundel → daftar pengunjungnya tampil dan bisa diubah
    selama acara aktif.
+
+## Batch 12 — Rombak tampilan (sistem desain zamrud & emas)
+
+Patch ini mengubah **tampilan saja** — tidak ada perubahan
+perilaku, data, rules, atau dependensi. **Tidak perlu tempel
+ulang `firestore.rules`, tidak ada indeks baru.** Cukup terapkan
+patch lalu `flutter run` (pubspec berubah: font kini dibundel
+sebagai aset, jadi jalankan `flutter pub get` bila diminta).
+
+Bahasa desain baru:
+
+1. **Warna zamrud & emas.** Hijau zamrud untuk kepercayaan
+   (urusan uang titipan), emas seperlunya untuk aksen hajatan:
+   lencana "Penuh", penanda menunggu sinkron, statistik amplop
+   kosong/tanpa nama.
+2. **Font Plus Jakarta Sans** dibundel di dalam aplikasi
+   (5 bobot), jadi tetap tampil walau tanpa jaringan.
+3. **Tema gelap** mengikuti setelan perangkat — buka aplikasi
+   malam hari tidak lagi silau.
+4. **Komponen seragam:** kartu bersudut 20 dengan garis tepi
+   tipis (tanpa bayangan keras), tombol utama berbentuk pil,
+   kolom isian terisi lembut bersudut 14, tab berbentuk pil,
+   dialog & lembar bawah bersudut 24.
+5. **Kartu sorotan gradasi** untuk angka terpenting: total
+   acara di Detail & Rekap (dengan jumlah pengunjung, bundel,
+   dan rata-rata per amplop), serta bundel aktif di layar
+   pencatatan (kode besar + batang kemajuan + total bundel).
+6. **Sentuhan per layar:** layar Masuk berkepala logo & tagline
+   dengan pemilih peran berbentuk pil; kartu acara berisi ikon
+   meta + total ditegaskan + lencana status berwarna; daftar
+   pengunjung memakai avatar inisial; rincian per pencatat di
+   Rekap kini ada batang proporsinya; keadaan kosong/galat
+   memakai ikon dalam lingkaran lembut.
+
+## Cara uji Batch 12
+
+1. Jalankan aplikasi — layar Masuk tampil berlogo, font dan
+   warna baru terasa di semua layar.
+2. Kelilingi alur utama: Daftar Acara → Detail (kartu total
+   gradasi) → Catat Amplop (kartu bundel gradasi, kolom nominal
+   besar) → Rekap (batang proporsi per pencatat).
+3. Aktifkan mode gelap di setelan HP → aplikasi ikut gelap dan
+   tetap terbaca.
+4. Pastikan semua tombol/form berperilaku sama seperti
+   sebelumnya — batch ini murni tampilan.

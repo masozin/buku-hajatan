@@ -630,7 +630,6 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(
             labelText: 'PIN pribadi (4–6 digit angka)',
-            border: OutlineInputBorder(),
           ),
         ),
         actions: [
@@ -722,8 +721,6 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                     textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
                       labelText: 'Nama pencatat baru',
-                      border: OutlineInputBorder(),
-                      isDense: true,
                     ),
                     onSubmitted: (_) => _sibuk ? null : _tambah(),
                   ),
@@ -742,8 +739,6 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
               decoration: const InputDecoration(
                 labelText: 'PIN pribadi pencatat baru '
                     '(kosongkan = dibuatkan otomatis)',
-                border: OutlineInputBorder(),
-                isDense: true,
               ),
             ),
             const SizedBox(height: 12),

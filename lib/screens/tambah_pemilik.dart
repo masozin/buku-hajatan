@@ -109,7 +109,6 @@ class _TambahPemilikScreenState extends ConsumerState<TambahPemilikScreen> {
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Nama Pemilik',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -118,7 +117,6 @@ class _TambahPemilikScreenState extends ConsumerState<TambahPemilikScreen> {
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
                 labelText: 'Email',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -127,7 +125,6 @@ class _TambahPemilikScreenState extends ConsumerState<TambahPemilikScreen> {
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
                 labelText: 'No. HP (opsional)',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -136,7 +133,6 @@ class _TambahPemilikScreenState extends ConsumerState<TambahPemilikScreen> {
               obscureText: true,
               decoration: const InputDecoration(
                 labelText: 'Kata Sandi Awal (min. 6 karakter)',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -145,7 +141,6 @@ class _TambahPemilikScreenState extends ConsumerState<TambahPemilikScreen> {
               obscureText: true,
               decoration: const InputDecoration(
                 labelText: 'Konfirmasi Kata Sandi Awal',
-                border: OutlineInputBorder(),
               ),
             ),
             if (_galat != null) ...[

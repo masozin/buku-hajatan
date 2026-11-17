@@ -266,7 +266,6 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
                 labelText: tanpaNama
                     ? 'Nama (otomatis "(Tanpa Nama)")'
                     : 'Nama tamu',
-                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -275,7 +274,6 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: 'Alamat',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -285,7 +283,6 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: const InputDecoration(
                 labelText: 'Dusun (angka, boleh kosong)',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -299,7 +296,6 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
                     ? 'Nominal (amplop kosong = Rp 0)'
                     : 'Nominal (Rp)',
                 prefixText: kosong ? null : 'Rp ',
-                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -308,7 +304,6 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Keterangan (boleh kosong)',
-                border: OutlineInputBorder(),
               ),
             ),
             if (_galat != null) ...[

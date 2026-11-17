@@ -527,8 +527,6 @@ class _KartuPencarian extends StatelessWidget {
                     textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
                       labelText: 'Nama / alamat',
-                      border: OutlineInputBorder(),
-                      isDense: true,
                     ),
                     onSubmitted: (_) => onCari(),
                   ),

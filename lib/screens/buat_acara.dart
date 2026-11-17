@@ -174,7 +174,6 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
                           setState(() => _pemilikDipilih = v),
                       decoration: const InputDecoration(
                         labelText: 'Pemilik Acara',
-                        border: OutlineInputBorder(),
                       ),
                     );
                   },
@@ -187,7 +186,6 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
               decoration: const InputDecoration(
                 labelText: 'Nama Acara',
                 hintText: 'mis. Pernikahan Sari & Budi',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -197,7 +195,6 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
               decoration: const InputDecoration(
                 labelText: 'Tuan Rumah',
                 hintText: 'mis. Keluarga Bapak Hartono',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -209,7 +206,6 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
               onChanged: (v) => setState(() => _jenis = v ?? _jenis),
               decoration: const InputDecoration(
                 labelText: 'Jenis Acara',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -224,7 +220,6 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Lokasi (opsional)',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -240,7 +235,6 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
                 helperText:
                     'Kode gabung dibuat otomatis; PIN ini yang kamu '
                     'bagikan ke pencatat bersama kodenya.',
-                border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.refresh),
                   tooltip: 'Buat PIN acak baru',

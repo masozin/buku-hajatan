@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../models/acara.dart';
 import '../models/pemilik.dart';
 import '../providers.dart';
+import '../widgets/elemen.dart';
 import '../widgets/keadaan.dart';
 import 'buat_acara.dart';
 import 'daftar_acara.dart';
@@ -120,22 +121,16 @@ class PanelAdminScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text(
-                    'Pemilik (${pemilik.length})',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
+                  JudulBagian(teks: 'Pemilik (${pemilik.length})'),
+                  const SizedBox(height: 10),
                   if (pemilik.isEmpty)
                     const Text('Belum ada pemilik terdaftar.')
                   else
                     for (final r in ringkasPerPemilik(pemilik, acara))
                       _KartuPemilik(ringkasan: r),
                   const SizedBox(height: 20),
-                  Text(
-                    'Semua Acara (${acara.length})',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
+                  JudulBagian(teks: 'Semua Acara (${acara.length})'),
+                  const SizedBox(height: 10),
                   if (acara.isEmpty)
                     const Text('Belum ada acara.')
                   else
@@ -195,7 +190,7 @@ class _Ringkasan extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -218,10 +213,22 @@ class _Angka extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tema = Theme.of(context);
     return Column(
       children: [
-        Text(nilai, style: Theme.of(context).textTheme.titleMedium),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          nilai,
+          style: tema.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: tema.textTheme.bodySmall?.copyWith(
+            color: tema.colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
@@ -300,20 +307,45 @@ class _KartuPemilik extends ConsumerWidget {
               );
             },
             leading: CircleAvatar(
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               child: Text(
                 pemilik.nama.isEmpty ? '?' : pemilik.nama[0].toUpperCase(),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimaryContainer,
+                ),
               ),
             ),
-            title: Text(pemilik.nama.isEmpty ? '(tanpa nama)' : pemilik.nama),
+            title: Text(
+              pemilik.nama.isEmpty ? '(tanpa nama)' : pemilik.nama,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
             subtitle: Text(
               [
                 if (pemilik.email != null) pemilik.email!,
                 if (pemilik.noHp != null) pemilik.noHp!,
                 '${ringkasan.jumlahAcara} acara • ${ringkasan.totalAmplop} '
                     'amplop • ${formatRupiah(ringkasan.totalRp)}',
-                if (pemilik.diblokir) 'DIBLOKIR',
               ].join('\n'),
             ),
+            trailing: pemilik.diblokir
+                ? Chip(
+                    label: const Text('Diblokir'),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.errorContainer,
+                    labelStyle: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onErrorContainer,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  )
+                : null,
             isThreeLine: true,
           ),
           OverflowBar(
@@ -367,10 +399,7 @@ class _BarisAcara extends StatelessWidget {
           '${formatRupiah(acara.totalRp)}',
         ),
         isThreeLine: true,
-        trailing: Chip(
-          label: Text(acara.sudahSelesai ? 'Selesai' : 'Aktif'),
-          visualDensity: VisualDensity.compact,
-        ),
+        trailing: ChipStatusAcara(status: acara.status),
       ),
     );
   }

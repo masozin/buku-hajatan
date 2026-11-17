@@ -195,8 +195,6 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
                   controller: _cari,
                   decoration: const InputDecoration(
                     labelText: 'Cari nama, alamat, dusun, keterangan…',
-                    border: OutlineInputBorder(),
-                    isDense: true,
                     prefixIcon: Icon(Icons.search),
                   ),
                   onChanged: (v) => setState(() => _kataKunci = v),
