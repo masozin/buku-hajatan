@@ -176,9 +176,13 @@ service cloud.firestore {
 
       // -------------------------------------------------------- pencatat
       match /pencatat/{pencatatId} {
-        // Dokumen ini tidak memuat rahasia (PIN pribadi ada di
-        // undangan); dibaca bebas oleh yang sudah masuk — proses
-        // gabung pun perlu membacanya sebelum sesi terbentuk.
+        // Dibaca bebas oleh yang sudah masuk — proses gabung perlu
+        // membacanya sebelum sesi terbentuk. Konsekuensi yang sama
+        // seperti undangan sejak Batch 1: PIN pribadi (tersimpan di
+        // undangan + salinannya di sini) ikut terbaca oleh pengguna
+        // masuk yang mengetahui ID acara; pemeriksaan PIN saat
+        // gabung dilakukan aplikasi, rules menjaga sesi AKTIF tidak
+        // bisa direbut perangkat lain.
         allow get, list: if sudahMasuk();
         // Klaim pertama (Batch 10): dokumen dibuat dengan sesi
         // langsung dipegang pengklaim (uidAktif == UID-nya).
