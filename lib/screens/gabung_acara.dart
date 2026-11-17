@@ -7,8 +7,9 @@ import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../widgets/keadaan.dart';
 
-/// Form gabung pencatat (Opsi A): kode acara + nama (sesuai yang
-/// didaftarkan pemilik) + PIN acara. Dipakai sebagai beranda
+/// Form gabung pencatat: kode acara + nama (sesuai yang
+/// didaftarkan pemilik) + PIN PRIBADI pencatat itu (Batch 10;
+/// sebelumnya PIN acara). Dipakai sebagai beranda
 /// pencatat anonim yang belum mengikuti acara (lewat gerbang di
 /// main.dart) dan sebagai layar tersendiri untuk gabung acara lain.
 /// TIDAK dipakai lagi di tab Pencatat layar Masuk — di sana sesi
@@ -73,8 +74,9 @@ class _GabungAcaraFormState extends ConsumerState<GabungAcaraForm> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Untuk petugas pencatat amplop. Kode & PIN didapat dari '
-          'pemilik acara; namamu harus sudah didaftarkan pemilik acara.',
+          'Untuk petugas pencatat amplop. Kode acara & PIN pribadimu '
+          'didapat dari pemilik acara; namamu harus sudah didaftarkan '
+          'pemilik acara.',
         ),
         const SizedBox(height: 16),
         TextField(
@@ -109,7 +111,7 @@ class _GabungAcaraFormState extends ConsumerState<GabungAcaraForm> {
             LengthLimitingTextInputFormatter(6),
           ],
           decoration: const InputDecoration(
-            labelText: 'PIN Acara',
+            labelText: 'PIN Pribadimu',
             border: OutlineInputBorder(),
           ),
         ),

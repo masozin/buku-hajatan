@@ -119,6 +119,19 @@ class _GerbangPencatat extends ConsumerWidget {
 
   final String uid;
 
+  /// Keluar sebagai pencatat (Batch 10): lepaskan dulu semua sesi
+  /// yang dipegang perangkat ini, baru sign out — supaya nama-nama
+  /// pencatatnya bebas dipakai perangkat lain. Gagal melepas sesi
+  /// tidak menghalangi keluar (pemilik bisa mereset sesinya).
+  Future<void> _keluar(WidgetRef ref) async {
+    try {
+      await ref.read(acaraServiceProvider).lepaskanSemuaSesi(uid);
+    } catch (_) {
+      // Abaikan — keluar tetap jalan.
+    }
+    await ref.read(authServiceProvider).keluar();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stream = ref.watch(acaraServiceProvider).acaraDiikutiStream(uid);
@@ -136,8 +149,7 @@ class _GerbangPencatat extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(Icons.logout),
                   tooltip: 'Keluar',
-                  onPressed: () =>
-                      ref.read(authServiceProvider).keluar(),
+                  onPressed: () => _keluar(ref),
                 ),
               ],
             ),
@@ -163,7 +175,7 @@ class _GerbangPencatat extends ConsumerWidget {
               IconButton(
                 icon: const Icon(Icons.logout),
                 tooltip: 'Keluar',
-                onPressed: () => ref.read(authServiceProvider).keluar(),
+                onPressed: () => _keluar(ref),
               ),
             ],
           ),

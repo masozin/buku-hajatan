@@ -93,6 +93,7 @@ class DaftarBundelScreen extends ConsumerWidget {
                         builder: (_) => IsiBundelScreen(
                           acaraId: acaraId,
                           bundel: bundel,
+                          pencatatIdSaya: pencatatId,
                         ),
                       ),
                     );
@@ -119,10 +120,16 @@ class IsiBundelScreen extends ConsumerWidget {
     super.key,
     required this.acaraId,
     required this.bundel,
+    this.pencatatIdSaya,
   });
 
   final String acaraId;
   final Bundel bundel;
+
+  /// ID tetap pencatat yang membuka (Batch 10), bila ia membuka
+  /// sebagai pencatat — untuk hak ubah amplop inputannya sendiri.
+  /// Null bila dibuka pemilik.
+  final String? pencatatIdSaya;
 
   Future<void> _hapus(
     BuildContext context,
@@ -281,8 +288,8 @@ class IsiBundelScreen extends ConsumerWidget {
                           !bisaKoreksi &&
                           acara != null &&
                           !acara.sudahSelesai &&
-                          pengguna != null &&
-                          segar.pencatatId == pengguna?.uid;
+                          pencatatIdSaya != null &&
+                          segar.pencatatId == pencatatIdSaya;
                       return Card(
                         child: Column(
                           children: [

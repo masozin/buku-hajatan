@@ -85,7 +85,7 @@ class _TabPencatatState extends ConsumerState<_TabPencatat> {
           const Text(
             'Untuk petugas pencatat amplop. Kamu akan diminta kode '
             'acara, namamu (sesuai yang didaftarkan pemilik), dan PIN '
-            'acara di langkah berikutnya.',
+            'pribadimu di langkah berikutnya.',
           ),
           if (_galat != null) ...[
             const SizedBox(height: 12),

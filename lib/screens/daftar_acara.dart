@@ -115,6 +115,16 @@ class DaftarAcaraScreen extends ConsumerWidget {
       ),
     );
     if (yakin == true) {
+      // Batch 10: sesi pencatat yang dipegang perangkat ini dilepas
+      // dulu sebelum keluar (untuk pemilik tidak berpengaruh).
+      final uid = ref.read(statusPenggunaProvider).valueOrNull?.uid;
+      if (uid != null) {
+        try {
+          await ref.read(acaraServiceProvider).lepaskanSemuaSesi(uid);
+        } catch (_) {
+          // Abaikan — keluar tetap jalan.
+        }
+      }
       await ref.read(authServiceProvider).keluar();
     }
   }

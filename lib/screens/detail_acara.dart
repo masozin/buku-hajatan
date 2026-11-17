@@ -81,10 +81,10 @@ class DetailAcaraScreen extends ConsumerWidget {
                       builder: (context) => AlertDialog(
                         title: const Text('Keluar dari aplikasi?'),
                         content: const Text(
-                          'Data yang sudah tersinkron tetap aman di '
-                          'server. Untuk masuk lagi sebagai pencatat, '
-                          'kamu perlu kode acara dan PIN dari pemilik '
-                          'acara.',
+                          'Keluar akan melepas sesi pencatat di HP ini. '
+                          'Data yang sudah tersinkron tetap aman. Untuk '
+                          'masuk lagi — dari HP ini atau HP lain — kamu '
+                          'perlu kode acara, namamu, dan PIN pribadimu.',
                         ),
                         actions: [
                           TextButton(
@@ -101,7 +101,23 @@ class DetailAcaraScreen extends ConsumerWidget {
                       ),
                     );
                     if (yakin == true && context.mounted) {
-                      await ref.read(authServiceProvider).keluar();
+                      // Batch 10: lepas sesi perangkat ini dulu.
+                      final uidSaya = ref
+                          .read(statusPenggunaProvider)
+                          .valueOrNull
+                          ?.uid;
+                      if (uidSaya != null) {
+                        try {
+                          await ref
+                              .read(acaraServiceProvider)
+                              .lepaskanSemuaSesi(uidSaya);
+                        } catch (_) {
+                          // Abaikan — keluar tetap jalan.
+                        }
+                      }
+                      if (context.mounted) {
+                        await ref.read(authServiceProvider).keluar();
+                      }
                     }
                   },
                 ),
@@ -381,8 +397,8 @@ class _KartuKodeGabung extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Bagikan kode + PIN ini hanya ke pencatat yang sudah '
-                'kamu daftarkan namanya di bagian Pencatat.',
+                'Bagikan kode ini hanya ke pencatat yang sudah kamu '
+                'daftarkan namanya di bagian Pencatat.',
               ),
               const SizedBox(height: 12),
             Row(
@@ -400,29 +416,13 @@ class _KartuKodeGabung extends ConsumerWidget {
                 ),
               ],
             ),
-            FutureBuilder<String?>(
-              future: ref
-                  .read(acaraServiceProvider)
-                  .ambilPinGabung(acara.kodeGabung),
-              builder: (context, snapshot) {
-                final pin = snapshot.data;
-                return Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'PIN: ${pin ?? '...'}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                    if (pin != null)
-                      IconButton(
-                        icon: const Icon(Icons.copy_outlined),
-                        tooltip: 'Salin PIN',
-                        onPressed: () => _salin(context, pin),
-                      ),
-                  ],
-                );
-              },
+            // Sejak Batch 10 pencatat masuk dengan PIN PRIBADI
+            // masing-masing (ada di bagian Pencatat), bukan lagi
+            // satu PIN acara bersama.
+            const Text(
+              'Pencatat masuk dengan kode ini + namanya + PIN '
+              'pribadinya masing-masing — PIN pribadi tiap pencatat '
+              'ada di bagian Pencatat di bawah.',
             ),
             ],
           ),
@@ -451,30 +451,31 @@ class _KelolaPencatat extends ConsumerStatefulWidget {
 
 class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
   final _namaBaru = TextEditingController();
+  final _pinBaru = TextEditingController();
   bool _sibuk = false;
 
   @override
   void dispose() {
     _namaBaru.dispose();
+    _pinBaru.dispose();
     super.dispose();
   }
 
-  /// Lepas ikatan HP pencatat [p] (Batch 9): setelah konfirmasi,
-  /// dokumen pencatat dihapus + undangannya menunggu lagi, jadi
-  /// orangnya bisa gabung ulang dari HP baru. Data catatannya
-  /// (bundel & amplop) tidak ikut hilang.
-  Future<void> _lepasPerangkat(Pencatat p) async {
+  /// Reset sesi pencatat [p] (Batch 10): lepaskan kunci sesi dari
+  /// perangkat yang sedang memegangnya, supaya ia bisa masuk dari
+  /// perangkat lain dengan nama + PIN pribadinya. Identitas dan
+  /// semua data catatannya tetap menempel ke namanya.
+  Future<void> _resetSesi(Pencatat p) async {
     final yakin = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Lepas HP ${p.nama}?'),
+        title: Text('Reset sesi ${p.nama}?'),
         content: Text(
-          'Ikatan ${p.nama} dengan HP lamanya akan dilepas. Setelah '
-          'itu ia bisa bergabung lagi dari HP BARU memakai kode + PIN '
-          'acara yang sama dan namanya sendiri.\n\n'
-          'Bundel & amplop yang sudah ${p.nama} catat TIDAK ikut '
-          'terhapus, dan nomor bundelnya akan disambung dari yang '
-          'terakhir.',
+          'Sesi ${p.nama} di perangkat yang sekarang memegangnya '
+          'akan dilepas. Setelah itu ia bisa masuk dari perangkat '
+          'mana pun dengan namanya + PIN pribadinya.\n\n'
+          'Bundel & amplop yang sudah ${p.nama} catat TIDAK berubah '
+          '— semua tetap atas namanya.',
         ),
         actions: [
           TextButton(
@@ -483,7 +484,7 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Lepas HP'),
+            child: const Text('Reset Sesi'),
           ),
         ],
       ),
@@ -492,14 +493,63 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
     try {
       await ref
           .read(acaraServiceProvider)
-          .lepasPerangkatPencatat(widget.acara.id, p);
+          .resetSesiPencatat(widget.acara.id, p);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'HP ${p.nama} sudah dilepas — silakan gabung lagi dari HP baru.',
+            'Sesi ${p.nama} sudah direset — silakan masuk lagi dari '
+            'perangkat mana pun.',
           ),
         ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(pesanDari(e))));
+    }
+  }
+
+  /// Dialog atur/ganti PIN pribadi untuk satu undangan (Batch 10).
+  Future<void> _aturPin({
+    required String undanganId,
+    required String nama,
+    String? pinSaatIni,
+  }) async {
+    final kontrol = TextEditingController(text: pinSaatIni ?? '');
+    final pinBaru = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('PIN pribadi $nama'),
+        content: TextField(
+          controller: kontrol,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'PIN pribadi (4–6 digit angka)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(kontrol.text),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+    kontrol.dispose();
+    if (pinBaru == null || !mounted) return;
+    try {
+      await ref
+          .read(acaraServiceProvider)
+          .aturPinPribadi(widget.acara.id, undanganId, pinBaru);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('PIN pribadi $nama diperbarui.')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -513,14 +563,20 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
     try {
       final undangan = await ref
           .read(acaraServiceProvider)
-          .tambahUndangan(widget.acara.id, _namaBaru.text);
+          .tambahUndangan(
+            widget.acara.id,
+            _namaBaru.text,
+            pinPribadi: _pinBaru.text,
+          );
       if (!mounted) return;
       _namaBaru.clear();
+      _pinBaru.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             '${undangan.nama} didaftarkan sebagai pencatat '
-            '${undangan.prefix}.',
+            '${undangan.prefix} — PIN pribadinya: '
+            '${undangan.pinPribadi}. Bagikan ke orangnya.',
           ),
         ),
       );
@@ -575,6 +631,17 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _pinBaru,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'PIN pribadi pencatat baru '
+                    '(kosongkan = dibuatkan otomatis)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
             const SizedBox(height: 12),
             StreamBuilder<List<UndanganPencatat>>(
               stream: layanan.undanganStream(widget.acara.id),
@@ -595,14 +662,31 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                         dense: true,
                         leading: CircleAvatar(child: Text(u.prefix)),
                         title: Text(u.nama),
-                        subtitle: const Text(
-                          'Menunggu gabung dengan kode + PIN',
+                        subtitle: Text(
+                          'PIN pribadi: ${u.pinPribadi ?? 'belum diatur'}'
+                          ' • menunggu gabung',
                         ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          tooltip: 'Batalkan pendaftaran',
-                          onPressed: () =>
-                              layanan.hapusUndangan(widget.acara.id, u.id),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.key_outlined),
+                              tooltip: 'Atur PIN pribadi',
+                              onPressed: () => _aturPin(
+                                undanganId: u.id,
+                                nama: u.nama,
+                                pinSaatIni: u.pinPribadi,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              tooltip: 'Batalkan pendaftaran',
+                              onPressed: () => layanan.hapusUndangan(
+                                widget.acara.id,
+                                u.id,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                   ],
@@ -635,15 +719,27 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                         leading: CircleAvatar(child: Text(p.prefix)),
                         title: Text(p.nama),
                         subtitle: Text(
-                          'Bundel terakhir: ${p.nomorBundelTerakhir}',
+                          'Bundel terakhir: ${p.nomorBundelTerakhir}'
+                          ' • PIN pribadi: ${p.pinPribadi ?? 'belum diatur'}'
+                          '${p.uidAktif != null ? ' • sesi aktif di 1 perangkat' : ' • tidak sedang masuk'}',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            if (p.undanganId != null)
+                              IconButton(
+                                icon: const Icon(Icons.key_outlined),
+                                tooltip: 'Atur PIN pribadi',
+                                onPressed: () => _aturPin(
+                                  undanganId: p.undanganId!,
+                                  nama: p.nama,
+                                  pinSaatIni: p.pinPribadi,
+                                ),
+                              ),
                             IconButton(
                               icon: const Icon(Icons.phonelink_erase_outlined),
-                              tooltip: 'Lepas HP (reset gabung)',
-                              onPressed: () => _lepasPerangkat(p),
+                              tooltip: 'Reset sesi (lepas perangkat)',
+                              onPressed: () => _resetSesi(p),
                             ),
                             Switch(
                               value: p.aktif,
