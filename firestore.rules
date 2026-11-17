@@ -9,9 +9,13 @@ rules_version = '2';
 // - Pemilik acara = user email/password; dokumen acara hanya bisa
 //   dibuat/diubah/dihapus oleh pemiliknya, dan akun ANONIM tidak boleh
 //   membuat acara.
-// - Pencatat = user anonim yang dokumen pencatatnya ber-ID = UID-nya
-//   di acara itu (acara/{id}/pencatat/{uid}); keanggotaan diperiksa
-//   dengan exists() sehingga tidak perlu query di dalam rules.
+// - Pencatat (Batch 10 — identitas tetap + kunci sesi): dokumen
+//   pencatat ber-ID TETAP (bukan UID perangkat). Perangkat yang
+//   sedang memegang sesi mendaftarkan pencatatSesi/{uid} dan dokumen
+//   pencatatnya menyimpan uidAktif == UID perangkat itu; rules
+//   memeriksa keduanya cocok. Masuk memakai nama + PIN pribadi
+//   (di dokumen undangan, diperiksa aplikasi); sesi hanya boleh
+//   dipegang SATU perangkat — rules menolak merebut sesi orang lain.
 // - kodeAcara/{kode}: hanya boleh dibaca SATU dokumen bila kodenya tahu
 //   (get), TIDAK boleh di-list — kode adalah kunci pencarian acara,
 //   pasangannya PIN di dalam dokumen yang sama.
@@ -43,9 +47,30 @@ service cloud.firestore {
             == request.auth.uid;
     }
 
+    // --- Kunci sesi pencatat (Batch 10) ---
+    function adaSesi(acaraId) {
+      return exists(/databases/$(database)/documents/acara/$(acaraId)/pencatatSesi/$(request.auth.uid));
+    }
+
+    function sesiSaya(acaraId) {
+      return get(/databases/$(database)/documents/acara/$(acaraId)/pencatatSesi/$(request.auth.uid)).data;
+    }
+
+    function pencatatSaya(acaraId) {
+      return get(/databases/$(database)/documents/acara/$(acaraId)/pencatat/$(sesiSaya(acaraId).pencatatId)).data;
+    }
+
+    function idPencatatSaya(acaraId) {
+      return sesiSaya(acaraId).pencatatId;
+    }
+
+    // Anggota pencatat acara ini = memegang sesi yang sah: dokumen
+    // sesi ada, dokumen pencatatnya menunjuk uidAktif == perangkat
+    // ini, dan statusnya aktif.
     function pencatatAcara(acaraId) {
-      return sudahMasuk()
-        && exists(/databases/$(database)/documents/acara/$(acaraId)/pencatat/$(request.auth.uid));
+      return sudahMasuk() && adaSesi(acaraId)
+        && pencatatSaya(acaraId).uidAktif == request.auth.uid
+        && pencatatSaya(acaraId).aktif == true;
     }
 
     // Admin platform (Batch 4): dokumen admin/{uid} ada. Dokumen ini
@@ -150,18 +175,49 @@ service cloud.firestore {
         && resource.data.pemilikId == request.auth.uid;
 
       // -------------------------------------------------------- pencatat
-      match /pencatat/{uidPencatat} {
-        allow get: if pemilikAcara(acaraId)
-          || (sudahMasuk() && request.auth.uid == uidPencatat);
-        allow list: if sudahMasuk();
-        // Klaim undangan: pencatat membuat dokumennya sendiri,
-        // ID dokumen = UID-nya, dan field userId harus sama.
+      match /pencatat/{pencatatId} {
+        // Dokumen ini tidak memuat rahasia (PIN pribadi ada di
+        // undangan); dibaca bebas oleh yang sudah masuk — proses
+        // gabung pun perlu membacanya sebelum sesi terbentuk.
+        allow get, list: if sudahMasuk();
+        // Klaim pertama (Batch 10): dokumen dibuat dengan sesi
+        // langsung dipegang pengklaim (uidAktif == UID-nya).
         allow create: if sudahMasuk()
-          && request.auth.uid == uidPencatat
-          && request.resource.data.userId == request.auth.uid;
+          && request.resource.data.uidAktif == request.auth.uid;
+        // Ubah: pemilik bebas. Selain itu hanya bila hasil akhirnya
+        // uidAktif == perangkat ini DAN sesi sebelumnya kosong atau
+        // memang milik perangkat ini — sesi orang lain TIDAK bisa
+        // direbut (PIN pribadi diperiksa aplikasi sebelum ambil sesi).
         allow update: if pemilikAcara(acaraId)
-          || (sudahMasuk() && request.auth.uid == uidPencatat);
+          || (sudahMasuk()
+              && request.resource.data.uidAktif == request.auth.uid
+              && (resource.data.get('uidAktif', '') == ''
+                  || resource.data.uidAktif == request.auth.uid))
+          // Pemegang sesi melepas sesinya sendiri saat keluar:
+          // uidAktif-nya sendiri yang dihapus.
+          || (sudahMasuk()
+              && resource.data.uidAktif == request.auth.uid
+              && !('uidAktif' in request.resource.data));
         allow delete: if pemilikAcara(acaraId);
+      }
+
+      // --------------------------------------------------- pencatatSesi
+      // Dokumen sesi perangkat: pencatatSesi/{uid} -> { pencatatId }.
+      match /pencatatSesi/{uidSesi} {
+        allow get: if pemilikAcara(acaraId)
+          || (sudahMasuk() && request.auth.uid == uidSesi);
+        allow list: if pemilikAcara(acaraId);
+        // Dibuat/diubah saat gabung: hanya untuk UID sendiri, dan
+        // dokumen pencatat yang ditunjuk harus sedang memegang
+        // uidAktif == UID ini.
+        allow create, update: if sudahMasuk()
+          && request.auth.uid == uidSesi
+          && get(/databases/$(database)/documents/acara/$(acaraId)/pencatat/$(request.resource.data.pencatatId)).data.uidAktif
+              == request.auth.uid;
+        // Dihapus saat keluar (oleh perangkatnya) atau reset sesi /
+        // nonaktif (oleh pemilik).
+        allow delete: if pemilikAcara(acaraId)
+          || (sudahMasuk() && request.auth.uid == uidSesi);
       }
 
       // ------------------------------------------------- undanganPencatat
@@ -183,13 +239,13 @@ service cloud.firestore {
       match /bundel/{bundelId} {
         allow get, list: if pemilikAcara(acaraId) || pencatatAcara(acaraId);
         allow create: if pencatatAcara(acaraId)
-          && request.resource.data.pencatatId == request.auth.uid;
+          && request.resource.data.pencatatId == idPencatatSaya(acaraId);
         // Pemilik menyentuh bundel hanya untuk koreksi SETELAH acara
         // selesai (Batch 6); pencatat seperti biasa selama aktif.
         allow update: if (pemilikAcara(acaraId)
               && acaraSudahSelesai(acaraId))
           || (pencatatAcara(acaraId)
-              && resource.data.pencatatId == request.auth.uid);
+              && resource.data.pencatatId == idPencatatSaya(acaraId));
         allow delete: if pemilikAcara(acaraId)
           && acaraSudahSelesai(acaraId);
 
@@ -197,12 +253,14 @@ service cloud.firestore {
         match /amplop/{amplopId} {
           allow get, list: if pemilikAcara(acaraId)
             || pencatatAcara(acaraId);
-          // Buat: pencatat selama acara berjalan; ATAU pemilik untuk
-          // koreksi setelah acara selesai (Batch 6). Batasan field
-          // sama untuk keduanya.
-          allow create: if (pencatatAcara(acaraId)
-              || (pemilikAcara(acaraId) && acaraSudahSelesai(acaraId)))
-            && request.resource.data.createdBy == request.auth.uid
+          // Buat: pencatat selama acara berjalan (createdBy = ID
+          // tetap pencatatnya, Batch 10); ATAU pemilik untuk koreksi
+          // setelah acara selesai (Batch 6, createdBy = UID pemilik).
+          // Batasan field sama untuk keduanya.
+          allow create: if ((pencatatAcara(acaraId)
+                && request.resource.data.createdBy == idPencatatSaya(acaraId))
+              || (pemilikAcara(acaraId) && acaraSudahSelesai(acaraId)
+                && request.resource.data.createdBy == request.auth.uid))
             && request.resource.data.nominal >= 0
             && request.resource.data.jenis in ['normal', 'kosong', 'tanpa_nama']
             && request.resource.data.urut >= 1
@@ -214,7 +272,7 @@ service cloud.firestore {
           allow update: if (pemilikAcara(acaraId)
               && acaraSudahSelesai(acaraId))
             || (pencatatAcara(acaraId)
-                && resource.data.createdBy == request.auth.uid
+                && resource.data.createdBy == idPencatatSaya(acaraId)
                 && !acaraSudahSelesai(acaraId)
                 && request.resource.data
                     .diff(resource.data)
@@ -231,10 +289,12 @@ service cloud.firestore {
 
     // ------------------------------------------- collectionGroup pencatat
     // Untuk daftar "acara yang saya ikuti": query collectionGroup ke
-    // semua sub-koleksi pencatat berdasarkan field userId.
-    match /{path=**}/pencatat/{uidPencatat} {
+    // semua sub-koleksi pencatat berdasarkan sesi aktif (uidAktif;
+    // data lama: userId — keduanya diterima selama masa peralihan).
+    match /{path=**}/pencatat/{pencatatId} {
       allow get, list: if sudahMasuk()
-        && resource.data.userId == request.auth.uid;
+        && (resource.data.get('uidAktif', '') == request.auth.uid
+            || resource.data.get('userId', '') == request.auth.uid);
     }
   }
 }

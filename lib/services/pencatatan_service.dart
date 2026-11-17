@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../core/koreksi.dart';
 import '../core/pencatatan.dart';
@@ -53,6 +54,20 @@ class PencatatanService {
 
   CollectionReference<Map<String, dynamic>> _bundelRef(String acaraId) =>
       _db.collection('acara').doc(acaraId).collection('bundel');
+
+  /// Kunci sesi (Batch 10): pencatat hanya boleh mencatat dari
+  /// perangkat yang sedang memegang sesinya (uidAktif == UID
+  /// perangkat ini). Penegakan utama ada di rules; pemeriksaan ini
+  /// memberi pesan yang jelas di aplikasi.
+  void _periksaSesi(Pencatat pencatat) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (pencatat.uidAktif != uid) {
+      throw const LayananException(
+        'Sesi pencatat ini tidak sedang dipegang perangkat ini. '
+        'Masuk lagi sebagai pencatat untuk mengambil sesi.',
+      );
+    }
+  }
 
   // -------------------------------------------------------------- bundel
 
@@ -124,6 +139,7 @@ class PencatatanService {
         'Statusmu sedang dinonaktifkan pemilik acara.',
       );
     }
+    _periksaSesi(pencatat);
 
     final snap = await _bundelRef(
       acaraId,
@@ -242,6 +258,7 @@ class PencatatanService {
         'Statusmu sedang dinonaktifkan pemilik acara.',
       );
     }
+    _periksaSesi(pencatat);
     final docBundel = await refBundel.get();
     if (!docBundel.exists) {
       throw const LayananException('Bundel tidak ditemukan. Buka lagi.');
@@ -378,6 +395,7 @@ class PencatatanService {
         'Statusmu sedang dinonaktifkan pemilik acara.',
       );
     }
+    _periksaSesi(pencatat);
 
     final refBundel = _bundelRef(acaraId).doc(bundelId);
     final docBundel = await refBundel.get();
