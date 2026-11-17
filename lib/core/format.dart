@@ -33,3 +33,16 @@ final DateFormat _formatTglJam = DateFormat('d MMM y HH:mm', 'id_ID');
 
 /// "16 Nov 2026 14:35"
 String formatTanggalJam(DateTime waktu) => _formatTglJam.format(waktu);
+
+/// Cap waktu ringkas untuk baris daftar (Batch 13): bila [waktu]
+/// jatuh pada hari kalender yang sama dengan [sekarang], cukup
+/// jamnya ("14:35"); bila sudah beda tanggal, tanggal + jam
+/// ("16 Nov 2026 14:35").
+String formatWaktuKonteks(DateTime waktu, {DateTime? sekarang}) {
+  final acuan = sekarang ?? DateTime.now();
+  final hariSama =
+      waktu.year == acuan.year &&
+      waktu.month == acuan.month &&
+      waktu.day == acuan.day;
+  return hariSama ? formatJam(waktu) : formatTanggalJam(waktu);
+}

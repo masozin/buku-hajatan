@@ -56,7 +56,8 @@ class DaftarPengunjungTab extends ConsumerStatefulWidget {
 class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
   final _cari = TextEditingController();
   late Future<List<BundelTerisi>> _muatan;
-  UrutanPengunjung _urutan = UrutanPengunjung.bundel;
+  // Batch 13: tampilan bawaan adalah yang terbaru dicatat.
+  UrutanPengunjung _urutan = UrutanPengunjung.terbaru;
   String _kataKunci = '';
 
   @override
@@ -287,69 +288,63 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
   }
 }
 
+/// Satu baris pengunjung (Batch 13, disederhanakan atas
+/// permintaan Mark): nama + alamat/dusun kecil di bawahnya;
+/// sisi kanan berisi nominal, lalu kode bundel-urut (mis.
+/// "A001-1") dan cap waktu di bawahnya. Tanpa avatar inisial.
 class _BarisPengunjung extends StatelessWidget {
   const _BarisPengunjung({required this.ditemukan, this.onTap});
 
   final AmplopDitemukan ditemukan;
   final VoidCallback? onTap;
 
-  /// Inisial nama untuk avatar (dua kata pertama).
-  static String _inisial(String nama) {
-    final bersih = nama.replaceAll('(', '').replaceAll(')', '').trim();
-    final kata = bersih
-        .split(RegExp(r'\s+'))
-        .where((k) => k.isNotEmpty)
-        .toList();
-    if (kata.isEmpty) return '?';
-    if (kata.length == 1) return kata.first.substring(0, 1).toUpperCase();
-    return (kata[0].substring(0, 1) + kata[1].substring(0, 1))
-        .toUpperCase();
-  }
-
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final skema = tema.colorScheme;
     final a = ditemukan.amplop;
-    final rincian = [
+    final meta = [
       if (a.alamat != null && a.alamat!.isNotEmpty) a.alamat!,
       if (a.dusun != null) 'Dusun ${a.dusun}',
-      if (a.keterangan != null && a.keterangan!.isNotEmpty) a.keterangan!,
-      if (a.jenis.label != 'Normal') a.jenis.label,
     ].join(' • ');
+    final gayaSamping = tema.textTheme.bodySmall?.copyWith(
+      color: skema.onSurfaceVariant,
+    );
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         onTap: onTap,
-        leading: CircleAvatar(
-          backgroundColor: skema.primaryContainer,
-          child: Text(
-            _inisial(a.tampilNama),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: skema.onPrimaryContainer,
-            ),
-          ),
-        ),
         title: Text(
           a.tampilNama,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
-          [
-            if (rincian.isNotEmpty) rincian,
-            'Bundel ${ditemukan.kodeBundel} no. ${a.urut}'
-                '${a.createdAt == null ? '' : ' • ${formatTanggalJam(a.createdAt!)}'}',
-          ].join('\n'),
-        ),
-        isThreeLine: true,
-        trailing: Text(
-          formatRupiah(a.nominal),
-          style: tema.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
+        subtitle: meta.isEmpty
+            ? null
+            : Text(
+                meta,
+                style: tema.textTheme.bodySmall?.copyWith(
+                  color: skema.onSurfaceVariant,
+                ),
+              ),
+        trailing: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              formatRupiah(a.nominal),
+              style: tema.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${ditemukan.kodeBundel}-${a.urut}',
+              style: gayaSamping,
+            ),
+            if (a.createdAt != null)
+              Text(formatWaktuKonteks(a.createdAt!), style: gayaSamping),
+          ],
         ),
       ),
     );

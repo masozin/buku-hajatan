@@ -6,7 +6,7 @@ import '../theme/tema_aplikasi.dart';
 
 /// Kartu sorotan total acara (Batch 12): panel bergradasi zamrud
 /// berisi total terkumpul dalam angka besar, plus statistik
-/// pengunjung, bundel, dan rata-rata per amplop. Dipakai di
+/// pengunjung dan bundel. Dipakai di
 /// Detail Acara dan Rekap agar keduanya tampil senada.
 class KartuTotalAcara extends StatelessWidget {
   const KartuTotalAcara({super.key, required this.acara});
@@ -15,9 +15,6 @@ class KartuTotalAcara extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rataRata = acara.totalAmplop == 0
-        ? 0
-        : acara.totalRp ~/ acara.totalAmplop;
     return Container(
       decoration: BoxDecoration(
         gradient: TemaAplikasi.gradasiPahlawan,
@@ -97,6 +94,8 @@ class KartuTotalAcara extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.22),
                 ),
                 const SizedBox(height: 14),
+                // Batch 13: statistik rata-rata dihapus (tidak
+                // terbaca di samping angka total yang besar).
                 Row(
                   children: [
                     _Statistik(
@@ -107,11 +106,6 @@ class KartuTotalAcara extends StatelessWidget {
                     _Statistik(
                       label: 'Bundel',
                       nilai: '${acara.totalBundel}',
-                    ),
-                    _PemisahStatistik(),
-                    _Statistik(
-                      label: 'Rata-rata',
-                      nilai: formatRupiah(rataRata),
                     ),
                   ],
                 ),

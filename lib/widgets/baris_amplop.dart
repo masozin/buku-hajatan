@@ -8,9 +8,10 @@ import '../services/pencatatan_service.dart';
 /// [onUbah]/[onHapus] hanya diisi pada mode koreksi pemilik setelah
 /// acara selesai (Batch 6) — di layar pencatatan keduanya kosong.
 ///
-/// Ditata ulang Batch 12: nomor urut dalam kotak membulat hijau
-/// muda, nama & nominal ditegaskan, penanda sinkron memakai warna
-/// tema (emas = menunggu, zamrud = terkirim).
+/// Ditata ulang Batch 12, disederhanakan Batch 13: nomor urut
+/// sebagai angka biasa (tanpa kotak), di bawah nama hanya alamat
+/// + dusun kecil; penanda sinkron memakai warna tema (emas =
+/// menunggu, zamrud = terkirim).
 class BarisAmplop extends StatelessWidget {
   const BarisAmplop({
     super.key,
@@ -31,25 +32,16 @@ class BarisAmplop extends StatelessWidget {
     final keterangan = [
       if (amplop.alamat != null && amplop.alamat!.isNotEmpty) amplop.alamat!,
       if (amplop.dusun != null) 'Dusun ${amplop.dusun}',
-      if (amplop.keterangan != null && amplop.keterangan!.isNotEmpty)
-        amplop.keterangan!,
-      if (amplop.jenis.label != 'Normal') amplop.jenis.label,
     ].join(' • ');
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: skema.primaryContainer,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        alignment: Alignment.center,
+      leading: SizedBox(
+        width: 28,
         child: Text(
           '${amplop.urut}',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: skema.onPrimaryContainer,
+          textAlign: TextAlign.center,
+          style: tema.textTheme.titleSmall?.copyWith(
+            color: skema.onSurfaceVariant,
           ),
         ),
       ),

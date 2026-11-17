@@ -71,49 +71,17 @@ class DaftarBundelTab extends ConsumerWidget {
               itemCount: daftar.length,
               itemBuilder: (context, i) {
                 final b = daftar[i];
-                final penuh = b.status == StatusBundel.penuh;
-                final skema = Theme.of(context).colorScheme;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 10),
                   child: ExpansionTile(
-                    leading: Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: skema.primaryContainer,
-                        borderRadius: BorderRadius.circular(13),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        b.prefix,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: skema.onPrimaryContainer,
-                        ),
-                      ),
-                    ),
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Bundel ${b.kode}',
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(fontSize: 15),
-                          ),
-                        ),
-                        if (penuh)
-                          Chip(
-                            label: const Text('Penuh'),
-                            backgroundColor: skema.tertiaryContainer,
-                            labelStyle: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: skema.onTertiaryContainer,
-                            ),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                      ],
+                    // Batch 13: kepala dropdown disederhanakan —
+                    // cukup kode + total, lalu pencatat & batang
+                    // kemajuan. Tanpa kotak inisial, tanpa kata
+                    // "Bundel", tanpa lencana Penuh.
+                    title: Text(
+                      '${b.kode} • ${formatRupiah(b.totalRp)}',
+                      style: Theme.of(context).textTheme.titleSmall
+                          ?.copyWith(fontSize: 15),
                     ),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 6),
@@ -121,7 +89,6 @@ class DaftarBundelTab extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${formatRupiah(b.totalRp)} • '
                             'Pencatat: ${namaPencatat[b.pencatatId] ?? '—'}',
                           ),
                           const SizedBox(height: 7),

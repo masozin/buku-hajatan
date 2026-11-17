@@ -6,16 +6,17 @@ import 'rekap.dart';
 /// kata kunci, urutkan sesuai pilihan pemilik. Murni, tanpa
 /// Firebase — diuji di test/pengunjung_test.dart.
 
-/// Pilihan urutan daftar pengunjung.
+/// Pilihan urutan daftar pengunjung. Sejak Batch 13: urutan
+/// bundel & dusun dihapus; sebagai gantinya ada urutan **desa**
+/// (berdasarkan alamat), dan tampilan bawaan adalah terbaru.
 enum UrutanPengunjung {
-  bundel('Urutan bundel'),
+  terbaru('Terbaru'),
+  terlama('Terlama'),
   namaAZ('Nama A–Z'),
   namaZA('Nama Z–A'),
   nominalBesar('Nominal terbesar'),
   nominalKecil('Nominal terkecil'),
-  dusun('Dusun'),
-  terbaru('Terbaru'),
-  terlama('Terlama');
+  desa('Desa');
 
   const UrutanPengunjung(this.label);
 
@@ -71,8 +72,6 @@ List<AmplopDitemukan> urutkanPengunjung(
   }
 
   switch (urutan) {
-    case UrutanPengunjung.bundel:
-      hasil.sort(bandingBundel);
     case UrutanPengunjung.namaAZ:
       hasil.sort((x, y) {
         final n = normalisasiNama(
@@ -97,12 +96,15 @@ List<AmplopDitemukan> urutkanPengunjung(
         final n = x.amplop.nominal.compareTo(y.amplop.nominal);
         return n != 0 ? n : bandingBundel(x, y);
       });
-    case UrutanPengunjung.dusun:
-      // Yang tanpa dusun ditaruh paling belakang.
+    case UrutanPengunjung.desa:
+      // Urut berdasarkan alamat (desa tamu); yang alamatnya
+      // kosong ditaruh paling belakang.
       hasil.sort((x, y) {
-        final dx = x.amplop.dusun ?? 1 << 30;
-        final dy = y.amplop.dusun ?? 1 << 30;
-        final n = dx.compareTo(dy);
+        final ax = normalisasiNama(x.amplop.alamat ?? '');
+        final ay = normalisasiNama(y.amplop.alamat ?? '');
+        if (ax.isEmpty && ay.isNotEmpty) return 1;
+        if (ax.isNotEmpty && ay.isEmpty) return -1;
+        final n = ax.compareTo(ay);
         return n != 0 ? n : bandingBundel(x, y);
       });
     case UrutanPengunjung.terbaru:
