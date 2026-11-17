@@ -92,17 +92,22 @@ class _GerbangPengguna extends ConsumerWidget {
       loading: () => const Scaffold(body: TampilMuat()),
       error: (error, _) => Scaffold(body: TampilGalat(pesan: pesanDari(error))),
       data: (pengguna) {
-        if (pengguna == null) return const MasukScreen();
-        // Sesi anonim = pencatat; tidak ada profil pemilik & tidak
-        // bisa diblokir. Lewat gerbang pencatat dulu (lihat bawah).
-        if (pengguna.isAnonymous) return _GerbangPencatat(uid: pengguna.uid);
+        // Belum masuk DAN sesi anonim (pencatat) sama-sama lewat
+        // _GerbangMasuk (Batch 18): satu jenis widget di posisi
+        // yang sama, agar subtree layar Masuk tidak hancur saat
+        // sesi anonim dibuat dari form gabung.
+        if (pengguna == null) return const _GerbangMasuk(uid: null);
+        if (pengguna.isAnonymous) {
+          return _GerbangMasuk(uid: pengguna.uid);
+        }
         return _GerbangPemilik(uid: pengguna.uid);
       },
     );
   }
 }
 
-/// Gerbang sesi pencatat (perbaikan gabung, 2026-11-17).
+/// Gerbang masuk & sesi pencatat (perbaikan gabung 2026-11-17;
+/// dirombak Batch 18).
 ///
 /// BUG LAMA: form gabung di tab Pencatat masuk anonim DULU, gerbang
 /// langsung menukar layar Masuk dengan Daftar Acara begitu sesi
@@ -110,24 +115,42 @@ class _GerbangPengguna extends ConsumerWidget {
 /// klaim tidak pernah selesai dan galatnya (PIN salah dsb.) tidak
 /// pernah terlihat. Pencatat berakhir di beranda kosong.
 ///
-/// SEKARANG: pencatat anonim yang BELUM mengikuti acara apa pun
-/// ditahan di layar Masuk dengan tab Pencatat terbuka (Batch 14;
-/// sebelumnya form gabung menjadi beranda tersendiri di sini).
-/// Form gabung kini langsung di tab itu — karena layar tujuannya
-/// sama-sama Masuk, form tidak hancur saat sesi dibuat/diisi,
-/// galat tampil normal. Begitu klaim berhasil, stream
-/// keikutsertaan terisi dan gerbang berpindah ke Daftar Acara
-/// dengan sendirinya.
-class _GerbangPencatat extends ConsumerWidget {
-  const _GerbangPencatat({required this.uid});
+/// Batch 14 menahan pencatat anonim tanpa acara di layar Masuk
+/// (tab Pencatat). Batch 18 merapikan sisanya: gerbang ini kini
+/// melayani DUA keadaan sekaligus — belum masuk (uid null) dan
+/// sesi anonim — dan SELALU membungkus layar Masuk dalam
+/// StreamBuilder yang sama di posisi yang sama. Akibatnya saat
+/// form gabung membuat sesi anonim (tombol Gabung ditekan, Batch
+/// 18), subtree layar Masuk TIDAK dibangun ulang: isi form dan
+/// galat klaim yang gagal tetap tampil, dan berpindah tab tidak
+/// lagi memicu muat ulang layar.
+///
+/// [_pernahMasuk] mengingat layar Masuk pernah tampil dalam
+/// proses ini: selama stream keikutsertaan masih memuat setelah
+/// itu, layar Masuk dipertahankan (bukan layar muat). Sebaliknya
+/// pada mulai dingin pencatat lama (sesi anonim tersimpan dan
+/// punya acara), layar muat tetap tampil sampai datanya tiba —
+/// tidak ada kedipan layar Masuk.
+class _GerbangMasuk extends ConsumerStatefulWidget {
+  const _GerbangMasuk({required this.uid});
 
-  final String uid;
+  /// Null bila belum ada pengguna masuk.
+  final String? uid;
+
+  @override
+  ConsumerState<_GerbangMasuk> createState() => _GerbangMasukState();
+}
+
+class _GerbangMasukState extends ConsumerState<_GerbangMasuk> {
+  bool _pernahMasuk = false;
 
   /// Keluar sebagai pencatat (Batch 10): lepaskan dulu semua sesi
   /// yang dipegang perangkat ini, baru sign out — supaya nama-nama
   /// pencatatnya bebas dipakai perangkat lain. Gagal melepas sesi
   /// tidak menghalangi keluar (pemilik bisa mereset sesinya).
-  Future<void> _keluar(WidgetRef ref) async {
+  Future<void> _keluar() async {
+    final uid = widget.uid;
+    if (uid == null) return;
     try {
       await ref.read(acaraServiceProvider).lepaskanSemuaSesi(uid);
     } catch (_) {
@@ -137,13 +160,25 @@ class _GerbangPencatat extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final stream = ref.watch(acaraServiceProvider).acaraDiikutiStream(uid);
+  Widget build(BuildContext context) {
+    final uid = widget.uid;
+    final stream = uid == null
+        ? null
+        : ref.watch(acaraServiceProvider).acaraDiikutiStream(uid);
     return StreamBuilder(
       stream: stream,
       builder: (context, snapshot) {
+        if (uid == null) {
+          _pernahMasuk = true;
+          return const MasukScreen();
+        }
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: TampilMuat());
+          // Setelah layar Masuk tampil, pertahankan selama muat
+          // (sesi baru saja dibuat dari form gabung) — jangan
+          // menukarnya dengan layar muat.
+          return _pernahMasuk
+              ? const MasukScreen(tabAwal: 1)
+              : const Scaffold(body: TampilMuat());
         }
         if (snapshot.hasError) {
           return Scaffold(
@@ -153,7 +188,7 @@ class _GerbangPencatat extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(Icons.logout),
                   tooltip: 'Keluar',
-                  onPressed: () => _keluar(ref),
+                  onPressed: _keluar,
                 ),
               ],
             ),
@@ -172,11 +207,9 @@ class _GerbangPencatat extends ConsumerWidget {
           );
         }
         if (daftar.isNotEmpty) return const DaftarAcaraScreen();
-        // Batch 14: belum mengikuti acara apa pun → kembali ke
-        // layar Masuk dengan tab Pencatat terbuka; form gabung
-        // kini LANGSUNG di tab itu (bukan halaman tersendiri).
-        // Karena tujuannya layar Masuk juga, form tidak hancur
-        // saat sesi dibuat — bug gabung lama tidak terulang.
+        // Belum mengikuti acara apa pun → tahan di layar Masuk
+        // dengan tab Pencatat terbuka; form gabung ada di tab itu.
+        _pernahMasuk = true;
         return const MasukScreen(tabAwal: 1);
       },
     );
