@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Batch 21: WAJIB untuk build RILIS. Tanpa izin ini APK hasil
+         `flutter build apk --release` tidak punya akses internet
+         sama sekali (Firebase mati total) — selama ini terbantu
+         manifest debug yang dipakai `flutter run`. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Buku Hajatan"
         android:name="${applicationName}"
@@ -41,6 +46,13 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Batch 21: pemeriksa pembaruan membuka tautan unduhan
+             (https) di browser lewat url_launcher. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

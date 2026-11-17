@@ -11,6 +11,7 @@ import 'screens/diblokir.dart';
 import 'screens/masuk.dart';
 import 'screens/panel_admin.dart';
 import 'widgets/keadaan.dart';
+import 'widgets/pemeriksa_pembaruan.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,11 +40,16 @@ class BukuHajatanApp extends ConsumerWidget {
       theme: TemaAplikasi.terang,
       darkTheme: TemaAplikasi.gelap,
       themeMode: ThemeMode.system,
-      home: inisialisasi.when(
-        loading: () => const Scaffold(body: TampilMuat()),
-        error: (error, _) =>
-            BelumKonfigurasiScreen(rincianGalat: error.toString()),
-        data: (_) => const _GerbangPengguna(),
+      // PemeriksaPembaruan (Batch 21) membungkus gerbang: sekali
+      // saat aplikasi dibuka ia memeriksa rilis GitHub yang lebih
+      // baru dan menawarkan unduh lewat dialog.
+      home: PemeriksaPembaruan(
+        child: inisialisasi.when(
+          loading: () => const Scaffold(body: TampilMuat()),
+          error: (error, _) =>
+              BelumKonfigurasiScreen(rincianGalat: error.toString()),
+          data: (_) => const _GerbangPengguna(),
+        ),
       ),
     );
   }

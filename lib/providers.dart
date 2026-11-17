@@ -8,6 +8,7 @@ import 'services/auth_service.dart';
 import 'services/ekspor_service.dart';
 import 'services/koreksi_service.dart';
 import 'services/pencatatan_service.dart';
+import 'services/pembaruan_service.dart';
 import 'services/provisioning_service.dart';
 import 'services/rekap_service.dart';
 
@@ -38,6 +39,10 @@ final provisioningServiceProvider = Provider<ProvisioningService>(
 
 final koreksiServiceProvider = Provider<KoreksiService>(
   (ref) => KoreksiService(),
+);
+
+final pembaruanServiceProvider = Provider<PembaruanService>(
+  (ref) => PembaruanService(),
 );
 
 /// True bila pengguna yang sedang masuk adalah admin platform
