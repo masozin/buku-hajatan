@@ -310,41 +310,64 @@ class _BarisPengunjung extends StatelessWidget {
     final gayaSamping = tema.textTheme.bodySmall?.copyWith(
       color: skema.onSurfaceVariant,
     );
+    // Batch 14: BUKAN ListTile lagi — kolom kanan berisi tiga
+    // baris (nominal, kode-urut, waktu) dan ListTile membatasi
+    // tinggi sisinya sehingga meluap ("bottom overflowed").
+    // Kini baris bebas: tinggi mengikuti isi terpanjang.
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
-      child: ListTile(
+      child: InkWell(
         onTap: onTap,
-        title: Text(
-          a.tampilNama,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: meta.isEmpty
-            ? null
-            : Text(
-                meta,
-                style: tema.textTheme.bodySmall?.copyWith(
-                  color: skema.onSurfaceVariant,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      a.tampilNama,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    if (meta.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        meta,
+                        style: tema.textTheme.bodySmall?.copyWith(
+                          color: skema.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-        trailing: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              formatRupiah(a.nominal),
-              style: tema.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w800,
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formatRupiah(a.nominal),
+                    style: tema.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${ditemukan.kodeBundel}-${a.urut}',
+                    style: gayaSamping,
+                  ),
+                  if (a.createdAt != null)
+                    Text(
+                      formatWaktuKonteks(a.createdAt!),
+                      style: gayaSamping,
+                    ),
+                ],
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              '${ditemukan.kodeBundel}-${a.urut}',
-              style: gayaSamping,
-            ),
-            if (a.createdAt != null)
-              Text(formatWaktuKonteks(a.createdAt!), style: gayaSamping),
-          ],
+            ],
+          ),
         ),
       ),
     );
