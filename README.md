@@ -496,3 +496,54 @@ Bahasa desain baru:
    tetap terbaca.
 4. Pastikan semua tombol/form berperilaku sama seperti
    sebelumnya — batch ini murni tampilan.
+
+## Batch 13 — Penyesuaian tampilan & alur pencatat
+
+Menindaklanjuti uji visual Batch 12 oleh Mark. **Tidak ada
+perubahan rules, data, atau dependensi.** Isinya:
+
+1. **Pemilik:** kartu "Kode Gabung & PIN Pencatat" (dropdown)
+   dihapus — kode gabung + tombol salin kini langsung tampil di
+   kartu info acara, di bawah tanggal, tanpa keterangan.
+   Dropdown Pencatat: avatar huruf inisial dihapus, dan semua
+   label "PIN pribadi" menjadi "PIN" saja.
+2. **Pencatat:** tombol & layar "Daftar Bundel Saya" dihapus
+   (termasuk layar Isi Bundel lama) — sudah digantikan tab
+   Bundel. Tombol melayang "Catat Amplop" kini ikon saja.
+3. **Perbaikan keluar dua kali:** keluar dari panel pencatat
+   dulu bisa berhenti di halaman gabung (harus keluar sekali
+   lagi), karena pemeriksaan `mounted` membatalkan proses
+   keluar begitu gerbang menukar layar. Kini sekali keluar
+   langsung ke halaman masuk utama.
+4. **Login pencatat otomatis:** membuka tab Pencatat di halaman
+   Masuk langsung membuat sesi — tidak ada tombol perantara
+   lagi (tombol tetap tampil sebagai jalan mencoba ulang bila
+   pembuatan sesi gagal).
+5. **Kartu total:** statistik rata-rata dihapus; tersisa
+   Pengunjung & Bundel.
+6. **Tab Pengunjung:** tampilan bawaan Terbaru; pilihan urutan
+   Bundel & Dusun dihapus, diganti urutan **Desa** (berdasarkan
+   alamat). Baris per pengunjung tanpa avatar inisial: di bawah
+   nama hanya alamat + dusun; sisi kanan berisi nominal, kode
+   bundel-urut (mis. A001-1), dan cap waktu — hari yang sama
+   cukup jamnya, beda tanggal tampil tanggal + jam.
+7. **Tab Bundel:** kepala dropdown cukup "KODE • Rp total",
+   di bawahnya "Pencatat: ..." dan batang kemajuan — tanpa
+   kotak inisial, tanpa kata "Bundel", tanpa lencana Penuh.
+   Isi dropdown: nomor urut sebagai angka biasa, di bawah nama
+   hanya alamat + dusun.
+
+## Cara uji Batch 13
+
+1. Sebagai pemilik: kode gabung + tombol salin ada di kartu
+   info acara; bagian Pencatat tanpa huruf inisial, labelnya
+   "PIN".
+2. Sebagai pencatat: buka tab Pencatat di halaman Masuk —
+   langsung diarahkan ke form gabung (tanpa tombol). Di panel
+   acara tidak ada lagi tombol Daftar Bundel Saya; tombol
+   melayang hanya ikon.
+3. Keluar dari panel pencatat → langsung tiba di halaman
+   Masuk utama, cukup SEKALI.
+4. Tab Pengunjung: bawaan Terbaru, ada urutan Desa; barisnya
+   ringkas dengan kode-urut + jam di kanan. Tab Bundel: kepala
+   dropdown ringkas seperti di atas.

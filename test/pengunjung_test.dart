@@ -1,8 +1,10 @@
+import 'package:buku_hajatan/core/format.dart';
 import 'package:buku_hajatan/core/pengunjung.dart';
 import 'package:buku_hajatan/core/rekap.dart';
 import 'package:buku_hajatan/models/amplop.dart';
 import 'package:buku_hajatan/models/bundel.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 BundelTerisi bundelUji(
   String prefix,
@@ -44,9 +46,20 @@ Amplop amplopUji({
 }
 
 void main() {
+  setUpAll(() async {
+    // formatWaktuKonteks memakai format tanggal locale id_ID.
+    await initializeDateFormatting('id_ID');
+  });
+
   final data = [
     bundelUji('B', 1, [
-      amplopUji(urut: 1, nama: 'Dedi', nominal: 100000, dusun: 2),
+      amplopUji(
+        urut: 1,
+        nama: 'Dedi',
+        alamat: 'Air Batu',
+        nominal: 100000,
+        dusun: 2,
+      ),
     ]),
     bundelUji('A', 1, [
       amplopUji(
@@ -117,12 +130,16 @@ void main() {
       ]);
     });
 
-    test('dusun menaik, yang kosong paling belakang', () {
+    test('desa menaik berdasarkan alamat, yang kosong paling belakang', () {
       final hasil = urutkanPengunjung(
         semuaPengunjung(data),
-        UrutanPengunjung.dusun,
+        UrutanPengunjung.desa,
       );
-      expect(hasil.map((d) => d.amplop.dusun).toList(), [1, 2, null]);
+      expect(hasil.map((d) => d.amplop.nama).toList(), [
+        'Dedi',
+        'Sari',
+        'agus',
+      ]);
     });
 
     test('terbaru berdasarkan timestamp', () {
@@ -135,14 +152,26 @@ void main() {
       expect(hasil.last.amplop.nama, 'Dedi');
     });
 
-    test('urutan bundel mengikuti kode lalu urut', () {
-      final hasil = urutkanPengunjung(
-        semuaPengunjung(data),
-        UrutanPengunjung.bundel,
-      );
+  });
+
+  group('formatWaktuKonteks', () {
+    test('hari yang sama cukup jamnya', () {
       expect(
-        hasil.map((d) => '${d.kodeBundel}/${d.amplop.urut}').toList(),
-        ['A001/1', 'A001/2', 'B001/1'],
+        formatWaktuKonteks(
+          DateTime(2026, 11, 16, 9, 5),
+          sekarang: DateTime(2026, 11, 16, 18, 0),
+        ),
+        '09:05',
+      );
+    });
+
+    test('beda tanggal tampil tanggal + jam', () {
+      expect(
+        formatWaktuKonteks(
+          DateTime(2026, 11, 16, 9, 5),
+          sekarang: DateTime(2026, 11, 17, 8, 0),
+        ),
+        '16 Nov 2026 09:05',
       );
     });
   });
