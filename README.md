@@ -646,3 +646,29 @@ ulang dari logo terang. Logo di dalam aplikasi tidak berubah
    tampil terang dan utuh (tidak ada bagian terpotong).
 2. Bila launcher HP-mu menyediakan pilihan bentuk ikon (tema
    ikon), ganti-ganti bentuknya: logo tetap terlihat semua.
+
+## Batch 18 — Sesi pencatat dibuat saat Gabung ditekan
+
+Menindaklanjuti Batch 13/14: sesi anonim kini TIDAK lagi dibuat
+otomatis saat tab Pencatat dibuka, melainkan oleh form saat
+tombol **Gabung** ditekan. Agar cara malas ini tidak menghidupkan
+bug gabung lama, gerbang direstrukturisasi menjadi
+`_GerbangMasuk` (main.dart): satu widget yang melayani keadaan
+belum masuk dan sesi anonim, selalu membungkus layar Masuk
+dalam StreamBuilder yang sama — subtree layar Masuk tidak
+dibangun ulang saat sesi dibuat, jadi isi form dan pesan galat
+klaim (mis. PIN salah) tetap tampil. Tombol "Keluar sesi
+pencatat" kini hanya muncul bila memang ada sesi anonim (mis.
+setelah percobaan gabung). Tanpa perubahan rules/data.
+
+## Cara uji Batch 18
+
+1. Pindah tab Pemilik → Pencatat berulang kali: tidak ada muat
+   ulang layar, dan tidak ada tombol "Keluar sesi pencatat".
+2. Isi form gabung dengan PIN yang SALAH lalu tekan Gabung:
+   pesan galat tampil di form dan isianmu TIDAK hilang.
+3. Betulkan PIN, tekan Gabung lagi: berhasil masuk ke acara.
+4. Keluar sebagai pencatat, buka aplikasi lagi dari awal
+   (paksa berhenti dulu): pencatat yang sudah punya acara tetap
+   langsung masuk ke acaranya (layar muat sebentar, tanpa
+   kedipan layar Masuk).
