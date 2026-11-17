@@ -296,6 +296,67 @@ class AcaraService {
       'claimedAt': FieldValue.serverTimestamp(),
     });
     await batch.commit();
-    return pencatat;
+
+    // Sambung nomor bundel (Batch 9): bila prefix ini sudah punya
+    // bundel dari klaim sebelumnya — kasus pencatat melepas HP lalu
+    // bergabung lagi dari HP baru — nomorBundelTerakhir disambung
+    // dari bundel terbesar yang ada, supaya kode bundel tidak
+    // kembar. Klaim pertama: belum ada bundel, nilai tetap 0.
+    // Dijalankan SETELAH dokumen pencatat ada, karena rules baru
+    // mengizinkan membaca bundel setelah pencatat jadi anggota.
+    final snapBundel = await refAcara
+        .collection('bundel')
+        .where('prefix', isEqualTo: pencatat.prefix)
+        .get();
+    var terbesar = 0;
+    for (final d in snapBundel.docs) {
+      final n = (d.data()['nomor'] as num?)?.toInt() ?? 0;
+      if (n > terbesar) terbesar = n;
+    }
+    if (terbesar == 0) return pencatat;
+    await refAcara.collection('pencatat').doc(uid).update(
+      <String, dynamic>{'nomorBundelTerakhir': terbesar},
+    );
+    return Pencatat(
+      id: pencatat.id,
+      acaraId: pencatat.acaraId,
+      userId: pencatat.userId,
+      nama: pencatat.nama,
+      prefix: pencatat.prefix,
+      nomorBundelTerakhir: terbesar,
+      aktif: pencatat.aktif,
+      createdAt: pencatat.createdAt,
+    );
+  }
+
+  /// Lepas ikatan HP seorang pencatat (Batch 9, tombol "Lepas HP"
+  /// di kelola pencatat pemilik): hapus dokumen pencatatnya dan
+  /// kembalikan undangannya ke status menunggu, supaya orangnya
+  /// bisa bergabung lagi dari HP baru dengan nama + prefix yang
+  /// sama (kode + PIN acara tidak berubah).
+  ///
+  /// Bundel & amplop yang sudah ia catat TIDAK ikut terhapus —
+  /// tetap tercatat atas prefix-nya; nomor bundel berikutnya
+  /// disambung otomatis saat klaim ulang (lihat gabungAcara).
+  Future<void> lepasPerangkatPencatat(
+    String acaraId,
+    Pencatat pencatat,
+  ) async {
+    final refAcara = _acara.doc(acaraId);
+    final snapUndangan = await refAcara
+        .collection('undanganPencatat')
+        .where('claimedBy', isEqualTo: pencatat.id)
+        .limit(1)
+        .get();
+    final batch = _db.batch();
+    batch.delete(refAcara.collection('pencatat').doc(pencatat.id));
+    if (snapUndangan.docs.isNotEmpty) {
+      batch.update(snapUndangan.docs.first.reference, <String, dynamic>{
+        'status': 'menunggu',
+        'claimedBy': FieldValue.delete(),
+        'claimedAt': FieldValue.delete(),
+      });
+    }
+    await batch.commit();
   }
 }

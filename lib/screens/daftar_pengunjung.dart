@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/format.dart';
 import '../core/pengunjung.dart';
 import '../core/rekap.dart';
+import '../models/bundel.dart';
 import '../providers.dart';
 import '../widgets/keadaan.dart';
+import 'koreksi_amplop.dart';
 
 /// Tab Pengunjung di Detail Acara (Batch 7): seluruh amplop dari
 /// semua bundel dalam satu daftar — ada kolom pencarian dan pilihan
@@ -14,10 +16,22 @@ import '../widgets/keadaan.dart';
 /// Data dibaca SEKALI jalan lewat RekapService (bukan listener,
 /// hemat kuota baca); tombol muat ulang / tarik ke bawah untuk
 /// menyegarkan selama acara berjalan.
+///
+/// Sejak Batch 9 tiap baris bisa diketuk: muncul pratinjau data
+/// lengkapnya, dan bila acara sudah selesai pemilik dapat langsung
+/// mengedit amplop itu dari pratinjau (form koreksi Batch 6).
 class DaftarPengunjungTab extends ConsumerStatefulWidget {
-  const DaftarPengunjungTab({super.key, required this.acaraId});
+  const DaftarPengunjungTab({
+    super.key,
+    required this.acaraId,
+    required this.sudahSelesai,
+  });
 
   final String acaraId;
+
+  /// true = acara sudah ditandai selesai → pratinjau menawarkan
+  /// tombol Ubah (mode koreksi pemilik).
+  final bool sudahSelesai;
 
   @override
   ConsumerState<DaftarPengunjungTab> createState() =>

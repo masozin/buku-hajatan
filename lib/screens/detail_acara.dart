@@ -463,6 +463,55 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
     super.dispose();
   }
 
+  /// Lepas ikatan HP pencatat [p] (Batch 9): setelah konfirmasi,
+  /// dokumen pencatat dihapus + undangannya menunggu lagi, jadi
+  /// orangnya bisa gabung ulang dari HP baru. Data catatannya
+  /// (bundel & amplop) tidak ikut hilang.
+  Future<void> _lepasPerangkat(Pencatat p) async {
+    final yakin = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Lepas HP ${p.nama}?'),
+        content: Text(
+          'Ikatan ${p.nama} dengan HP lamanya akan dilepas. Setelah '
+          'itu ia bisa bergabung lagi dari HP BARU memakai kode + PIN '
+          'acara yang sama dan namanya sendiri.\n\n'
+          'Bundel & amplop yang sudah ${p.nama} catat TIDAK ikut '
+          'terhapus, dan nomor bundelnya akan disambung dari yang '
+          'terakhir.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Lepas HP'),
+          ),
+        ],
+      ),
+    );
+    if (yakin != true || !mounted) return;
+    try {
+      await ref
+          .read(acaraServiceProvider)
+          .lepasPerangkatPencatat(widget.acara.id, p);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'HP ${p.nama} sudah dilepas — silakan gabung lagi dari HP baru.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(pesanDari(e))));
+    }
+  }
+
   Future<void> _tambah() async {
     setState(() => _sibuk = true);
     try {
@@ -592,13 +641,23 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                         subtitle: Text(
                           'Bundel terakhir: ${p.nomorBundelTerakhir}',
                         ),
-                        trailing: Switch(
-                          value: p.aktif,
-                          onChanged: (v) => layanan.setAktifPencatat(
-                            widget.acara.id,
-                            p.id,
-                            v,
-                          ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.phonelink_erase_outlined),
+                              tooltip: 'Lepas HP (reset gabung)',
+                              onPressed: () => _lepasPerangkat(p),
+                            ),
+                            Switch(
+                              value: p.aktif,
+                              onChanged: (v) => layanan.setAktifPencatat(
+                                widget.acara.id,
+                                p.id,
+                                v,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                   ],
