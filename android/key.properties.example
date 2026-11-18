@@ -11,4 +11,4 @@
 storePassword=ISI_SANDI_KEYSTORE
 keyPassword=ISI_SANDI_KEYSTORE
 keyAlias=upload
-storeFile=D:/Flutter/buku-hajatan/android/upload-keystore.jks
+storeFile=D:/Flutter/buku_hajatan/android/upload-keystore.jks
