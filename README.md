@@ -843,3 +843,19 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   total, ekspor Excel & CSV menjadi format datar (PDF memang
   sudah datar). Rules: batas urut 10 hanya berlaku untuk acara
   ber-metode bundel (fungsi metodeLangsung membaca field acara).
+- Perbaikan kecil (permintaan Mark): metode pencatatan kini
+  saklar true/false di Buat Acara maupun kartu Metode & Fitur
+  pemilik (mati = Bundel/bawaan, menyala = Langsung); jenis
+  acara gains Kelahiran & Aqiqah; PIN gabung acara DIHAPUS dari
+  form & layanan (sudah tidak dipakai sejak Batch 10 — gabung
+  memakai PIN pribadi tiap pencatat).
+- Batch 31 (Mode Buku Tamu — rancangan multi-metode v2, tahap 2):
+  dari layar pencatatan, pencatat di acara berfitur Buku Tamu
+  bisa masuk Mode Buku Tamu: perangkat menjadi buku tamu digital
+  (tamu mengisi nama/alamat/ucapan sendiri; zona petugas di layar
+  yang sama mengisi jenis + nominal), sesudah simpan tampil
+  layar terima kasih lalu form kosong lagi. Daftar catatan tidak
+  ditampilkan (privasi), tombol kembali dimatikan, dan keluar
+  mode wajib PIN pribadi pencatat perangkat itu (D5). Bundel
+  penuh berganti diam-diam dengan catatan kecil untuk petugas.
+  Tanpa perubahan rules.

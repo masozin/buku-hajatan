@@ -15,6 +15,7 @@ import '../theme/tema_aplikasi.dart';
 import '../widgets/baris_amplop.dart';
 import '../widgets/keadaan.dart';
 import '../widgets/kolom_form.dart';
+import 'buku_tamu.dart';
 import 'koreksi_amplop.dart';
 
 /// Layar utama pencatat di hari-H (Batch 2).
@@ -57,6 +58,11 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   /// Batch 30: true bila acara ini Metode Langsung (wadahnya
   /// bundel bebas, bukan bundel 10). Ditentukan di _siapkan.
   var _langsung = false;
+
+  /// Batch 31: fitur Buku Tamu acara ini menyala + nama acara
+  /// untuk kepala Mode Buku Tamu. Ditentukan di _siapkan.
+  var _fiturBukuTamu = false;
+  var _namaAcara = '';
 
   /// Sugesti alamat untuk kolom Alamat (Batch 14): alamat unik
   /// yang pernah dipakai di acara ini.
@@ -111,7 +117,11 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
           .acaraStream(widget.acaraId)
           .first;
       if (mounted && acara != null) {
-        setState(() => _langsung = acara.metodeLangsung);
+        setState(() {
+          _langsung = acara.metodeLangsung;
+          _fiturBukuTamu = acara.fiturBukuTamu;
+          _namaAcara = acara.namaAcara;
+        });
       }
     } catch (_) {
       // Gagal membaca acara: anggap Bundel (bawaan) — layanan
@@ -300,6 +310,9 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
           }
           final tampil = bundelTinjau ?? bundel;
           final meninjau = bundelTinjau != null;
+          // Salinan final bundel aktif untuk ditangkap closure
+          // tombol Mode Buku Tamu (Batch 31).
+          final bundelAktif = bundel;
           if (tampil == null) {
             return Padding(
               padding: const EdgeInsets.all(24),
@@ -345,6 +358,30 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                   judul: meninjau ? 'Bundel Penuh' : 'Bundel Aktif',
                 ),
               const SizedBox(height: 16),
+              // Batch 31: jalan masuk Mode Buku Tamu — hanya bila
+              // fitur acara ini menyala dan ada bundel aktif.
+              if (_fiturBukuTamu && !meninjau && bundelAktif != null) ...[
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => BukuTamuScreen(
+                          acaraId: widget.acaraId,
+                          pencatatId: widget.pencatatId,
+                          bundelAwal: bundelAktif,
+                          langsung: _langsung,
+                          namaAcara: _namaAcara,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.menu_book_outlined),
+                  label: const Text(
+                    'Mode Buku Tamu — tamu mengisi sendiri',
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
               if (!meninjau)
                 _FormAmplop(
                   jenis: _jenis,
