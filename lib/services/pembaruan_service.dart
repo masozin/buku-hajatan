@@ -111,18 +111,26 @@ class PembaruanService {
   /// Minta Android membuka pemasang paket untuk APK yang sudah
   /// diunduh (Batch 24): MethodChannel ke MainActivity, yang
   /// membagikan berkas lewat FileProvider dan menyalakan Intent
-  /// ACTION_VIEW. false bila jembatan tidak tersedia (bukan
-  /// Android, atau berkas hilang) — pemanggil jatuh ke jalur
-  /// browser.
-  Future<bool> pasangApk(File berkas) async {
+  /// ACTION_VIEW.
+  ///
+  /// Mengembalikan null bila pemasang berhasil dibuka; bila
+  /// gagal, mengembalikan RINCIAN sebabnya (Batch 27 — sebelumnya
+  /// sebab asli ditelan dan dialog hanya menampilkan pesan umum
+  /// "tidak bisa dibuka", sehingga kegagalan tidak terlacak).
+  Future<String?> pasangApk(File berkas) async {
+    if (!await berkas.exists()) {
+      return 'berkas hasil unduhan tidak ditemukan';
+    }
     try {
       final hasil = await _saluranPasang.invokeMethod<bool>(
         'pasangApk',
         {'path': berkas.path},
       );
-      return hasil ?? false;
-    } catch (_) {
-      return false;
+      return hasil == true ? null : 'pemasang menolak dibuka';
+    } on PlatformException catch (e) {
+      return '${e.code}: ${e.message ?? 'tanpa keterangan'}';
+    } catch (e) {
+      return '$e';
     }
   }
 }

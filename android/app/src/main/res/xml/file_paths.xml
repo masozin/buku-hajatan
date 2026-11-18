@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Batch 24: wilayah berkas yang boleh dibagikan FileProvider.
-     APK pembaruan diunduh ke folder cache aplikasi. -->
+     APK pembaruan diunduh ke folder cache aplikasi.
+     Batch 27: akar diperluas (files + cache eksternal) sebagai
+     pengaman — lokasi temp sistem bisa berbeda antar perangkat. -->
 <paths>
     <cache-path name="cache" path="." />
+    <files-path name="files" path="." />
+    <external-cache-path name="external_cache" path="." />
 </paths>

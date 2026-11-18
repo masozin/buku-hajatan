@@ -810,3 +810,6 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
 - Batch 26: bundel penuh tidak lagi memunculkan popup — layar
   masuk mode tinjau (form disembunyikan, isi bundel ditampilkan
   untuk diperiksa, tombol Lanjut ke bundel berikutnya).
+- Fix pasang APK: sebab gagal membuka pemasang kini ditampilkan
+  di dialog (diagnosis), akar FileProvider diperluas, jalur
+  berkas dikanonikkan.

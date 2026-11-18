@@ -23,10 +23,13 @@ class MainActivity : FlutterActivity() {
                     result.error("ARG", "path kosong", null)
                 } else {
                     try {
+                        // Batch 27: canonicalFile — samakan jalur
+                        // symlink (/data/user/0 vs /data/data) agar
+                        // cocok dengan akar FileProvider.
                         val uri = FileProvider.getUriForFile(
                             this,
                             packageName + ".fileprovider",
-                            File(path)
+                            File(path).canonicalFile
                         )
                         val intent = Intent(Intent.ACTION_VIEW).apply {
                             setDataAndType(

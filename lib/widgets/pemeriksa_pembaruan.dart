@@ -126,14 +126,17 @@ class _DialogPembaruanState extends ConsumerState<_DialogPembaruan> {
   Future<void> _pasang() async {
     final berkas = _berkas;
     if (berkas == null) return;
-    final terbuka =
+    final sebab =
         await ref.read(pembaruanServiceProvider).pasangApk(berkas);
     if (!mounted) return;
-    if (!terbuka) {
+    if (sebab != null) {
       setState(() {
         _tahap = _TahapUnduh.gagal;
+        // Batch 27: sertakan sebab asli dari sisi Android supaya
+        // kegagalan pemasang bisa didiagnosis, bukan ditebak.
         _pesanGagal =
-            'Pemasang tidak bisa dibuka. Coba unduh lewat browser.';
+            'Pemasang tidak bisa dibuka ($sebab). '
+            'Coba unduh lewat browser.';
       });
     }
     // Bila pemasang terbuka, dialog DIBIARKAN: pengguna kembali
