@@ -48,10 +48,10 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
   final _lokasi = TextEditingController();
   String _jenis = pilihanJenisAcara.first;
   // Metode wadah + fitur tambahan (rancangan multi-metode v2).
-  // Semua kini saklar true/false (permintaan Mark 2026-11-18):
-  // _langsung false (bawaan) = Metode Bundel; true = Langsung.
+  // Saklar metode (koreksi Mark 2026-11-19): _pakaiBundel false
+  // (bawaan) = Langsung TANPA bundel; true = Metode Bundel.
   // Fitur bisa diatur lagi oleh pemilik.
-  bool _langsung = false;
+  bool _pakaiBundel = false;
   bool _fiturUndangan = false;
   bool _fiturBukuTamu = false;
   DateTime _tanggal = DateTime.now();
@@ -109,9 +109,9 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
             jenis: _jenis,
             tanggal: _tanggal,
             lokasi: _lokasi.text,
-            metodePencatatan: _langsung
-                ? MetodePencatatan.langsung
-                : MetodePencatatan.bundel,
+            metodePencatatan: _pakaiBundel
+                ? MetodePencatatan.bundel
+                : MetodePencatatan.langsung,
             fiturUndangan: _fiturUndangan,
             fiturBukuTamu: _fiturBukuTamu,
           );
@@ -215,18 +215,19 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
             ),
             const SizedBox(height: 12),
             // Metode pencatatan sebagai saklar (seragam dengan
-            // sakelar fitur di bawahnya): mati = Bundel (bawaan),
-            // menyala = Langsung tanpa bundel.
+            // sakelar fitur di bawahnya): mati (bawaan) = Langsung
+            // tanpa bundel; menyala = Metode Bundel.
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Metode Langsung (tanpa bundel)'),
+              title: const Text('Metode Bundel (per 10, masuk kotak)'),
               subtitle: Text(
-                _langsung
-                    ? MetodePencatatan.langsung.penjelasan
-                    : 'Mati = Metode Bundel: ${MetodePencatatan.bundel.penjelasan}',
+                _pakaiBundel
+                    ? MetodePencatatan.bundel.penjelasan
+                    : 'Mati = Langsung (bawaan): '
+                          '${MetodePencatatan.langsung.penjelasan}',
               ),
-              value: _langsung,
-              onChanged: (v) => setState(() => _langsung = v),
+              value: _pakaiBundel,
+              onChanged: (v) => setState(() => _pakaiBundel = v),
             ),
             const SizedBox(height: 4),
             SwitchListTile(

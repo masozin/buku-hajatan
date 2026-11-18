@@ -859,3 +859,8 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   mode wajib PIN pribadi pencatat perangkat itu (D5). Bundel
   penuh berganti diam-diam dengan catatan kecil untuk petugas.
   Tanpa perubahan rules.
+- Fix saklar metode (koreksi Mark 2026-11-19): arti saklar
+  DIBALIK — saklarnya kini "Metode Bundel": mati (false, bawaan
+  acara baru) = Langsung TANPA bundel; menyala = Bundel per 10.
+  Berlaku di Buat Acara dan kartu Metode & Fitur pemilik. Acara
+  lama tanpa field metode tetap terbaca Bundel.

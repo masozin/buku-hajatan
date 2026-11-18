@@ -428,22 +428,23 @@ class _PengaturanMetode extends ConsumerWidget {
             Text('Metode: ${acara.metodePencatatan.label}'),
             const SizedBox(height: 8),
             if (bisaGantiMetode) ...[
-              // Seragam saklar (permintaan Mark): mati = Bundel
-              // (bawaan), menyala = Langsung.
+              // Saklar metode (koreksi Mark 2026-11-19): menyala
+              // = Bundel; mati = Langsung tanpa bundel.
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Metode Langsung (tanpa bundel)'),
+                title: const Text('Metode Bundel (per 10, masuk kotak)'),
                 subtitle: const Text(
-                  'Mati = Metode Bundel. Menyala = pengunjung '
-                  'dicatat mengalir tanpa bundel.',
+                  'Menyala = amplop dibundel per 10 lalu masuk '
+                  'kotak. Mati = Langsung, dicatat mengalir tanpa '
+                  'bundel.',
                 ),
-                value: acara.metodeLangsung,
+                value: !acara.metodeLangsung,
                 onChanged: (v) => _ubah(
                   context,
                   ref,
                   metode: v
-                      ? MetodePencatatan.langsung
-                      : MetodePencatatan.bundel,
+                      ? MetodePencatatan.bundel
+                      : MetodePencatatan.langsung,
                 ),
               ),
               Text(
