@@ -36,15 +36,21 @@ class _RekapScreenState extends ConsumerState<RekapScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(pesan)));
   }
 
-  Future<void> _ekspor(Acara acara, {required bool excel}) async {
+  Future<void> _ekspor(Acara acara, String format) async {
     setState(() => _mengekspor = true);
     try {
       final data = await ref
           .read(rekapServiceProvider)
           .ambilDataLengkap(acara.id);
       final ekspor = ref.read(eksporServiceProvider);
-      if (excel) {
+      if (format == 'excel') {
         await ekspor.eksporExcel(
+          acara: acara,
+          tanggalTeks: formatTanggal(acara.tanggal),
+          data: data,
+        );
+      } else if (format == 'pdf') {
+        await ekspor.eksporPdf(
           acara: acara,
           tanggalTeks: formatTanggal(acara.tanggal),
           data: data,
@@ -88,8 +94,9 @@ class _RekapScreenState extends ConsumerState<RekapScreen> {
               const SizedBox(height: 16),
               _KartuEkspor(
                 sibuk: _mengekspor,
-                onExcel: () => _ekspor(acara, excel: true),
-                onCsv: () => _ekspor(acara, excel: false),
+                onExcel: () => _ekspor(acara, 'excel'),
+                onCsv: () => _ekspor(acara, 'csv'),
+                onPdf: () => _ekspor(acara, 'pdf'),
               ),
               const SizedBox(height: 16),
               _PerPencatat(acaraId: acara.id),
@@ -226,11 +233,13 @@ class _KartuEkspor extends StatelessWidget {
     required this.sibuk,
     required this.onExcel,
     required this.onCsv,
+    required this.onPdf,
   });
 
   final bool sibuk;
   final VoidCallback onExcel;
   final VoidCallback onCsv;
+  final VoidCallback onPdf;
 
   @override
   Widget build(BuildContext context) {
@@ -268,6 +277,17 @@ class _KartuEkspor extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            // Batch 25: ekspor PDF untuk dicetak — kop detail
+            // acara, tabel urut abjad, rekap di bawah.
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: sibuk ? null : onPdf,
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('PDF — daftar abjad untuk dicetak'),
+              ),
             ),
             if (sibuk) ...[
               const SizedBox(height: 12),

@@ -107,6 +107,8 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
       ('Bundel', '${ditemukan.kodeBundel} • nomor ${a.urut}'),
       if (a.alamat != null && a.alamat!.isNotEmpty) ('Alamat', a.alamat!),
       if (a.dusun != null) ('Dusun', '${a.dusun}'),
+      if (a.rt != null) ('RT', '${a.rt}'),
+      if (a.rw != null) ('RW', '${a.rw}'),
       if (a.keterangan != null && a.keterangan!.isNotEmpty)
         ('Keterangan', a.keterangan!),
       ('Jenis', a.jenis.label),
@@ -306,6 +308,11 @@ class _BarisPengunjung extends StatelessWidget {
     final meta = [
       if (a.alamat != null && a.alamat!.isNotEmpty) a.alamat!,
       if (a.dusun != null) 'Dusun ${a.dusun}',
+      if (a.rt != null || a.rw != null)
+        [
+          if (a.rt != null) 'RT ${a.rt}',
+          if (a.rw != null) 'RW ${a.rw}',
+        ].join('/'),
     ].join(' • ');
     final gayaSamping = tema.textTheme.bodySmall?.copyWith(
       color: skema.onSurfaceVariant,

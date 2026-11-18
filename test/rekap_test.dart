@@ -31,6 +31,9 @@ Amplop amplopUji({
   required int urut,
   required String nama,
   String? alamat,
+  int? dusun,
+  int? rt,
+  int? rw,
   required int nominal,
   JenisAmplop jenis = JenisAmplop.normal,
 }) {
@@ -40,6 +43,9 @@ Amplop amplopUji({
     urut: urut,
     nama: nama,
     alamat: alamat,
+    dusun: dusun,
+    rt: rt,
+    rw: rw,
     nominal: nominal,
     jenis: jenis,
   );
@@ -151,14 +157,48 @@ void main() {
       final barisCsv = csv.trim().split('\n');
       expect(
         barisCsv[0],
-        'Kode Bundel,No,Nama,Alamat,Dusun,Nominal (Rp),Jenis,Keterangan,Waktu',
+        'Kode Bundel,No,Nama,Alamat,Nominal (Rp),Jenis,Keterangan,Waktu',
       );
       expect(
         barisCsv[1],
-        'A001,1,"Sari, S.Pd","Dusun ""Melati""",,200000,Normal,,',
+        'A001,1,"Sari, S.Pd","Dusun ""Melati""",200000,Normal,,',
       );
-      expect(barisCsv[2], 'A001,2,(Tanpa Nama),,,50000,Tanpa Nama,,');
-      expect(barisCsv[3], 'B001,1,Dedi,,,100000,Normal,,');
+      expect(barisCsv[2], 'A001,2,(Tanpa Nama),,50000,Tanpa Nama,,');
+      expect(barisCsv[3], 'B001,1,Dedi,,100000,Normal,,');
+    });
+  });
+
+  group('gabungAlamat', () {
+    test('menggabungkan bagian yang terisi saja', () {
+      expect(
+        gabungAlamat(alamat: 'Krajan', dusun: 2, rt: 3, rw: 4),
+        'Krajan, Dusun 2, RT 03/RW 04',
+      );
+      expect(gabungAlamat(alamat: 'Krajan'), 'Krajan');
+      expect(gabungAlamat(rt: 7), 'RT 07');
+      expect(gabungAlamat(rw: 1), 'RW 01');
+      expect(gabungAlamat(), '');
+    });
+  });
+
+  group('urutkanAbjad', () {
+    test('bernama A-Z tidak peka huruf, tanpa nama paling akhir', () {
+      final daftar = [
+        amplopUji(urut: 1, nama: 'zulaikha', nominal: 1),
+        amplopUji(
+          urut: 2,
+          nama: '',
+          nominal: 1,
+          jenis: JenisAmplop.tanpaNama,
+        ),
+        amplopUji(urut: 3, nama: 'Budi', nominal: 1),
+        amplopUji(urut: 4, nama: 'andi', nominal: 1),
+      ];
+      final hasil = urutkanAbjad(daftar);
+      expect(
+        hasil.map((a) => a.tampilNama).toList(),
+        ['andi', 'Budi', 'zulaikha', '(Tanpa Nama)'],
+      );
     });
   });
 

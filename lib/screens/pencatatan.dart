@@ -44,6 +44,8 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   final _nama = TextEditingController();
   final _alamat = TextEditingController();
   final _dusun = TextEditingController();
+  final _rt = TextEditingController();
+  final _rw = TextEditingController();
   final _nominal = TextEditingController();
   final _keterangan = TextEditingController();
   final _fokusNama = FocusNode();
@@ -83,6 +85,8 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
     _nama.dispose();
     _alamat.dispose();
     _dusun.dispose();
+    _rt.dispose();
+    _rw.dispose();
     _nominal.dispose();
     _keterangan.dispose();
     _fokusNama.dispose();
@@ -148,6 +152,8 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
             nama: _nama.text,
             alamat: _alamat.text,
             dusun: int.tryParse(_dusun.text.trim()),
+            rt: int.tryParse(_rt.text.trim()),
+            rw: int.tryParse(_rw.text.trim()),
             keterangan: _keterangan.text,
             nominal: nominal,
           );
@@ -168,6 +174,8 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
       _nama.clear();
       _alamat.clear();
       _dusun.clear();
+      _rt.clear();
+      _rw.clear();
       _nominal.clear();
       _keterangan.clear();
       setState(() => _jenis = JenisAmplop.normal);
@@ -286,6 +294,8 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                 nama: _nama,
                 alamat: _alamat,
                 dusun: _dusun,
+                rt: _rt,
+                rw: _rw,
                 nominal: _nominal,
                 keterangan: _keterangan,
                 fokusNama: _fokusNama,
@@ -501,6 +511,8 @@ class _FormAmplop extends StatelessWidget {
     required this.nama,
     required this.alamat,
     required this.dusun,
+    required this.rt,
+    required this.rw,
     required this.nominal,
     required this.keterangan,
     required this.fokusNama,
@@ -514,6 +526,8 @@ class _FormAmplop extends StatelessWidget {
   final TextEditingController nama;
   final TextEditingController alamat;
   final TextEditingController dusun;
+  final TextEditingController rt;
+  final TextEditingController rw;
   final TextEditingController nominal;
   final TextEditingController keterangan;
   final FocusNode fokusNama;
@@ -572,6 +586,29 @@ class _FormAmplop extends StatelessWidget {
             KolomDusun(
               controller: dusun,
               onSubmitted: () => sibuk ? null : onSimpan(),
+            ),
+            const SizedBox(height: 12),
+            // Batch 25: RT & RW berdampingan, stepper − / + sama
+            // seperti dusun.
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: KolomDusun(
+                    controller: rt,
+                    label: 'RT (angka, boleh kosong)',
+                    onSubmitted: () => sibuk ? null : onSimpan(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KolomDusun(
+                    controller: rw,
+                    label: 'RW (angka, boleh kosong)',
+                    onSubmitted: () => sibuk ? null : onSimpan(),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             // Batch 14: nominal diketik dalam ribu — tampilkan

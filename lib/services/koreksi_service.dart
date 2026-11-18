@@ -115,6 +115,8 @@ class KoreksiService {
     required String nama,
     String? alamat,
     int? dusun,
+    int? rt,
+    int? rw,
     String? keterangan,
     required JenisAmplop jenis,
     required int nominal,
@@ -154,6 +156,8 @@ class KoreksiService {
           ? null
           : alamat.trim(),
       dusun: dusun,
+      rt: rt,
+      rw: rw,
       keterangan: (keterangan == null || keterangan.trim().isEmpty)
           ? null
           : keterangan.trim(),
@@ -190,6 +194,8 @@ class KoreksiService {
     required String nama,
     String? alamat,
     int? dusun,
+    int? rt,
+    int? rw,
     String? keterangan,
     required JenisAmplop jenis,
     required int nominal,
@@ -216,6 +222,8 @@ class KoreksiService {
             ? null
             : alamat.trim(),
         'dusun': dusun,
+        'rt': rt,
+        'rw': rw,
         'keterangan': (keterangan == null || keterangan.trim().isEmpty)
             ? null
             : keterangan.trim(),

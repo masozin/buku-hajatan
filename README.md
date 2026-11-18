@@ -803,3 +803,7 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   indikator progres, lalu tombol Pasang membuka pemasang paket
   Android (FileProvider + izin REQUEST_INSTALL_PACKAGES);
   jalur browser tetap sebagai cadangan.
+- Batch 25: kolom RT & RW (stepper − / +) di form pencatatan &
+  koreksi; teks Mode Koreksi + Ganti Bundel dihapus dari form
+  pemilik; ekspor PDF baru (kop acara, tabel abjad, alamat
+  gabungan, rekap) — kolom Alamat Excel/CSV juga digabungkan.

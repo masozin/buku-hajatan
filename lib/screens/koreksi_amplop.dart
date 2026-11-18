@@ -16,22 +16,21 @@ import '../widgets/kolom_form.dart';
 /// tambah amplop yang terlewat, atau ubah amplop yang salah catat.
 /// Validasi & aturan jenis memakai logika pencatatan yang sama.
 ///
-/// Pada mode tambah, [bundel] adalah tujuan awal (dari FAB: bundel
-/// belum penuh yang terakhir); bila [bundelLain] tidak kosong,
-/// pemilik bisa mengganti bundel tujuan dari dalam form.
+/// Pada mode tambah, [bundel] adalah tujuan tetap (dari FAB:
+/// bundel khusus pemilik; dari tab Bundel: bundel itu sendiri).
+/// Batch 25 menghapus pemilih "Ganti Bundel" dari form —
+/// permintaan Mark, dianggap tidak perlu.
 class KoreksiAmplopScreen extends ConsumerStatefulWidget {
   const KoreksiAmplopScreen({
     super.key,
     required this.acaraId,
     required this.bundel,
-    this.bundelLain = const [],
     this.amplopLama,
     this.pencatatId,
   });
 
   final String acaraId;
   final Bundel bundel;
-  final List<Bundel> bundelLain;
 
   /// Null = mode tambah; terisi = mode ubah amplop ini.
   final Amplop? amplopLama;
@@ -50,6 +49,8 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
   late final TextEditingController _nama;
   late final TextEditingController _alamat;
   late final TextEditingController _dusun;
+  late final TextEditingController _rt;
+  late final TextEditingController _rw;
   late final TextEditingController _nominal;
   late final TextEditingController _keterangan;
   late JenisAmplop _jenis;
@@ -71,6 +72,12 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
     _alamat = TextEditingController(text: lama?.alamat ?? '');
     _dusun = TextEditingController(
       text: lama?.dusun == null ? '' : '${lama!.dusun}',
+    );
+    _rt = TextEditingController(
+      text: lama?.rt == null ? '' : '${lama!.rt}',
+    );
+    _rw = TextEditingController(
+      text: lama?.rw == null ? '' : '${lama!.rw}',
     );
     _nominal = TextEditingController(
       text: lama == null ? '' : '${lama.nominal}',
@@ -98,6 +105,8 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
     _nama.dispose();
     _alamat.dispose();
     _dusun.dispose();
+    _rt.dispose();
+    _rw.dispose();
     _nominal.dispose();
     _keterangan.dispose();
     super.dispose();
@@ -137,6 +146,8 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
               nama: _nama.text,
               alamat: _alamat.text,
               dusun: int.tryParse(_dusun.text.trim()),
+              rt: int.tryParse(_rt.text.trim()),
+              rw: int.tryParse(_rw.text.trim()),
               keterangan: _keterangan.text,
               jenis: _jenis,
               nominal: nominal,
@@ -157,6 +168,8 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
           nama: _nama.text,
           alamat: _alamat.text,
           dusun: int.tryParse(_dusun.text.trim()),
+          rt: int.tryParse(_rt.text.trim()),
+          rw: int.tryParse(_rw.text.trim()),
           keterangan: _keterangan.text,
           jenis: _jenis,
           nominal: nominal,
@@ -169,6 +182,8 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
           nama: _nama.text,
           alamat: _alamat.text,
           dusun: int.tryParse(_dusun.text.trim()),
+          rt: int.tryParse(_rt.text.trim()),
+          rw: int.tryParse(_rw.text.trim()),
           keterangan: _keterangan.text,
           jenis: _jenis,
           nominal: nominal,
@@ -192,32 +207,6 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
     }
   }
 
-  Future<void> _gantiBundel() async {
-    final semua = [widget.bundel, ...widget.bundelLain];
-    final terpilih = await showModalBottomSheet<Bundel>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const ListTile(title: Text('Masukkan ke bundel mana?')),
-            for (final b in semua)
-              ListTile(
-                leading: CircleAvatar(child: Text(b.prefix)),
-                title: Text('Bundel ${b.kode}'),
-                subtitle: Text('${b.jumlahAmplop}/10 pengunjung'),
-                trailing: b.id == _bundel.id
-                    ? const Icon(Icons.check)
-                    : null,
-                onTap: () => Navigator.of(context).pop(b),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (terpilih != null) setState(() => _bundel = terpilih);
-  }
-
   @override
   Widget build(BuildContext context) {
     final tanpaNama = _jenis == JenisAmplop.tanpaNama;
@@ -235,33 +224,10 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.pencatatId != null
-                  ? 'Kamu mengubah pengunjung yang kamu input sendiri. '
-                        'Perubahan langsung menyesuaikan total bundel '
-                        '& acara.'
-                  : 'Mode koreksi: perubahan langsung menyesuaikan total '
-                        'bundel & acara.',
-            ),
-            if (!_modeUbah) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Pengunjung ini masuk ke bundel ${_bundel.kode} '
-                      '(${_bundel.jumlahAmplop}/10).',
-                    ),
-                  ),
-                  if (widget.bundelLain.isNotEmpty)
-                    TextButton(
-                      onPressed: _gantiBundel,
-                      child: const Text('Ganti Bundel'),
-                    ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 16),
+            // Batch 25 (permintaan Mark): teks "Mode koreksi…",
+            // keterangan bundel tujuan, dan tombol Ganti Bundel
+            // dihapus — judul AppBar sudah menyebut bundelnya,
+            // sisanya dianggap tidak perlu.
             SegmentedButton<JenisAmplop>(
               segments: const [
                 ButtonSegment(
@@ -296,6 +262,27 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
             KolomAlamat(controller: _alamat, saran: _saranAlamat),
             const SizedBox(height: 12),
             KolomDusun(controller: _dusun),
+            const SizedBox(height: 12),
+            // Batch 25: RT & RW berdampingan, stepper − / + sama
+            // seperti dusun.
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: KolomDusun(
+                    controller: _rt,
+                    label: 'RT (angka, boleh kosong)',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: KolomDusun(
+                    controller: _rw,
+                    label: 'RW (angka, boleh kosong)',
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             ValueListenableBuilder<TextEditingValue>(
               valueListenable: _nominal,

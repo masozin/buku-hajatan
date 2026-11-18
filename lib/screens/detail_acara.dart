@@ -239,30 +239,14 @@ class DetailAcaraScreen extends ConsumerWidget {
       final bundelPemilik = await ref
           .read(koreksiServiceProvider)
           .bundelPemilikAcara(acara.id, pengguna.uid);
-      final semua = await ref
-          .read(pencatatanServiceProvider)
-          .semuaBundelStream(acara.id)
-          .first;
-      final lain = semua
-          .where((b) => b.id != bundelPemilik.id && b.jumlahAmplop < 10)
-          .toList();
-      lain.sort((a, b) {
-        final ta = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final tb = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final bandingWaktu = tb.compareTo(ta);
-        if (bandingWaktu != 0) return bandingWaktu;
-        final bandingPrefix = b.prefix.compareTo(a.prefix);
-        return bandingPrefix != 0
-            ? bandingPrefix
-            : b.nomor.compareTo(a.nomor);
-      });
       if (!context.mounted) return;
+      // Batch 25: form koreksi tidak lagi menawarkan Ganti
+      // Bundel — tujuan selalu bundel khusus pemilik ini.
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => KoreksiAmplopScreen(
             acaraId: acara.id,
             bundel: bundelPemilik,
-            bundelLain: lain,
           ),
         ),
       );

@@ -94,6 +94,8 @@ class BarisEkspor {
     required this.nominal,
     required this.jenis,
     this.dusun,
+    this.rt,
+    this.rw,
     this.keterangan,
     this.waktu,
   });
@@ -106,7 +108,10 @@ class BarisEkspor {
   final JenisAmplop jenis;
 
   /// Kolom Batch 7: nomor dusun, catatan, timestamp pencatatan.
+  /// RT/RW menyusul di Batch 25.
   final int? dusun;
+  final int? rt;
+  final int? rw;
   final String? keterangan;
   final DateTime? waktu;
 }
@@ -135,6 +140,8 @@ List<BarisEkspor> buatBarisEkspor(List<BundelTerisi> data) {
           nominal: a.nominal,
           jenis: a.jenis,
           dusun: a.dusun,
+          rt: a.rt,
+          rw: a.rw,
           keterangan: a.keterangan,
           waktu: a.createdAt,
         ),
@@ -142,6 +149,41 @@ List<BarisEkspor> buatBarisEkspor(List<BundelTerisi> data) {
     }
   }
   return baris;
+}
+
+/// Alamat lengkap satu baris (Batch 25, permintaan Mark): gabungan
+/// alamat + dusun + RT/RW, hanya bagian yang terisi yang tampil,
+/// disambung koma. Contoh: "Krajan, Dusun 2, RT 03/RW 04".
+/// Dipakai kolom Alamat di semua ekspor (Excel, CSV, PDF).
+String gabungAlamat({String? alamat, int? dusun, int? rt, int? rw}) {
+  String dua(int n) => n.toString().padLeft(2, '0');
+  final bagian = <String>[];
+  if (alamat != null && alamat.trim().isNotEmpty) {
+    bagian.add(alamat.trim());
+  }
+  if (dusun != null) bagian.add('Dusun $dusun');
+  if (rt != null && rw != null) {
+    bagian.add('RT ${dua(rt)}/RW ${dua(rw)}');
+  } else if (rt != null) {
+    bagian.add('RT ${dua(rt)}');
+  } else if (rw != null) {
+    bagian.add('RW ${dua(rw)}');
+  }
+  return bagian.join(', ');
+}
+
+/// Urutan nama abjad untuk ekspor PDF (Batch 25): pengunjung
+/// bernama diurutkan A–Z (tidak peka huruf besar/kecil); yang
+/// tanpa nama ditaruh paling akhir, mengikuti urutan asalnya.
+List<Amplop> urutkanAbjad(List<Amplop> daftar) {
+  bool bernama(Amplop a) =>
+      a.jenis != JenisAmplop.tanpaNama && a.nama.trim().isNotEmpty;
+  final terurut = daftar.where(bernama).toList()
+    ..sort(
+      (a, b) => a.nama.toLowerCase().compareTo(b.nama.toLowerCase()),
+    );
+  final tanpaNama = daftar.where((a) => !bernama(a)).toList();
+  return [...terurut, ...tanpaNama];
 }
 
 /// Escape satu sel CSV (RFC 4180): bungkus tanda kutip bila mengandung
@@ -158,8 +200,10 @@ String selCsv(String nilai) {
 /// SETIAP baris supaya mudah diolah lagi (filter/pivot) di komputer.
 String buatCsv(List<BarisEkspor> baris) {
   final sb = StringBuffer();
+  // Batch 25: kolom Alamat kini gabungan alamat + dusun + RT/RW
+  // (kolom Dusun terpisah dihapus — satu alamat lengkap).
   sb.writeln(
-    'Kode Bundel,No,Nama,Alamat,Dusun,Nominal (Rp),Jenis,Keterangan,Waktu',
+    'Kode Bundel,No,Nama,Alamat,Nominal (Rp),Jenis,Keterangan,Waktu',
   );
   for (final b in baris) {
     sb.writeln(
@@ -167,8 +211,14 @@ String buatCsv(List<BarisEkspor> baris) {
         selCsv(b.kodeBundel),
         b.urut.toString(),
         selCsv(b.nama),
-        selCsv(b.alamat),
-        b.dusun?.toString() ?? '',
+        selCsv(
+          gabungAlamat(
+            alamat: b.alamat,
+            dusun: b.dusun,
+            rt: b.rt,
+            rw: b.rw,
+          ),
+        ),
         b.nominal.toString(),
         selCsv(b.jenis.label),
         selCsv(b.keterangan ?? ''),

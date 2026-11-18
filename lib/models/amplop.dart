@@ -55,6 +55,8 @@ class Amplop {
     required this.nama,
     this.alamat,
     this.dusun,
+    this.rt,
+    this.rw,
     this.keterangan,
     required this.nominal,
     this.jenis = JenisAmplop.normal,
@@ -72,6 +74,10 @@ class Amplop {
 
   /// Nomor dusun asal tamu (Batch 7 — isinya angka, boleh kosong).
   final int? dusun;
+
+  /// Nomor RT / RW asal tamu (Batch 25 — angka, boleh kosong).
+  final int? rt;
+  final int? rw;
 
   /// Catatan bebas (Batch 7, boleh kosong).
   final String? keterangan;
@@ -104,6 +110,8 @@ class Amplop {
       nama: (data['nama'] as String?) ?? '',
       alamat: data['alamat'] as String?,
       dusun: (data['dusun'] as num?)?.toInt(),
+      rt: (data['rt'] as num?)?.toInt(),
+      rw: (data['rw'] as num?)?.toInt(),
       keterangan: data['keterangan'] as String?,
       nominal: (data['nominal'] as num?)?.toInt() ?? 0,
       jenis: JenisAmplop.dariString(data['jenis'] as String?),
@@ -118,6 +126,8 @@ class Amplop {
       'nama': nama,
       'alamat': alamat,
       'dusun': dusun,
+      'rt': rt,
+      'rw': rw,
       'keterangan': keterangan,
       'nominal': nominal,
       'jenis': jenis.nilaiSimpan,

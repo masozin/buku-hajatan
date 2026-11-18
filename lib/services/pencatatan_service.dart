@@ -221,6 +221,8 @@ class PencatatanService {
     required String nama,
     String? alamat,
     int? dusun,
+    int? rt,
+    int? rw,
     String? keterangan,
     required int nominal,
   }) async {
@@ -283,6 +285,8 @@ class PencatatanService {
       nama: namaEfektif,
       alamat: alamatEfektif,
       dusun: dusun,
+      rt: rt,
+      rw: rw,
       keterangan: (keterangan == null || keterangan.trim().isEmpty)
           ? null
           : keterangan.trim(),
@@ -365,6 +369,8 @@ class PencatatanService {
     required String nama,
     String? alamat,
     int? dusun,
+    int? rt,
+    int? rw,
     String? keterangan,
     required JenisAmplop jenis,
     required int nominal,
@@ -436,6 +442,8 @@ class PencatatanService {
           ? null
           : alamat.trim(),
       'dusun': dusun,
+      'rt': rt,
+      'rw': rw,
       'keterangan': (keterangan == null || keterangan.trim().isEmpty)
           ? null
           : keterangan.trim(),

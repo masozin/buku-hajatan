@@ -7,17 +7,21 @@ import '../core/rekap.dart';
 /// dengan tombol − / + dan alamat dengan sugesti dari alamat
 /// yang pernah dipakai di acara yang sama.
 
-/// Kolom dusun dengan tombol kurang/tambah di sisi kanan:
+/// Kolom angka dengan tombol kurang/tambah di sisi kanan:
 /// tiap ketuk mengubah angka sebanyak 1. Dari kosong, +
-/// mengisi 1; dari 1, − mengosongkan lagi (dusun boleh kosong).
+/// mengisi 1; dari 1, − mengosongkan lagi (boleh kosong).
+/// Awalnya khusus dusun (Batch 14); sejak Batch 25 dipakai
+/// juga untuk RT dan RW lewat parameter [label].
 class KolomDusun extends StatelessWidget {
   const KolomDusun({
     super.key,
     required this.controller,
+    this.label = 'Dusun (angka, boleh kosong)',
     this.onSubmitted,
   });
 
   final TextEditingController controller;
+  final String label;
   final VoidCallback? onSubmitted;
 
   void _ubah(int delta) {
@@ -41,19 +45,19 @@ class KolomDusun extends StatelessWidget {
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       decoration: InputDecoration(
-        labelText: 'Dusun (angka, boleh kosong)',
+        labelText: label,
         suffixIcon: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
               icon: const Icon(Icons.remove),
-              tooltip: 'Kurangi dusun',
+              tooltip: 'Kurangi',
               visualDensity: VisualDensity.compact,
               onPressed: () => _ubah(-1),
             ),
             IconButton(
               icon: const Icon(Icons.add),
-              tooltip: 'Tambah dusun',
+              tooltip: 'Tambah',
               visualDensity: VisualDensity.compact,
               onPressed: () => _ubah(1),
             ),
