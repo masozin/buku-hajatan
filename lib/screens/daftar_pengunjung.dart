@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/format.dart';
 import '../core/pengunjung.dart';
 import '../core/rekap.dart';
+import '../models/amplop.dart';
 import '../models/bundel.dart';
 import '../providers.dart';
+import '../services/layanan_exception.dart';
+import '../widgets/detail_pengunjung.dart';
 import '../widgets/keadaan.dart';
 import 'koreksi_amplop.dart';
 
@@ -81,108 +84,103 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
     await baru;
   }
 
-  /// Pratinjau satu pengunjung (Batch 9): data lengkap amplopnya
-  /// dalam lembar bawah. Bila acara sudah selesai, pemilik bisa
-  /// langsung mengedit dari sini (form koreksi); sesudah form
-  /// ditutup daftar dimuat ulang agar perubahan terlihat.
+  /// Pratinjau satu pengunjung (Batch 9, diseragamkan Batch 29):
+  /// lembar detail BERSAMA (widgets/detail_pengunjung.dart) — data
+  /// lengkap plus tombol Ubah & Hapus SESUAI HAK:
+  /// - Pemilik: ubah + hapus, hanya setelah acara selesai
+  ///   (koreksi, Batch 6/9).
+  /// - Pencatat (Batch 11): ubah saja — hanya amplop inputannya
+  ///   sendiri dan hanya selama acara aktif (Batch 8); hapus tetap
+  ///   khusus pemilik pasca-selesai.
+  /// Sesudah ubah/hapus, daftar dimuat ulang agar perubahan
+  /// terlihat.
   Future<void> _tampilkanDetail(
     AmplopDitemukan ditemukan,
     Bundel? bundel,
   ) async {
     final a = ditemukan.amplop;
-    // Hak ubah dari pratinjau:
-    // - Pemilik: hanya setelah acara selesai (koreksi, Batch 6/9).
-    // - Pencatat (Batch 11): hanya amplop inputannya sendiri dan
-    //   hanya selama acara aktif (Batch 8).
+    final Bundel? b = bundel;
     final milikSaya =
         widget.pencatatIdSaya != null &&
         a.createdBy == widget.pencatatIdSaya;
     final bisaUbah =
-        bundel != null &&
+        b != null &&
         (widget.modePencatat
             ? (milikSaya && !widget.sudahSelesai)
             : widget.sudahSelesai);
-    final baris = <(String, String)>[
-      ('Nominal', formatRupiah(a.nominal)),
-      ('Bundel', '${ditemukan.kodeBundel} • nomor ${a.urut}'),
-      if (a.alamat != null && a.alamat!.isNotEmpty) ('Alamat', a.alamat!),
-      if (a.dusun != null) ('Dusun', '${a.dusun}'),
-      if (a.rt != null) ('RT', '${a.rt}'),
-      if (a.rw != null) ('RW', '${a.rw}'),
-      if (a.keterangan != null && a.keterangan!.isNotEmpty)
-        ('Keterangan', a.keterangan!),
-      ('Jenis', a.jenis.label),
-      if (a.createdAt != null) ('Dicatat', formatTanggalJam(a.createdAt!)),
-    ];
-    final mauUbah = await showModalBottomSheet<bool>(
+    final bisaHapus =
+        b != null && !widget.modePencatat && widget.sudahSelesai;
+    final hasil = await tampilkanDetailPengunjung(
       context: context,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                a.tampilNama,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              for (final (label, nilai) in baris)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 96,
-                        child: Text(
-                          label,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                      Expanded(child: Text(nilai)),
-                    ],
-                  ),
-                ),
-              if (widget.modePencatat && !bisaUbah) ...[
-                const SizedBox(height: 12),
-                Text(
-                  milikSaya
-                      ? 'Acara sudah selesai — perubahan data kini '
-                            'lewat pemilik acara.'
-                      : 'Ini catatan pencatat lain — kamu hanya bisa '
-                            'mengubah catatanmu sendiri.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-              if (bisaUbah) ...[
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Ubah Pengunjung'),
-                ),
-              ],
-            ],
+      amplop: a,
+      kodeBundel: ditemukan.kodeBundel,
+      bisaUbah: bisaUbah,
+      bisaHapus: bisaHapus,
+      onHapus: (bisaHapus && b != null) ? () => _hapusAmplop(a, b) : null,
+      pesanKunci: (bisaUbah || bisaHapus)
+          ? null
+          : widget.modePencatat
+          ? (milikSaya
+                ? 'Acara sudah selesai — perubahan data kini '
+                      'lewat pemilik acara.'
+                : 'Ini catatan pencatat lain — kamu hanya bisa '
+                      'mengubah catatanmu sendiri.')
+          : 'Acara masih berlangsung — ubah & hapus dibuka '
+                'setelah acara ditandai selesai.',
+    );
+    if (!mounted || b == null) return;
+    if (hasil == 'hapus') {
+      await _segarkan();
+    } else if (hasil == 'ubah') {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => KoreksiAmplopScreen(
+            acaraId: widget.acaraId,
+            bundel: b,
+            amplopLama: a,
+            // Mode pencatat: simpan lewat jalur ubah pencatat
+            // (Batch 8); pemilik membiarkannya null (jalur koreksi).
+            pencatatId: widget.modePencatat ? widget.pencatatIdSaya : null,
           ),
         ),
-      ),
-    );
-    if (mauUbah != true || bundel == null || !mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => KoreksiAmplopScreen(
-          acaraId: widget.acaraId,
-          bundel: bundel,
-          amplopLama: a,
-          // Mode pencatat: simpan lewat jalur ubah pencatat
-          // (Batch 8); pemilik membiarkannya null (jalur koreksi).
-          pencatatId: widget.modePencatat ? widget.pencatatIdSaya : null,
-        ),
-      ),
-    );
-    if (mounted) await _segarkan();
+      );
+      if (mounted) await _segarkan();
+    }
+  }
+
+  /// Hapus satu pengunjung (koreksi pemilik, Batch 29): dipanggil
+  /// lembar detail SETELAH dialog konfirmasinya sendiri; hasil
+  /// true berarti terhapus. Snackbar hasil ditampilkan di sini.
+  Future<bool> _hapusAmplop(Amplop a, Bundel bundel) async {
+    try {
+      await ref
+          .read(koreksiServiceProvider)
+          .hapusAmplop(
+            acaraId: widget.acaraId,
+            bundelId: bundel.id,
+            amplop: a,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pengunjung dihapus.')),
+        );
+      }
+      return true;
+    } on LayananException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.pesan)));
+      }
+      return false;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(pesanDari(e))));
+      }
+      return false;
+    }
   }
 
   @override

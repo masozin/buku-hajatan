@@ -12,17 +12,24 @@ import '../services/pencatatan_service.dart';
 /// sebagai angka biasa (tanpa kotak), di bawah nama hanya alamat
 /// + dusun kecil; penanda sinkron memakai warna tema (emas =
 /// menunggu, zamrud = terkirim).
+///
+/// Batch 29: [onTap] membuka lembar detail pengunjung bersama
+/// (widgets/detail_pengunjung.dart). Tab Bundel memakainya TANPA
+/// onUbah/onHapus — barisnya bersih dari tombol aksi, semua aksi
+/// ada di dalam detail.
 class BarisAmplop extends StatelessWidget {
   const BarisAmplop({
     super.key,
     required this.tercatat,
     this.onUbah,
     this.onHapus,
+    this.onTap,
   });
 
   final AmplopTercatat tercatat;
   final VoidCallback? onUbah;
   final VoidCallback? onHapus;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +46,7 @@ class BarisAmplop extends StatelessWidget {
         ].join('/'),
     ].join(' • ');
     return ListTile(
+      onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: SizedBox(
         width: 28,

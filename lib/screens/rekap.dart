@@ -11,6 +11,7 @@ import '../services/layanan_exception.dart';
 import '../widgets/elemen.dart';
 import '../widgets/kartu_total.dart';
 import '../widgets/keadaan.dart';
+import 'daftar_rekap.dart';
 
 /// Rekap acara (Batch 3) — layar pemilik.
 ///
@@ -19,6 +20,9 @@ import '../widgets/keadaan.dart';
 /// dibaca SEKALI saat rekap per alamat atau ekspor dijalankan.
 /// (Batch 20: pencarian nama di layar ini dihapus — sudah ada di
 /// tab Pengunjung; rincian per bundel diganti per alamat.)
+/// (Batch 29: kartu Per Pencatat & Per Alamat / Desa bisa diketuk
+/// membuka daftar pengunjung kelompoknya; kelompok alamat urut
+/// abjad.)
 class RekapScreen extends ConsumerStatefulWidget {
   const RekapScreen({super.key, required this.acaraId});
 
@@ -99,9 +103,9 @@ class _RekapScreenState extends ConsumerState<RekapScreen> {
                 onPdf: () => _ekspor(acara, 'pdf'),
               ),
               const SizedBox(height: 16),
-              _PerPencatat(acaraId: acara.id),
+              _PerPencatat(acaraId: acara.id, sudahSelesai: acara.sudahSelesai),
               const SizedBox(height: 16),
-              _PerAlamat(acaraId: acara.id),
+              _PerAlamat(acaraId: acara.id, sudahSelesai: acara.sudahSelesai),
             ],
           );
         },
@@ -302,9 +306,13 @@ class _KartuEkspor extends StatelessWidget {
 
 /// Rincian per pencatat dari stream bundel.
 class _PerPencatat extends ConsumerWidget {
-  const _PerPencatat({required this.acaraId});
+  const _PerPencatat({required this.acaraId, required this.sudahSelesai});
 
   final String acaraId;
+
+  /// Diteruskan ke daftar grup: menentukan hak Ubah/Hapus di
+  /// lembar detail (koreksi pemilik hanya setelah selesai).
+  final bool sudahSelesai;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -346,69 +354,94 @@ class _PerPencatat extends ConsumerWidget {
                   for (final r in ringkasan)
                     Card(
                       margin: const EdgeInsets.only(bottom: 10),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: skema.primaryContainer,
-                                  child: Text(
-                                    r.prefix,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      color: skema.onPrimaryContainer,
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        // Batch 29: ketuk kartu membuka daftar
+                        // pengunjung pencatat ini.
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => DaftarRekapGrupScreen(
+                                acaraId: acaraId,
+                                sudahSelesai: sudahSelesai,
+                                judul: r.nama.isEmpty
+                                    ? 'Pencatat ${r.prefix}'
+                                    : r.nama,
+                                pencatatId: r.pencatatId,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: skema.primaryContainer,
+                                    child: Text(
+                                      r.prefix,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: skema.onPrimaryContainer,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        r.nama.isEmpty
-                                            ? 'Pencatat ${r.prefix}'
-                                            : r.nama,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          r.nama.isEmpty
+                                              ? 'Pencatat ${r.prefix}'
+                                              : r.nama,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        '${r.jumlahBundel} bundel • '
-                                        '${r.jumlahAmplop} pengunjung • '
-                                        'kosong ${r.jumlahKosong} • '
-                                        'tanpa nama ${r.jumlahTanpaNama}',
-                                        style: tema.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color:
-                                                  skema.onSurfaceVariant,
-                                            ),
-                                      ),
-                                    ],
+                                        Text(
+                                          '${r.jumlahBundel} bundel • '
+                                          '${r.jumlahAmplop} pengunjung • '
+                                          'kosong ${r.jumlahKosong} • '
+                                          'tanpa nama ${r.jumlahTanpaNama}',
+                                          style: tema.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color:
+                                                    skema.onSurfaceVariant,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  formatRupiah(r.totalRp),
-                                  style: tema.textTheme.titleSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            LinearProgressIndicator(
-                              value: totalTerbesar == 0
-                                  ? 0
-                                  : r.totalRp / totalTerbesar,
-                              minHeight: 6,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ],
+                                  Text(
+                                    formatRupiah(r.totalRp),
+                                    style: tema.textTheme.titleSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Icon(
+                                    Icons.chevron_right,
+                                    size: 20,
+                                    color: skema.onSurfaceVariant,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              LinearProgressIndicator(
+                                value: totalTerbesar == 0
+                                    ? 0
+                                    : r.totalRp / totalTerbesar,
+                                minHeight: 6,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -424,22 +457,35 @@ class _PerPencatat extends ConsumerWidget {
 /// (pola yang sama dengan ekspor), lalu dikelompokkan per alamat
 /// oleh rekapPerAlamat. Menggantikan rincian per bundel — rincian
 /// per bundel tetap ada di tab Bundel Detail Acara.
+/// Batch 29: kelompok urut ABJAD (nama desanya), dan kartunya
+/// bisa diketuk membuka daftar pengunjung kelompok itu — pulang
+/// dari daftar, ringkasan di sini dimuat ulang.
 class _PerAlamat extends ConsumerStatefulWidget {
-  const _PerAlamat({required this.acaraId});
+  const _PerAlamat({required this.acaraId, required this.sudahSelesai});
 
   final String acaraId;
+
+  /// Diteruskan ke daftar grup: hak Ubah/Hapus di lembar detail.
+  final bool sudahSelesai;
 
   @override
   ConsumerState<_PerAlamat> createState() => _PerAlamatState();
 }
 
 class _PerAlamatState extends ConsumerState<_PerAlamat> {
-  late final Future<List<BundelTerisi>> _data;
+  late Future<List<BundelTerisi>> _data;
+
+  Future<List<BundelTerisi>> _muat() =>
+      ref.read(rekapServiceProvider).ambilDataLengkap(widget.acaraId);
 
   @override
   void initState() {
     super.initState();
-    _data = ref.read(rekapServiceProvider).ambilDataLengkap(widget.acaraId);
+    _data = _muat();
+  }
+
+  void _segarkan() {
+    setState(() => _data = _muat());
   }
 
   @override
@@ -447,7 +493,7 @@ class _PerAlamatState extends ConsumerState<_PerAlamat> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const JudulBagian(teks: 'Per Alamat'),
+        const JudulBagian(teks: 'Per Alamat / Desa'),
         const SizedBox(height: 10),
         FutureBuilder<List<BundelTerisi>>(
           future: _data,
@@ -469,16 +515,39 @@ class _PerAlamatState extends ConsumerState<_PerAlamat> {
                 for (final r in ringkasan)
                   Card(
                     margin: const EdgeInsets.only(bottom: 10),
+                    clipBehavior: Clip.antiAlias,
                     child: ListTile(
                       title: Text(
                         r.alamat,
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text('${r.jumlahPengunjung} pengunjung'),
-                      trailing: Text(
-                        formatRupiah(r.totalRp),
-                        style: Theme.of(context).textTheme.titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                      // Batch 29: ketuk membuka daftar pengunjung
+                      // alamat/desa ini.
+                      onTap: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => DaftarRekapGrupScreen(
+                              acaraId: widget.acaraId,
+                              sudahSelesai: widget.sudahSelesai,
+                              judul: r.alamat,
+                              kunciAlamat: r.kunci,
+                            ),
+                          ),
+                        );
+                        if (mounted) _segarkan();
+                      },
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            formatRupiah(r.totalRp),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(width: 2),
+                          const Icon(Icons.chevron_right, size: 20),
+                        ],
                       ),
                     ),
                   ),

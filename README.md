@@ -823,3 +823,10 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
 - Fix Pasang APK (akar masalah): Directory.systemTemp di Android
   adalah folder code_cache yang tidak dicakup FileProvider —
   unduhan kini ke cacheDir lewat jembatan MainActivity.
+- Batch 29: lembar detail pengunjung diseragamkan — baris di tab
+  Pengunjung, tab Bundel, dan daftar Rekap membuka detail yang
+  sama, berisi tombol Ubah & Hapus sesuai hak (baris tab Bundel
+  kini tanpa tombol aksi). Rekap Per Pencatat & Per Alamat / Desa
+  bisa diketuk membuka daftar pengunjung kelompoknya; kelompok
+  alamat urut abjad. Rules: ubah pencatat kini mengizinkan field
+  RT/RW (sempat tertinggal dari daftar field Batch 25).

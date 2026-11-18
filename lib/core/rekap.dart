@@ -335,10 +335,16 @@ List<String> saringSaranAlamat(List<String> saran, String teks) {
 /// Ringkasan satu alamat untuk Rekap per Alamat (Batch 20).
 class RingkasanAlamat {
   const RingkasanAlamat({
+    required this.kunci,
     required this.alamat,
     required this.jumlahPengunjung,
     required this.totalRp,
   });
+
+  /// Kunci kelompok ternormalisasi (Batch 29) — bahan menyaring
+  /// daftar pengunjung kelompok ini lewat pengunjungPerAlamat.
+  /// Kosong ('') = kelompok tanpa alamat.
+  final String kunci;
 
   /// Alamat tampilan (ejaan pertama yang tercatat); alamat kosong
   /// tampil sebagai '(Tanpa alamat)'.
@@ -350,9 +356,9 @@ class RingkasanAlamat {
 /// Kelompokkan semua pengunjung per ALAMAT (Batch 20 — menggantikan
 /// rincian per bundel di layar Rekap; rincian per bundel tetap ada
 /// di tab Bundel). Pengelompokan tidak peka huruf/spasi berlebih;
-/// ejaan pertama yang menang untuk tampilan. Urut: total Rp
-/// terbesar dulu (seri → alamat A–Z); kelompok tanpa alamat selalu
-/// paling akhir.
+/// ejaan pertama yang menang untuk tampilan. Urut sejak Batch 29
+/// (permintaan Mark): ABJAD A–Z mengikuti nama desanya; kelompok
+/// tanpa alamat selalu paling akhir.
 List<RingkasanAlamat> rekapPerAlamat(List<BundelTerisi> data) {
   final tampil = <String, String>{};
   final jumlah = <String, int>{};
@@ -372,19 +378,85 @@ List<RingkasanAlamat> rekapPerAlamat(List<BundelTerisi> data) {
   final hasil = [
     for (final kunci in tampil.keys)
       RingkasanAlamat(
+        kunci: kunci,
         alamat: tampil[kunci]!,
         jumlahPengunjung: jumlah[kunci]!,
         totalRp: total[kunci]!,
       ),
   ];
   hasil.sort((x, y) {
-    final xKosong = x.alamat == '(Tanpa alamat)';
-    final yKosong = y.alamat == '(Tanpa alamat)';
+    final xKosong = x.kunci.isEmpty;
+    final yKosong = y.kunci.isEmpty;
     if (xKosong != yKosong) return xKosong ? 1 : -1;
-    final bandingTotal = y.totalRp.compareTo(x.totalRp);
-    return bandingTotal != 0
-        ? bandingTotal
-        : normalisasiNama(x.alamat).compareTo(normalisasiNama(y.alamat));
+    return x.kunci.compareTo(y.kunci);
+  });
+  return hasil;
+}
+
+/// Daftar pengunjung milik satu PENCATAT (Batch 29) — isi yang
+/// tampil saat kartu Per Pencatat di Rekap diketuk. Urut bundel
+/// (prefix, nomor) lalu nomor urut amplop, sama seperti buku.
+List<AmplopDitemukan> pengunjungPerPencatat(
+  List<BundelTerisi> data,
+  String pencatatId,
+) {
+  final terurut = [...data]
+    ..sort((a, b) {
+      final bandingPrefix = a.bundel.prefix.compareTo(b.bundel.prefix);
+      return bandingPrefix != 0
+          ? bandingPrefix
+          : a.bundel.nomor.compareTo(b.bundel.nomor);
+    });
+  final hasil = <AmplopDitemukan>[];
+  for (final bt in terurut) {
+    if (bt.bundel.pencatatId != pencatatId) continue;
+    final isi = [...bt.isi]..sort((a, b) => a.urut.compareTo(b.urut));
+    for (final a in isi) {
+      hasil.add(
+        AmplopDitemukan(
+          amplop: a,
+          kodeBundel: bt.bundel.kode,
+          prefixPencatat: bt.bundel.prefix,
+        ),
+      );
+    }
+  }
+  return hasil;
+}
+
+/// Daftar pengunjung satu kelompok ALAMAT (Batch 29) — isi yang
+/// tampil saat kartu Per Alamat di Rekap diketuk. [kunci] adalah
+/// RingkasanAlamat.kunci (nama ternormalisasi; '' = tanpa alamat).
+/// Urut nama A–Z; yang tanpa nama paling akhir, mengikuti urutan
+/// asalnya.
+List<AmplopDitemukan> pengunjungPerAlamat(
+  List<BundelTerisi> data,
+  String kunci,
+) {
+  final hasil = <AmplopDitemukan>[];
+  for (final bt in data) {
+    for (final a in bt.isi) {
+      if (normalisasiNama(a.alamat?.trim() ?? '') != kunci) continue;
+      hasil.add(
+        AmplopDitemukan(
+          amplop: a,
+          kodeBundel: bt.bundel.kode,
+          prefixPencatat: bt.bundel.prefix,
+        ),
+      );
+    }
+  }
+  bool bernama(AmplopDitemukan d) =>
+      d.amplop.jenis != JenisAmplop.tanpaNama &&
+      d.amplop.nama.trim().isNotEmpty;
+  hasil.sort((x, y) {
+    final xBernama = bernama(x);
+    final yBernama = bernama(y);
+    if (xBernama != yBernama) return xBernama ? -1 : 1;
+    if (!xBernama) return 0;
+    return normalisasiNama(
+      x.amplop.nama,
+    ).compareTo(normalisasiNama(y.amplop.nama));
   });
   return hasil;
 }

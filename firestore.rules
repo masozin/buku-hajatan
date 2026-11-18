@@ -284,6 +284,10 @@ service cloud.firestore {
           // ATAU pencatat penginputnya sendiri selama acara aktif
           // (Batch 8 — hanya field isi yang boleh berubah, bukan
           // urut/createdBy). Hapus tetap khusus pemilik pasca-selesai.
+          // Batch 29: field 'rt'/'rw' (Batch 25) ikut diizinkan —
+          // sebelumnya tertinggal dari daftar ini, sehingga ubah
+          // pencatat yang menyentuh RT/RW (atau pengunjung lama
+          // yang belum punya field itu) ditolak permission-denied.
           allow update: if (pemilikAcara(acaraId)
               && acaraSudahSelesai(acaraId))
             || (pencatatAcara(acaraId)
@@ -294,7 +298,7 @@ service cloud.firestore {
                     .changedKeys()
                     .hasOnly([
                       'nama', 'alamat', 'dusun', 'keterangan',
-                      'nominal', 'jenis',
+                      'nominal', 'jenis', 'rt', 'rw',
                     ]));
           allow delete: if pemilikAcara(acaraId)
             && acaraSudahSelesai(acaraId);

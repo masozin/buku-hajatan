@@ -10,6 +10,7 @@ import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../services/pencatatan_service.dart';
 import '../widgets/baris_amplop.dart';
+import '../widgets/detail_pengunjung.dart';
 import '../widgets/keadaan.dart';
 import 'koreksi_amplop.dart';
 
@@ -18,14 +19,14 @@ import 'koreksi_amplop.dart';
 /// baris dropdown berisi kode bundel, jumlah amplop, dan total
 /// Rp — dibuka untuk melihat daftar pengunjung di dalamnya.
 ///
-/// Setelah acara selesai, baris amplop di dalam dropdown ikut
-/// mendapat tombol ubah/hapus + tambah amplop (mode koreksi
-/// pemilik, sama seperti layar Isi Bundel).
+/// Setelah acara selesai, pemilik mendapat aksi koreksi penuh
+/// (tambah amplop ke bundel belum penuh; ubah/hapus per pengunjung
+/// lewat lembar detail, Batch 29).
 ///
 /// Sejak Batch 11 tab ini juga dipakai PENCATAT: hanya bundel
-/// MILIKNYA yang tampil, dan selama acara aktif baris amplopnya
-/// mendapat tombol ubah (hak ubah pencatat, Batch 8 — tanpa
-/// hapus, tanpa tambah koreksi).
+/// MILIKNYA yang tampil, dan selama acara aktif ia bisa mengubah
+/// amplop inputannya sendiri lewat lembar detail yang sama
+/// (hak ubah pencatat, Batch 8 — tanpa hapus, tanpa tambah).
 class DaftarBundelTab extends ConsumerWidget {
   const DaftarBundelTab({super.key, required this.acara, this.pencatatIdSaya});
 
@@ -136,9 +137,10 @@ class DaftarBundelTab extends ConsumerWidget {
 }
 
 /// Isi satu dropdown bundel: daftar amplopnya (stream), plus —
-/// dalam mode koreksi pemilik (acara selesai) — aksi ubah/hapus
-/// per baris dan tambah amplop bila bundel belum penuh. Dalam
-/// mode pencatat (Batch 11): tombol ubah saja, selama acara aktif.
+/// dalam mode koreksi pemilik (acara selesai) — tambah amplop
+/// bila bundel belum penuh. Baris amplopnya sendiri TANPA tombol
+/// aksi (Batch 29): ketuk baris membuka lembar detail bersama
+/// yang memuat tombol Ubah/Hapus sesuai hak.
 class _IsiBundelDropdown extends ConsumerWidget {
   const _IsiBundelDropdown({
     required this.acara,
@@ -152,60 +154,85 @@ class _IsiBundelDropdown extends ConsumerWidget {
   /// Non-null = mode pencatat (Batch 11).
   final String? pencatatIdSaya;
 
-  Future<void> _hapus(
+  /// Hapus satu pengunjung (koreksi pemilik, Batch 29):
+  /// dijalankan lembar detail SETELAH dialog konfirmasinya
+  /// sendiri; true = berhasil terhapus.
+  Future<bool> _eksekusiHapus(
     BuildContext context,
     WidgetRef ref,
     AmplopTercatat tercatat,
   ) async {
-    final amplop = tercatat.amplop;
-    final yakin = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus pengunjung?'),
-        content: Text(
-          'Pengunjung ${amplop.tampilNama} (${formatRupiah(amplop.nominal)}) '
-          'akan dihapus dari bundel ${bundel.kode}. Total bundel & '
-          'acara ikut berkurang.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
-    if (yakin != true) return;
     try {
       await ref
           .read(koreksiServiceProvider)
           .hapusAmplop(
             acaraId: acara.id,
             bundelId: bundel.id,
-            amplop: amplop,
+            amplop: tercatat.amplop,
           );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Pengunjung dihapus.')),
         );
       }
+      return true;
     } on LayananException catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.pesan)));
       }
+      return false;
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(pesanDari(e))));
       }
+      return false;
     }
+  }
+
+  /// Buka lembar detail bersama (Batch 29) untuk satu pengunjung
+  /// di bundel ini — tombol Ubah/Hapus di dalamnya sesuai hak
+  /// yang diteruskan pemanggil.
+  Future<void> _bukaDetail(
+    BuildContext context,
+    WidgetRef ref,
+    AmplopTercatat tercatat, {
+    required bool bisaUbah,
+    required bool bisaHapus,
+  }) async {
+    final hasil = await tampilkanDetailPengunjung(
+      context: context,
+      amplop: tercatat.amplop,
+      kodeBundel: bundel.kode,
+      bisaUbah: bisaUbah,
+      bisaHapus: bisaHapus,
+      onHapus: bisaHapus
+          ? () => _eksekusiHapus(context, ref, tercatat)
+          : null,
+      pesanKunci: (bisaUbah || bisaHapus)
+          ? null
+          : pencatatIdSaya != null
+          ? 'Acara sudah selesai — perubahan data kini '
+                'lewat pemilik acara.'
+          : 'Acara masih berlangsung — ubah & hapus dibuka '
+                'setelah acara ditandai selesai.',
+    );
+    if (hasil != 'ubah' || !context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => KoreksiAmplopScreen(
+          acaraId: acara.id,
+          bundel: bundel,
+          amplopLama: tercatat.amplop,
+          // Mode pencatat: jalur ubah pencatat (Batch 8); mode
+          // pemilik pencatatIdSaya null (jalur koreksi).
+          pencatatId: pencatatIdSaya,
+        ),
+      ),
+    );
   }
 
   @override
@@ -243,35 +270,19 @@ class _IsiBundelDropdown extends ConsumerWidget {
             for (final tercatat in isi)
               BarisAmplop(
                 tercatat: tercatat,
-                onUbah: bisaKoreksi
-                    ? () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => KoreksiAmplopScreen(
-                              acaraId: acara.id,
-                              bundel: bundel,
-                              amplopLama: tercatat.amplop,
-                            ),
-                          ),
-                        );
-                      }
-                    : bisaUbahPencatat
-                    ? () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => KoreksiAmplopScreen(
-                              acaraId: acara.id,
-                              bundel: bundel,
-                              amplopLama: tercatat.amplop,
-                              pencatatId: pencatatIdSaya,
-                            ),
-                          ),
-                        );
-                      }
-                    : null,
-                onHapus: bisaKoreksi
-                    ? () => _hapus(context, ref, tercatat)
-                    : null,
+                // Batch 29: baris bersih dari tombol aksi —
+                // ketuk membuka lembar detail bersama; hak
+                // ubahnya pencatat hanya untuk inputannya sendiri.
+                onTap: () => _bukaDetail(
+                  context,
+                  ref,
+                  tercatat,
+                  bisaUbah:
+                      bisaKoreksi ||
+                      (bisaUbahPencatat &&
+                          tercatat.amplop.createdBy == pencatatIdSaya),
+                  bisaHapus: bisaKoreksi,
+                ),
               ),
             if (bisaKoreksi && bundel.jumlahAmplop < 10)
               ListTile(

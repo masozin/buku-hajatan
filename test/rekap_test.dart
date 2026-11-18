@@ -237,7 +237,7 @@ void main() {
   });
 
   group('rekapPerAlamat', () {
-    test('mengelompokkan per alamat, total terbesar dulu, '
+    test('mengelompokkan per alamat, urut ABJAD nama desa, '
         'tanpa alamat paling akhir', () {
       final data = [
         BundelTerisi(
@@ -272,21 +272,70 @@ void main() {
       ];
       final hasil = rekapPerAlamat(data);
       expect(hasil.length, 3);
+      // Batch 29: urut ABJAD nama desa — Margo Mulyo sebelum
+      // Totorejo, tanpa peduli totalnya.
+      expect(hasil[0].alamat, 'Margo Mulyo');
+      expect(hasil[0].kunci, 'margo mulyo');
+      expect(hasil[0].totalRp, 75000);
       // Totorejo: 2 pengunjung, Rp 150.000 — ejaan pertama menang,
       // huruf besar/kecil menyatu.
-      expect(hasil[0].alamat, 'Totorejo');
-      expect(hasil[0].jumlahPengunjung, 2);
-      expect(hasil[0].totalRp, 150000);
-      expect(hasil[1].alamat, 'Margo Mulyo');
-      expect(hasil[1].totalRp, 75000);
+      expect(hasil[1].alamat, 'Totorejo');
+      expect(hasil[1].kunci, 'totorejo');
+      expect(hasil[1].jumlahPengunjung, 2);
+      expect(hasil[1].totalRp, 150000);
       // Tanpa alamat: total paling besar pun tetap paling akhir.
       expect(hasil[2].alamat, '(Tanpa alamat)');
+      expect(hasil[2].kunci, '');
       expect(hasil[2].jumlahPengunjung, 1);
       expect(hasil[2].totalRp, 200000);
     });
 
     test('data kosong menghasilkan daftar kosong', () {
       expect(rekapPerAlamat(const []), isEmpty);
+    });
+  });
+
+  group('pengunjungPerPencatat & pengunjungPerAlamat', () {
+    final data = [
+      BundelTerisi(
+        bundel: bundelUji(id: 'b2', pencatatId: 'uB', prefix: 'B', nomor: 1),
+        isi: [
+          amplopUji(urut: 1, nama: 'Dedi', alamat: 'Krajan', nominal: 75000),
+        ],
+      ),
+      BundelTerisi(
+        bundel: bundelUji(id: 'b1', pencatatId: 'uA', prefix: 'A', nomor: 1),
+        isi: [
+          amplopUji(urut: 2, nama: 'Zahra', alamat: 'krajan', nominal: 50000),
+          amplopUji(urut: 1, nama: 'Budi', alamat: 'Krajan', nominal: 100000),
+          amplopUji(
+            urut: 3,
+            nama: '',
+            nominal: 20000,
+            jenis: JenisAmplop.tanpaNama,
+          ),
+        ],
+      ),
+    ];
+
+    test('per pencatat: hanya bundelnya, urut bundel lalu urut amplop', () {
+      final hasil = pengunjungPerPencatat(data, 'uA');
+      expect(hasil.map((d) => d.amplop.nama).toList(), ['Budi', 'Zahra', '']);
+      expect(hasil.first.kodeBundel, 'A001');
+      expect(pengunjungPerPencatat(data, 'uB').length, 1);
+      expect(pengunjungPerPencatat(data, 'tidak-ada'), isEmpty);
+    });
+
+    test('per alamat: kunci ternormalisasi, nama A-Z', () {
+      final hasil = pengunjungPerAlamat(data, 'krajan');
+      expect(
+        hasil.map((d) => d.amplop.tampilNama).toList(),
+        ['Budi', 'Dedi', 'Zahra'],
+      );
+      // Amplop tanpa alamat masuk kelompok kunci kosong.
+      final tanpaAlamat = pengunjungPerAlamat(data, '');
+      expect(tanpaAlamat.length, 1);
+      expect(tanpaAlamat.single.amplop.jenis, JenisAmplop.tanpaNama);
     });
   });
 
