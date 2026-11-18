@@ -89,9 +89,26 @@ class PembaruanService {
           'koneksi lalu coba lagi.',
         );
       }
-      final berkas = File(
-        '${Directory.systemTemp.path}/pembaruan-buku-hajatan.apk',
-      );
+      // Batch 29: tujuan unduh diminta dari MainActivity
+      // (cacheDir aplikasi). Directory.systemTemp di Android
+      // menunjuk folder code_cache, yang tidak dicakup akar
+      // FileProvider mana pun — tombol Pasang selalu gagal
+      // "Failed to find configured root" (error terbaca jelas
+      // berkat Batch 27). Jembatan tak menjawab → jatuh ke
+      // systemTemp seperti semula.
+      var tujuan =
+          '${Directory.systemTemp.path}/pembaruan-buku-hajatan.apk';
+      try {
+        final dariKotlin = await _saluranPasang.invokeMethod<String>(
+          'pathApkPembaruan',
+        );
+        if (dariKotlin != null && dariKotlin.isNotEmpty) {
+          tujuan = dariKotlin;
+        }
+      } catch (_) {
+        // Abaikan — pakai systemTemp.
+      }
+      final berkas = File(tujuan);
       final tulis = berkas.openWrite();
       var diterima = 0;
       final total =

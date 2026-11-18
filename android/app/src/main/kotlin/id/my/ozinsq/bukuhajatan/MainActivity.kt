@@ -17,7 +17,18 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             "bukuhajatan/pembaruan"
         ).setMethodCallHandler { call, result ->
-            if (call.method == "pasangApk") {
+            if (call.method == "pathApkPembaruan") {
+                // Batch 29: lokasi unduh APK = cacheDir aplikasi,
+                // yang dicakup akar cache-path FileProvider.
+                // Directory.systemTemp di Dart menunjuk folder
+                // code_cache — TIDAK ada akar FileProvider untuk
+                // folder itu, jadi Pasang selalu gagal "Failed to
+                // find configured root" (terbukti di HP Mark,
+                // 2026-11-18).
+                result.success(
+                    File(cacheDir, "pembaruan-buku-hajatan.apk").absolutePath
+                )
+            } else if (call.method == "pasangApk") {
                 val path = call.argument<String>("path")
                 if (path == null) {
                     result.error("ARG", "path kosong", null)

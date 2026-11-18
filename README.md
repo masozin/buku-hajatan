@@ -820,3 +820,6 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
 - Tab Pengunjung: ikon sinkron di samping nominal.
 - Halaman Info Aplikasi (ikon info di nav atas): info aplikasi,
   pembuat, kontak pembuat, versi.
+- Fix Pasang APK (akar masalah): Directory.systemTemp di Android
+  adalah folder code_cache yang tidak dicakup FileProvider —
+  unduhan kini ke cacheDir lewat jembatan MainActivity.

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Batch 24: wilayah berkas yang boleh dibagikan FileProvider.
-     APK pembaruan diunduh ke folder cache aplikasi.
-     Batch 27: akar diperluas (files + cache eksternal) sebagai
-     pengaman — lokasi temp sistem bisa berbeda antar perangkat. -->
+     APK pembaruan diunduh ke cache aplikasi (cacheDir, Batch 29)
+     — satu-satunya folder yang ditulis fitur pembaruan.
+     Pelajaran Batch 29: Directory.systemTemp Dart menunjuk
+     code_cache, dan TIDAK ada akar FileProvider untuk folder
+     itu; akar lain (files, cache eksternal) tidak dipakai. -->
 <paths>
     <cache-path name="cache" path="." />
-    <files-path name="files" path="." />
-    <external-cache-path name="external_cache" path="." />
 </paths>
