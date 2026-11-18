@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Batch 21: WAJIB untuk build RILIS. Tanpa izin ini APK hasil
-         `flutter build apk --release` tidak punya akses internet
-         sama sekali (Firebase mati total) — selama ini terbantu
-         manifest debug yang dipakai `flutter run`. -->
+         build rilis tidak punya akses internet sama sekali
+         (Firebase mati total) — selama ini terbantu manifest
+         debug yang dipakai saat aplikasi dijalankan dari editor. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Buku Hajatan"
