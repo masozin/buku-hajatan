@@ -14,6 +14,7 @@ import '../widgets/kartu_total.dart';
 import '../widgets/keadaan.dart';
 import 'daftar_pengunjung.dart';
 import 'info_aplikasi.dart';
+import 'mode_hitung.dart';
 import 'koreksi_amplop.dart';
 import 'pencatatan.dart';
 import 'rekap.dart';
@@ -205,6 +206,31 @@ class DetailAcaraScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
                     _PengaturanMetode(acara: acara),
                     const SizedBox(height: 16),
+                    // Batch 32: jalan masuk Mode Hitung pemilik —
+                    // hanya relevan bila fitur Buku Tamu menyala.
+                    if (acara.fiturBukuTamu) ...[
+                      Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.calculate_outlined),
+                          title: const Text('Mode Hitung'),
+                          subtitle: const Text(
+                            'Isi nominal pengunjung Buku Tamu yang '
+                            'belum dihitung (membuka amplop dari '
+                            'kotak).',
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ModeHitungScreen(acaraId: acara.id),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     _KelolaPencatat(acara: acara),
                     const SizedBox(height: 16),
                     _TombolStatus(acara: acara),

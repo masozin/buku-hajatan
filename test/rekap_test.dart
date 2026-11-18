@@ -377,6 +377,43 @@ void main() {
     });
   });
 
+  group('Batch 32: entri Buku Tamu belum dihitung', () {
+    test('labelJenis ekspor "Belum Dihitung" selama belum dihitung', () {
+      final baris = buatBarisEkspor([
+        BundelTerisi(
+          bundel: bundelUji(id: 'bb', pencatatId: 'p1', prefix: 'A', nomor: 0),
+          isi: const [
+            Amplop(
+              id: 'a1',
+              bundelId: 'bb',
+              urut: 1,
+              nama: 'Dedi',
+              nominal: 0,
+              dihitung: false,
+            ),
+            Amplop(
+              id: 'a2',
+              bundelId: 'bb',
+              urut: 2,
+              nama: 'Sari',
+              nominal: 50000,
+            ),
+          ],
+        ),
+      ]);
+      expect(baris[0].labelJenis, 'Belum Dihitung');
+      expect(baris[1].labelJenis, 'Normal');
+      final csv = buatCsvDatar(baris);
+      expect(csv.contains('Belum Dihitung'), isTrue);
+    });
+
+    test('jenis hadir terbaca dari string dan berlabel Hadir Saja', () {
+      expect(JenisAmplop.dariString('hadir'), JenisAmplop.hadir);
+      expect(JenisAmplop.hadir.nilaiSimpan, 'hadir');
+      expect(JenisAmplop.hadir.label, 'Hadir Saja');
+    });
+  });
+
   group('ringkasPerPencatat bundel pemilik', () {
     test('bundel PM tampil sebagai Pemilik', () {
       final hasil = ringkasPerPencatat(

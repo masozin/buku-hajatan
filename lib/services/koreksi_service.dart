@@ -235,6 +235,63 @@ class KoreksiService {
             : keterangan.trim(),
         'nominal': nominalEfektif,
         'jenis': jenis.nilaiSimpan,
+        // Batch 32: koreksi manual menetapkan nominal final —
+        // entri Buku Tamu yang dikoreksi dianggap terhitung.
+        'dihitung': true,
+      },
+    );
+    batch.update(refBundel, <String, dynamic>{
+      'totalRp': FieldValue.increment(delta.deltaRp),
+      if (delta.deltaKosong != 0)
+        'jumlahKosong': FieldValue.increment(delta.deltaKosong),
+      if (delta.deltaTanpaNama != 0)
+        'jumlahTanpaNama': FieldValue.increment(delta.deltaTanpaNama),
+    });
+    batch.update(_refAcara(acaraId), <String, dynamic>{
+      'totalRp': FieldValue.increment(delta.deltaRp),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await batch.commit();
+  }
+
+  /// Mode Hitung sisi pemilik (Batch 32): mengisi nominal satu
+  /// entri Buku Tamu yang BELUM dihitung. Mengikuti gerbang
+  /// koreksi biasa (pemilik, acara sudah selesai). [jenisBaru]
+  /// normal/kosong/hadir; nominal efektif mengikuti jenisnya.
+  Future<void> hitungAmplop({
+    required String acaraId,
+    required String bundelId,
+    required Amplop amplopLama,
+    required JenisAmplop jenisBaru,
+    required int nominalBaru,
+  }) async {
+    if (amplopLama.dihitung) {
+      throw const LayananException('Pengunjung ini sudah dihitung.');
+    }
+    final galat = validasiAmplop(
+      jenis: jenisBaru,
+      nama: amplopLama.nama,
+      nominal: nominalBaru,
+    );
+    if (galat != null) throw LayananException(galat);
+    await _pastikanBolehKoreksi(acaraId, bundelId);
+
+    final nominalEfektif = nominalSimpan(jenisBaru, nominalBaru);
+    final delta = deltaUbahAmplop(
+      jenisLama: amplopLama.jenis,
+      nominalLama: amplopLama.nominal,
+      jenisBaru: jenisBaru,
+      nominalBaru: nominalEfektif,
+    );
+
+    final refBundel = _refBundel(acaraId, bundelId);
+    final batch = _db.batch();
+    batch.update(
+      refBundel.collection('amplop').doc(amplopLama.id),
+      <String, dynamic>{
+        'nominal': nominalEfektif,
+        'jenis': jenisBaru.nilaiSimpan,
+        'dihitung': true,
       },
     );
     batch.update(refBundel, <String, dynamic>{

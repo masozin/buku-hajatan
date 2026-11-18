@@ -35,6 +35,7 @@ List<AmplopDitemukan> semuaPengunjung(List<BundelTerisi> data) {
           amplop: a,
           kodeBundel: bt.bundel.kode,
           prefixPencatat: bt.bundel.prefix,
+          bebas: bt.bundel.bebas,
         ),
       );
     }

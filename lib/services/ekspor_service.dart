@@ -114,7 +114,7 @@ class EksporService {
           ),
         );
         tulisSel(4, r, IntCellValue(b.nominal));
-        tulisSel(5, r, TextCellValue(b.jenis.label));
+        tulisSel(5, r, TextCellValue(b.labelJenis));
         if (b.keterangan != null && b.keterangan!.isNotEmpty) {
           tulisSel(6, r, TextCellValue(b.keterangan!));
         }
@@ -251,7 +251,7 @@ class EksporService {
         ),
       );
       tulisSel(3, r, IntCellValue(b.nominal));
-      tulisSel(4, r, TextCellValue(b.jenis.label));
+      tulisSel(4, r, TextCellValue(b.labelJenis));
       tulisSel(5, r, TextCellValue(b.prefixPencatat));
       if (b.keterangan != null && b.keterangan!.isNotEmpty) {
         tulisSel(6, r, TextCellValue(b.keterangan!));

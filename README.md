@@ -864,3 +864,21 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   acara baru) = Langsung TANPA bundel; menyala = Bundel per 10.
   Berlaku di Buat Acara dan kartu Metode & Fitur pemilik. Acara
   lama tanpa field metode tetap terbaca Bundel.
+- Batch 32 (Buku Tamu tanpa nominal + Mode Hitung — keputusan
+  Mark 2026-11-19): Mode Buku Tamu tidak lagi memakai bundel
+  dan tidak ada nominal — tamu hanya mengisi identitas + ucapan,
+  catatannya mengalir di bundel bebas pencatat dan lahir BELUM
+  DIHITUNG (field baru Amplop.dihitung; dokumen lama terbaca
+  sudah dihitung). Nominal diisi lewat Mode Hitung setelah
+  amplop dibuka dari kotak, dicocokkan lewat nama yang tertulis
+  di amplop: petugas menghitung entri catatannya sendiri selama
+  acara aktif, pemilik menghitung semua setelah acara selesai.
+  Hasil hitung: Normal + nominal, Kosong, atau jenis baru Hadir
+  Saja (jenis 'hadir', nominal 0). Amplop polos tanpa nama dari
+  kotak dicatat langsung sebagai Tanpa Nama dari Mode Hitung.
+  Daftar pengunjung menampilkan "Belum dihitung" (bukan Rp 0),
+  kode bundel bebas disembunyikan di semua daftar, tab Bundel
+  menyaring bundel bebas, Rekap memberi banner progres
+  penghitungan, dan ekspor menandai jenisnya "Belum Dihitung".
+  Rules: cabang urut untuk bundel bebas di semua acara +
+  'dihitung' masuk daftar ubah pencatat — tempel ulang Console.

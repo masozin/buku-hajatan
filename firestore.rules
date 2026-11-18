@@ -101,6 +101,15 @@ service cloud.firestore {
           .get('metodePencatatan', 'bundel') == 'langsung';
     }
 
+    // Bundel bebas (Batch 30/32): wadah mengalir per pencatat —
+    // di Metode Langsung untuk semua catatannya, dan di acara
+    // Metode Bundel khusus untuk entri Mode Buku Tamu (Batch 32:
+    // buku tamu tidak memakai bundel). Urutnya berjalan terus.
+    function bundelBebas(acaraId, bundelId) {
+      return get(/databases/$(database)/documents/acara/$(acaraId)/bundel/$(bundelId)).data
+          .get('bebas', false) == true;
+    }
+
     // -------------------------------------------------------------- admin
     match /admin/{uid} {
       // Aplikasi hanya perlu mengecek status adminnya sendiri.
@@ -287,10 +296,12 @@ service cloud.firestore {
             && request.resource.data.nominal >= 0
             && request.resource.data.jenis in ['normal', 'kosong', 'tanpa_nama']
             && request.resource.data.urut >= 1
-            // Batch 30: batas 10 hanya untuk Metode Bundel; Metode
-            // Langsung urutnya berjalan terus (bundel bebas).
+            // Batch 30/32: batas 10 hanya untuk bundel biasa;
+            // bundel bebas (Metode Langsung & Buku Tamu) urutnya
+            // berjalan terus.
             && (request.resource.data.urut <= 10
-                || metodeLangsung(acaraId));
+                || metodeLangsung(acaraId)
+                || bundelBebas(acaraId, bundelId));
           // Ubah: pemilik setelah acara selesai (koreksi Batch 6),
           // ATAU pencatat penginputnya sendiri selama acara aktif
           // (Batch 8 — hanya field isi yang boleh berubah, bukan
@@ -310,6 +321,9 @@ service cloud.firestore {
                     .hasOnly([
                       'nama', 'alamat', 'dusun', 'keterangan',
                       'nominal', 'jenis', 'rt', 'rw',
+                      // Batch 32: Mode Hitung pencatat menandai
+                      // entri Buku Tamu-nya sudah dihitung.
+                      'dihitung',
                     ]));
           allow delete: if pemilikAcara(acaraId)
             && acaraSudahSelesai(acaraId);

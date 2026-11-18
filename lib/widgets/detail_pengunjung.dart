@@ -33,7 +33,9 @@ Future<String?> tampilkanDetailPengunjung({
 }) {
   final a = amplop;
   final baris = <(String, String)>[
-    ('Nominal', formatRupiah(a.nominal)),
+    // Batch 32: entri Buku Tamu belum dihitung — nominalnya
+    // memang belum ada, bukan Rp 0.
+    ('Nominal', a.dihitung ? formatRupiah(a.nominal) : 'Belum dihitung'),
     // Metode Langsung (Batch 30): kodeBundel dikirim kosong —
     // tidak ada bundel, tampilkan nomor urut saja.
     if (kodeBundel.isNotEmpty)

@@ -41,6 +41,13 @@ String? validasiAmplop({
         return 'Nominal harus diisi untuk pengunjung tanpa nama.';
       }
       return null;
+    case JenisAmplop.hadir:
+      // Hadir saja tanpa amplop (ditetapkan di Mode Hitung):
+      // nama wajib ada, nominal selalu dipaksa 0 saat disimpan.
+      if (nama.trim().isEmpty) {
+        return 'Nama pengunjung belum diisi.';
+      }
+      return null;
   }
 }
 
@@ -50,9 +57,11 @@ String namaSimpan(JenisAmplop jenis, String nama) {
   return nama.trim();
 }
 
-/// Nominal yang disimpan ke Firestore (kosong -> 0).
+/// Nominal yang disimpan ke Firestore (kosong/hadir -> 0).
 int nominalSimpan(JenisAmplop jenis, int nominal) {
-  if (jenis == JenisAmplop.kosong) return 0;
+  if (jenis == JenisAmplop.kosong || jenis == JenisAmplop.hadir) {
+    return 0;
+  }
   return nominal;
 }
 

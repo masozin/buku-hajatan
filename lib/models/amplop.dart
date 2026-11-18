@@ -5,7 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 enum JenisAmplop {
   normal,
   kosong,
-  tanpaNama;
+  tanpaNama,
+
+  /// Tamu hadir (tercatat di Buku Tamu) tetapi ternyata tidak
+  /// menyerahkan amplop — ditetapkan saat Mode Hitung (Batch 32),
+  /// nominal selalu Rp 0. Tidak pernah dibuat langsung dari form
+  /// pencatatan.
+  hadir;
 
   static JenisAmplop dariString(String? nilai) {
     switch (nilai) {
@@ -13,6 +19,8 @@ enum JenisAmplop {
         return JenisAmplop.kosong;
       case 'tanpa_nama':
         return JenisAmplop.tanpaNama;
+      case 'hadir':
+        return JenisAmplop.hadir;
       default:
         return JenisAmplop.normal;
     }
@@ -27,6 +35,8 @@ enum JenisAmplop {
         return 'kosong';
       case JenisAmplop.tanpaNama:
         return 'tanpa_nama';
+      case JenisAmplop.hadir:
+        return 'hadir';
     }
   }
 
@@ -38,6 +48,8 @@ enum JenisAmplop {
         return 'Kosong';
       case JenisAmplop.tanpaNama:
         return 'Tanpa Nama';
+      case JenisAmplop.hadir:
+        return 'Hadir Saja';
     }
   }
 }
@@ -63,6 +75,7 @@ class Amplop {
     this.createdAt,
     this.createdBy,
     this.menungguSinkron = false,
+    this.dihitung = true,
   });
 
   final String id;
@@ -99,6 +112,13 @@ class Amplop {
   /// AmplopTercatat).
   final bool menungguSinkron;
 
+  /// Status penghitungan nominal (Batch 32): entri dari Mode
+  /// Buku Tamu lahir dengan false — tamu hanya mengisi identitas,
+  /// nominalnya diisi belakangan lewat Mode Hitung (yang
+  /// mengubahnya menjadi true). Dokumen lama tanpa field ini
+  /// terbaca true: mereka memang sudah ternominal sejak dicatat.
+  final bool dihitung;
+
   /// Nama untuk ditampilkan: amplop tanpa nama tampil "(Tanpa Nama)".
   String get tampilNama {
     if (jenis == JenisAmplop.tanpaNama || nama.trim().isEmpty) {
@@ -127,6 +147,7 @@ class Amplop {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       createdBy: data['createdBy'] as String?,
       menungguSinkron: doc.metadata.hasPendingWrites,
+      dihitung: data['dihitung'] != false,
     );
   }
 
@@ -141,6 +162,7 @@ class Amplop {
       'keterangan': keterangan,
       'nominal': nominal,
       'jenis': jenis.nilaiSimpan,
+      'dihitung': dihitung,
       'createdAt': createdAt == null
           ? FieldValue.serverTimestamp()
           : Timestamp.fromDate(createdAt!),

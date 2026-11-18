@@ -17,6 +17,7 @@ import '../widgets/keadaan.dart';
 import '../widgets/kolom_form.dart';
 import 'buku_tamu.dart';
 import 'koreksi_amplop.dart';
+import 'mode_hitung.dart';
 
 /// Layar utama pencatat di hari-H (Batch 2).
 ///
@@ -310,9 +311,6 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
           }
           final tampil = bundelTinjau ?? bundel;
           final meninjau = bundelTinjau != null;
-          // Salinan final bundel aktif untuk ditangkap closure
-          // tombol Mode Buku Tamu (Batch 31).
-          final bundelAktif = bundel;
           if (tampil == null) {
             return Padding(
               padding: const EdgeInsets.all(24),
@@ -358,9 +356,11 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                   judul: meninjau ? 'Bundel Penuh' : 'Bundel Aktif',
                 ),
               const SizedBox(height: 16),
-              // Batch 31: jalan masuk Mode Buku Tamu — hanya bila
-              // fitur acara ini menyala dan ada bundel aktif.
-              if (_fiturBukuTamu && !meninjau && bundelAktif != null) ...[
+              // Batch 31/32: jalan masuk Mode Buku Tamu & Mode
+              // Hitung — hanya bila fitur Buku Tamu acara ini
+              // menyala. Buku Tamu memakai bundel bebasnya
+              // sendiri, jadi tidak tergantung bundel aktif.
+              if (_fiturBukuTamu && !meninjau) ...[
                 OutlinedButton.icon(
                   onPressed: () {
                     Navigator.of(context).push(
@@ -368,8 +368,6 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                         builder: (_) => BukuTamuScreen(
                           acaraId: widget.acaraId,
                           pencatatId: widget.pencatatId,
-                          bundelAwal: bundelAktif,
-                          langsung: _langsung,
                           namaAcara: _namaAcara,
                         ),
                       ),
@@ -378,6 +376,23 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                   icon: const Icon(Icons.menu_book_outlined),
                   label: const Text(
                     'Mode Buku Tamu — tamu mengisi sendiri',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ModeHitungScreen(
+                          acaraId: widget.acaraId,
+                          pencatatId: widget.pencatatId,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.calculate_outlined),
+                  label: const Text(
+                    'Mode Hitung — isi nominal buku tamu',
                   ),
                 ),
                 const SizedBox(height: 16),

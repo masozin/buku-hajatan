@@ -1,11 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/format.dart';
-import '../core/pencatatan.dart';
 import '../core/rekap.dart';
 import '../models/amplop.dart';
 import '../models/bundel.dart';
@@ -15,41 +12,31 @@ import '../widgets/elemen.dart';
 import '../widgets/keadaan.dart';
 import '../widgets/kolom_form.dart';
 
-/// Mode Buku Tamu (Batch 31, rancangan multi-metode v2 §5):
-/// perangkat pencatat berubah menjadi buku tamu digital di meja
-/// penerima tamu — PENGUNJUNG mengisi identitasnya sendiri,
-/// petugas pendamping mengisi nominal di zona petugas pada layar
-/// yang sama. Datanya identik dengan pencatatan biasa (satu
-/// amplop lewat PencatatanService ke bundel aktif / bundel bebas
-/// pencatat ini); yang berbeda hanya tampilan & privasi:
+/// Mode Buku Tamu (Batch 31, disederhanakan Batch 32 atas
+/// keputusan Mark): perangkat pencatat menjadi buku tamu digital
+/// di meja penerima tamu — PENGUNJUNG mengisi identitas +
+/// ucapannya sendiri, lalu amplopnya langsung dimasukkan ke
+/// kotak. Karena itu mode ini:
 ///
-/// - Daftar catatan TIDAK ditampilkan — tamu tidak melihat nama
-///   maupun nominal tamu lain.
+/// - TANPA nominal & TANPA bundel: tamu cukup isi identitas;
+///   catatannya mengalir di bundel bebas pencatat ini (bukan
+///   bundel per-10) dan lahir BELUM DIHITUNG — nominal diisi
+///   belakangan lewat Mode Hitung setelah amplopnya dibuka.
+/// - Daftar catatan TIDAK ditampilkan (privasi tamu).
 /// - Sesudah simpan tampil layar terima kasih, lalu form kosong
 ///   lagi untuk tamu berikutnya.
-/// - Tombol kembali Android dimatikan (PopScope); keluar dari
-///   mode ini hanya lewat ikon kunci dengan PIN pribadi pencatat
-///   yang sedang masuk di perangkat ini (keputusan D5).
+/// - Tombol kembali Android dimatikan (PopScope); keluar hanya
+///   lewat ikon kunci dengan PIN pribadi pencatat perangkat ini.
 class BukuTamuScreen extends ConsumerStatefulWidget {
   const BukuTamuScreen({
     super.key,
     required this.acaraId,
     required this.pencatatId,
-    required this.bundelAwal,
-    required this.langsung,
     required this.namaAcara,
   });
 
   final String acaraId;
   final String pencatatId;
-
-  /// Bundel tujuan saat mode dibuka (bundel aktif pencatat, atau
-  /// bundel bebasnya pada Metode Langsung). Berganti mengikuti
-  /// hasil simpan bila bundel penuh dan berikutnya terbuka.
-  final Bundel bundelAwal;
-
-  /// true = Metode Langsung (wadah bundel bebas).
-  final bool langsung;
   final String namaAcara;
 
   @override
@@ -62,13 +49,14 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
   final _dusun = TextEditingController();
   final _rt = TextEditingController();
   final _rw = TextEditingController();
-  final _nominal = TextEditingController();
   final _keterangan = TextEditingController();
   final _fokusNama = FocusNode();
 
-  var _jenis = JenisAmplop.normal;
   var _sibuk = false;
-  late Bundel _bundel = widget.bundelAwal;
+
+  /// Bundel bebas pencatat ini — wadah mengalir entri buku tamu
+  /// (dibuka/dimuat saat layar tampil).
+  Bundel? _bundel;
 
   /// PIN pribadi pencatat perangkat ini (untuk keluar mode);
   /// null selagi dimuat / bila pencatat belum punya PIN.
@@ -79,7 +67,6 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
   /// Keadaan layar terima kasih sesudah simpan.
   var _terimaKasih = false;
   var _namaSapa = '';
-  String? _catatanPetugas;
   Timer? _timerReset;
 
   @override
@@ -103,8 +90,23 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
         }
       }
     } catch (_) {
-      // PIN gagal dimuat: dialog keluar akan memakai jalur
-      // konfirmasi sederhana (lihat _keluarMode).
+      // PIN gagal dimuat: dialog keluar memakai jalur konfirmasi
+      // sederhana (lihat _keluarMode).
+    }
+    try {
+      final bebas = await ref
+          .read(pencatatanServiceProvider)
+          .bukaBundelBebas(
+            acaraId: widget.acaraId,
+            pencatatId: widget.pencatatId,
+          );
+      if (mounted) setState(() => _bundel = bebas);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(pesanDari(e))));
+      }
     }
     try {
       final data = await ref
@@ -126,30 +128,23 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
     _dusun.dispose();
     _rt.dispose();
     _rw.dispose();
-    _nominal.dispose();
     _keterangan.dispose();
     _fokusNama.dispose();
     super.dispose();
   }
 
-  void _gantiJenis(JenisAmplop jenis) {
-    setState(() {
-      _jenis = jenis;
-      if (jenis == JenisAmplop.kosong) _nominal.clear();
-      if (jenis == JenisAmplop.tanpaNama) _nama.clear();
-    });
-  }
-
   Future<void> _simpan() async {
-    // Sama seperti form pencatatan: nominal diketik DALAM RIBU.
-    final nominal = parseNominal(_nominal.text) * 1000;
-    final galat = validasiAmplop(
-      jenis: _jenis,
-      nama: _nama.text,
-      nominal: nominal,
-    );
-    if (galat != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(galat)));
+    final bundel = _bundel;
+    if (bundel == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Buku tamu sedang disiapkan…')),
+      );
+      return;
+    }
+    if (_nama.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama tamu belum diisi.')),
+      );
       return;
     }
     setState(() => _sibuk = true);
@@ -159,29 +154,23 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
           .simpanAmplop(
             acaraId: widget.acaraId,
             pencatatId: widget.pencatatId,
-            bundel: _bundel,
-            jenis: _jenis,
+            bundel: bundel,
+            jenis: JenisAmplop.normal,
             nama: _nama.text,
             alamat: _alamat.text,
             dusun: int.tryParse(_dusun.text.trim()),
             rt: int.tryParse(_rt.text.trim()),
             rw: int.tryParse(_rw.text.trim()),
             keterangan: _keterangan.text,
-            nominal: nominal,
+            // Buku Tamu tanpa nominal: nominal diisi lewat
+            // Mode Hitung setelah amplopnya dibuka.
+            nominal: 0,
+            dihitung: false,
           );
       if (!mounted) return;
-      final namaSapa = _jenis == JenisAmplop.tanpaNama
-          ? ''
-          : _nama.text.trim();
       setState(() {
-        // Bundel penuh -> berikutnya sudah dibuka layanan;
-        // tamu tidak perlu tahu, petugas diberi catatan kecil.
-        _bundel = hasil.bundelBaru ?? hasil.bundelSesudah;
-        _namaSapa = namaSapa;
-        _catatanPetugas = hasil.menutupBundel
-            ? 'Bundel ${hasil.bundelSesudah.kode} sudah penuh — '
-                  'silakan dimasukkan ke kotak.'
-            : null;
+        _bundel = hasil.bundelSesudah;
+        _namaSapa = _nama.text.trim();
         _terimaKasih = true;
       });
       _timerReset?.cancel();
@@ -212,17 +201,12 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
     _dusun.clear();
     _rt.clear();
     _rw.clear();
-    _nominal.clear();
     _keterangan.clear();
-    setState(() {
-      _jenis = JenisAmplop.normal;
-      _terimaKasih = false;
-      _catatanPetugas = null;
-    });
+    setState(() => _terimaKasih = false);
     _fokusNama.requestFocus();
   }
 
-  /// Keluar dari Mode Buku Tamu (D5): wajib PIN pribadi pencatat
+  /// Keluar dari Mode Buku Tamu: wajib PIN pribadi pencatat
   /// perangkat ini. Bila PIN belum ada (pencatat lama), cukup
   /// konfirmasi — perangkat tetap tidak bisa ditinggal tamu
   /// tanpa dialog apa pun.
@@ -307,30 +291,11 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
             const SizedBox(height: 10),
             Text(
               'Kehadiran dan doa restu Anda sangat berarti bagi '
-              'keluarga besar ${widget.namaAcara}.',
+              'keluarga besar ${widget.namaAcara}. Amplop Anda '
+              'silakan dimasukkan ke kotak yang tersedia.',
               textAlign: TextAlign.center,
               style: tema.textTheme.bodyLarge,
             ),
-            if (_catatanPetugas != null) ...[
-              const SizedBox(height: 24),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.inventory_2_outlined,
-                        size: 18,
-                        color: tema.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(child: Text(_catatanPetugas!)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
             const SizedBox(height: 28),
             Text(
               'Menyiapkan untuk tamu berikutnya…',
@@ -349,8 +314,7 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
 
   Widget _bangunForm(BuildContext context) {
     final tema = Theme.of(context);
-    final tanpaNama = _jenis == JenisAmplop.tanpaNama;
-    final kosong = _jenis == JenisAmplop.kosong;
+    final bundel = _bundel;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -363,15 +327,15 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
         const SizedBox(height: 4),
         Text(
           '${widget.namaAcara} — silakan isi buku tamu digital '
-          'kami, lalu serahkan amplop Anda kepada petugas.',
+          'kami, lalu masukkan amplop Anda ke kotak yang tersedia.',
           style: tema.textTheme.bodyLarge,
         ),
         const SizedBox(height: 6),
         Text(
-          widget.langsung
-              ? 'Sudah tercatat ${_bundel.jumlahAmplop} pengunjung.'
-              : 'Bundel ${_bundel.kode} • ${_bundel.jumlahAmplop}/10 '
-                    'pengunjung.',
+          bundel == null
+              ? 'Menyiapkan buku tamu…'
+              : 'Sudah tercatat ${bundel.jumlahAmplop} pengunjung '
+                    'di buku tamu ini.',
           style: tema.textTheme.bodySmall,
         ),
         const SizedBox(height: 16),
@@ -384,13 +348,10 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
                 TextField(
                   controller: _nama,
                   focusNode: _fokusNama,
-                  enabled: !tanpaNama,
                   textCapitalization: TextCapitalization.words,
                   style: const TextStyle(fontSize: 18),
-                  decoration: InputDecoration(
-                    labelText: tanpaNama
-                        ? 'Nama (otomatis "(Tanpa Nama)")'
-                        : 'Nama Bapak/Ibu',
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Bapak/Ibu',
                   ),
                   onSubmitted: (_) => _sibuk ? null : _simpan(),
                 ),
@@ -439,86 +400,6 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        // Zona petugas: jenis + nominal amplop yang diserahkan.
-        Card(
-          color: tema.colorScheme.surfaceContainerHighest,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.badge_outlined,
-                      size: 18,
-                      color: tema.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Diisi petugas pendamping',
-                      style: tema.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SegmentedButton<JenisAmplop>(
-                  segments: const [
-                    ButtonSegment(
-                      value: JenisAmplop.normal,
-                      label: Text('Normal'),
-                    ),
-                    ButtonSegment(
-                      value: JenisAmplop.kosong,
-                      label: Text('Kosong'),
-                    ),
-                    ButtonSegment(
-                      value: JenisAmplop.tanpaNama,
-                      label: Text('Tanpa Nama'),
-                    ),
-                  ],
-                  selected: {_jenis},
-                  onSelectionChanged: (pilihan) =>
-                      _gantiJenis(pilihan.first),
-                ),
-                const SizedBox(height: 12),
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _nominal,
-                  builder: (context, nilaiTeks, _) {
-                    final n = parseNominal(nilaiTeks.text);
-                    return TextField(
-                      controller: _nominal,
-                      enabled: !kosong,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      style: const TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: kosong
-                            ? 'Nominal (kosong = Rp 0)'
-                            : 'Nominal (ribu Rp)',
-                        prefixText: kosong ? null : 'Rp ',
-                        helperText: kosong
-                            ? null
-                            : n > 0
-                            ? '= ${formatRupiah(n * 1000)}'
-                            : 'Ketik dalam ribu: 50 = Rp 50.000',
-                      ),
-                      onSubmitted: (_) => _sibuk ? null : _simpan(),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
         const SizedBox(height: 20),
         FilledButton.icon(
           onPressed: _sibuk ? null : _simpan,
@@ -530,10 +411,10 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
   }
 }
 
-/// Dialog PIN keluar Mode Buku Tamu (Batch 31): controller
-/// dimiliki State dialog dan dibuang di dispose — pola aman
-/// Batch 23 (controller yang dibuat di fungsi pemanggil lalu
-/// dibuang sesudah showDialog memicu crash kerangka kerja).
+/// Dialog PIN keluar Mode Buku Tamu: controller dimiliki State
+/// dialog dan dibuang di dispose — pola aman Batch 23
+/// (controller yang dibuat di fungsi pemanggil lalu dibuang
+/// sesudah showDialog memicu crash kerangka kerja).
 class _DialogPinKeluar extends StatefulWidget {
   const _DialogPinKeluar({required this.pinBenar});
 
@@ -577,10 +458,6 @@ class _DialogPinKeluarState extends State<_DialogPinKeluar> {
             controller: _pin,
             obscureText: true,
             keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(6),
-            ],
             decoration: InputDecoration(
               labelText: 'PIN Pribadimu',
               errorText: _galat,

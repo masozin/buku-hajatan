@@ -50,7 +50,11 @@ class DaftarBundelTab extends ConsumerWidget {
         if (snapshot.hasError) {
           return TampilGalat(pesan: pesanDari(snapshot.error!));
         }
-        final daftar = snapshot.data ?? const <Bundel>[];
+        // Bundel bebas (wadah Buku Tamu / Metode Langsung)
+        // bukan bundel fisik — tidak ditampilkan di tab ini.
+        final daftar = (snapshot.data ?? const <Bundel>[])
+            .where((b) => !b.bebas)
+            .toList();
         if (daftar.isEmpty) {
           return TampilKosong(
             teks: pencatatIdSaya == null

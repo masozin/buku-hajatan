@@ -121,7 +121,9 @@ class _DaftarRekapGrupScreenState
     final hasil = await tampilkanDetailPengunjung(
       context: context,
       amplop: ditemukan.amplop,
-      kodeBundel: widget.tanpaBundel ? '' : ditemukan.kodeBundel,
+      kodeBundel: (widget.tanpaBundel || ditemukan.bebas)
+          ? ''
+          : ditemukan.kodeBundel,
       bisaUbah: bisa,
       bisaHapus: bisa,
       onHapus: (bisa && b != null)
@@ -198,7 +200,8 @@ class _DaftarRekapGrupScreenState
                 final ditemukan = tampil[i - 1];
                 return _BarisItemRekap(
                   ditemukan: ditemukan,
-                  tampilkanKode: !widget.tanpaBundel,
+                  tampilkanKode:
+                      !widget.tanpaBundel && !ditemukan.bebas,
                   onTap: () => _tampilkanDetail(
                     ditemukan,
                     petaBundel[ditemukan.kodeBundel],
@@ -282,7 +285,9 @@ class _BarisItemRekap extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        formatRupiah(a.nominal),
+                        a.dihitung
+                            ? formatRupiah(a.nominal)
+                            : 'Belum dihitung',
                         style: tema.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),

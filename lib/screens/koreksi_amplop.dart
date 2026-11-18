@@ -229,19 +229,27 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
             // dihapus — judul AppBar sudah menyebut bundelnya,
             // sisanya dianggap tidak perlu.
             SegmentedButton<JenisAmplop>(
-              segments: const [
-                ButtonSegment(
+              segments: [
+                const ButtonSegment(
                   value: JenisAmplop.normal,
                   label: Text('Normal'),
                 ),
-                ButtonSegment(
+                const ButtonSegment(
                   value: JenisAmplop.kosong,
                   label: Text('Kosong'),
                 ),
-                ButtonSegment(
+                const ButtonSegment(
                   value: JenisAmplop.tanpaNama,
                   label: Text('Tanpa Nama'),
                 ),
+                // Batch 32: entri Hadir Saja (ditetapkan lewat
+                // Mode Hitung) harus tetap bisa dibuka di form
+                // ini — segmennya tampil hanya untuk entri itu.
+                if (_jenis == JenisAmplop.hadir)
+                  const ButtonSegment(
+                    value: JenisAmplop.hadir,
+                    label: Text('Hadir Saja'),
+                  ),
               ],
               selected: {_jenis},
               onSelectionChanged: (pilihan) =>

@@ -99,6 +99,7 @@ class BarisEkspor {
     this.rw,
     this.keterangan,
     this.waktu,
+    this.dihitung = true,
   });
 
   final String kodeBundel;
@@ -119,6 +120,15 @@ class BarisEkspor {
   final int? rw;
   final String? keterangan;
   final DateTime? waktu;
+
+  /// Batch 32: false = entri Buku Tamu yang nominalnya belum
+  /// dihitung — kolom Jenis di ekspor menampilkannya sebagai
+  /// "Belum Dihitung" agar Rp 0-nya tidak dibaca sebagai amplop
+  /// kosong / hadir saja.
+  final bool dihitung;
+
+  /// Label kolom Jenis untuk ekspor (Batch 32).
+  String get labelJenis => dihitung ? jenis.label : 'Belum Dihitung';
 }
 
 /// Ratakan data ekspor menjadi baris-baris, urut bundel (prefix, nomor)
@@ -150,6 +160,7 @@ List<BarisEkspor> buatBarisEkspor(List<BundelTerisi> data) {
           rw: a.rw,
           keterangan: a.keterangan,
           waktu: a.createdAt,
+          dihitung: a.dihitung,
         ),
       );
     }
@@ -226,7 +237,7 @@ String buatCsv(List<BarisEkspor> baris) {
           ),
         ),
         b.nominal.toString(),
-        selCsv(b.jenis.label),
+        selCsv(b.labelJenis),
         selCsv(b.keterangan ?? ''),
         selCsv(b.waktu == null ? '' : formatWaktuCsv(b.waktu!)),
       ].join(','),
@@ -258,7 +269,7 @@ String buatCsvDatar(List<BarisEkspor> baris) {
           ),
         ),
         b.nominal.toString(),
-        selCsv(b.jenis.label),
+        selCsv(b.labelJenis),
         selCsv(b.prefixPencatat),
         selCsv(b.keterangan ?? ''),
         selCsv(b.waktu == null ? '' : formatWaktuCsv(b.waktu!)),
@@ -292,11 +303,16 @@ class AmplopDitemukan {
     required this.amplop,
     required this.kodeBundel,
     required this.prefixPencatat,
+    this.bebas = false,
   });
 
   final Amplop amplop;
   final String kodeBundel;
   final String prefixPencatat;
+
+  /// Bundelnya bundel BEBAS (Batch 30/32): wadah mengalir Buku
+  /// Tamu / Metode Langsung — kode bundelnya tidak ditampilkan.
+  final bool bebas;
 }
 
 /// Cari amplop yang nama/alamat/dusun/keterangannya mengandung
@@ -322,6 +338,7 @@ List<AmplopDitemukan> cariDalamData(List<BundelTerisi> data, String kataKunci) {
             amplop: a,
             kodeBundel: bt.bundel.kode,
             prefixPencatat: bt.bundel.prefix,
+            bebas: bt.bundel.bebas,
           ),
         );
       }
@@ -456,6 +473,7 @@ List<AmplopDitemukan> pengunjungPerPencatat(
           amplop: a,
           kodeBundel: bt.bundel.kode,
           prefixPencatat: bt.bundel.prefix,
+          bebas: bt.bundel.bebas,
         ),
       );
     }
@@ -481,6 +499,7 @@ List<AmplopDitemukan> pengunjungPerAlamat(
           amplop: a,
           kodeBundel: bt.bundel.kode,
           prefixPencatat: bt.bundel.prefix,
+          bebas: bt.bundel.bebas,
         ),
       );
     }

@@ -117,7 +117,9 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
     final hasil = await tampilkanDetailPengunjung(
       context: context,
       amplop: a,
-      kodeBundel: widget.metodeLangsung ? '' : ditemukan.kodeBundel,
+      kodeBundel: (widget.metodeLangsung || ditemukan.bebas)
+          ? ''
+          : ditemukan.kodeBundel,
       bisaUbah: bisaUbah,
       bisaHapus: bisaHapus,
       onHapus: (bisaHapus && b != null) ? () => _hapusAmplop(a, b) : null,
@@ -276,7 +278,8 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
                     final ditemukan = tampil[i - 1];
                     return _BarisPengunjung(
                       ditemukan: ditemukan,
-                      tampilkanKode: !widget.metodeLangsung,
+                      tampilkanKode:
+                          !widget.metodeLangsung && !ditemukan.bebas,
                       onTap: () => _tampilkanDetail(
                         ditemukan,
                         petaBundel[ditemukan.kodeBundel],
@@ -374,7 +377,12 @@ class _BarisPengunjung extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        formatRupiah(a.nominal),
+                        // Batch 32: entri Buku Tamu yang belum
+                        // dihitung nominalnya belum ada — jangan
+                        // tampilkan Rp 0.
+                        a.dihitung
+                            ? formatRupiah(a.nominal)
+                            : 'Belum dihitung',
                         style: tema.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),

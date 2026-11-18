@@ -280,8 +280,14 @@ class PencatatanService {
     int? rw,
     String? keterangan,
     required int nominal,
+    bool dihitung = true,
   }) async {
-    final galat = validasiAmplop(jenis: jenis, nama: nama, nominal: nominal);
+    // Batch 32: entri Buku Tamu lahir BELUM dihitung (dihitung
+    // false) — tamu hanya mengisi identitas, nominal menyusul
+    // lewat Mode Hitung; validasinya cukup nama terisi.
+    final galat = dihitung
+        ? validasiAmplop(jenis: jenis, nama: nama, nominal: nominal)
+        : (nama.trim().isEmpty ? 'Nama tamu belum diisi.' : null);
     if (galat != null) throw LayananException(galat);
 
     final namaEfektif = namaSimpan(jenis, nama);
@@ -352,6 +358,7 @@ class PencatatanService {
       nominal: nominalEfektif,
       jenis: jenis,
       createdBy: pencatatId,
+      dihitung: dihitung,
     );
 
     final batch = _db.batch();
@@ -509,6 +516,108 @@ class PencatatanService {
           : keterangan.trim(),
       'nominal': nominalEfektif,
       'jenis': jenis.nilaiSimpan,
+      // Batch 32: ubah manual menetapkan nominal & jenis final —
+      // entri Buku Tamu yang diubah di sini dianggap terhitung.
+      'dihitung': true,
+    });
+    batch.update(refBundel, <String, dynamic>{
+      'totalRp': FieldValue.increment(delta.deltaRp),
+      if (delta.deltaKosong != 0)
+        'jumlahKosong': FieldValue.increment(delta.deltaKosong),
+      if (delta.deltaTanpaNama != 0)
+        'jumlahTanpaNama': FieldValue.increment(delta.deltaTanpaNama),
+    });
+    batch.update(refAcara, <String, dynamic>{
+      'totalRp': FieldValue.increment(delta.deltaRp),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await batch.commit();
+  }
+
+  /// Mode Hitung sisi pencatat (Batch 32): mengisi nominal satu
+  /// entri Buku Tamu yang BELUM dihitung (dihitung == false) —
+  /// hasil membuka amplop fisiknya dan mencocokkan nama yang
+  /// tertulis di amplop. Hanya entri catatannya sendiri, hanya
+  /// selama acara aktif. [jenisBaru] normal/kosong/hadir;
+  /// nominal efektif mengikuti aturan jenisnya.
+  Future<void> hitungAmplop({
+    required String acaraId,
+    required String pencatatId,
+    required String bundelId,
+    required Amplop amplopLama,
+    required JenisAmplop jenisBaru,
+    required int nominalBaru,
+  }) async {
+    final refAcara = _db.collection('acara').doc(acaraId);
+    final docAcara = await refAcara.get();
+    if (!docAcara.exists) {
+      throw const LayananException('Acara tidak ditemukan.');
+    }
+    if (Acara.fromFirestore(docAcara).sudahSelesai) {
+      throw const LayananException(
+        'Acara sudah selesai — penghitungan dilanjutkan pemilik acara.',
+      );
+    }
+    final docPencatat = await refAcara
+        .collection('pencatat')
+        .doc(pencatatId)
+        .get();
+    if (!docPencatat.exists) {
+      throw const LayananException('Kamu belum terdaftar di acara ini.');
+    }
+    final pencatat = Pencatat.fromFirestore(docPencatat, acaraId: acaraId);
+    if (!pencatat.aktif) {
+      throw const LayananException(
+        'Statusmu sedang dinonaktifkan pemilik acara.',
+      );
+    }
+    _periksaSesi(pencatat);
+
+    final refBundel = _bundelRef(acaraId).doc(bundelId);
+    final docBundel = await refBundel.get();
+    if (!docBundel.exists) {
+      throw const LayananException('Bundel tidak ditemukan. Buka lagi.');
+    }
+    if (Bundel.fromFirestore(docBundel, acaraId: acaraId).pencatatId !=
+        pencatatId) {
+      throw const LayananException('Bundel ini milik pencatat lain.');
+    }
+
+    final refAmplop = refBundel.collection('amplop').doc(amplopLama.id);
+    final docAmplop = await refAmplop.get();
+    if (!docAmplop.exists) {
+      throw const LayananException('Pengunjung tidak ditemukan. Muat ulang.');
+    }
+    final tersimpan = Amplop.fromFirestore(docAmplop, bundelId: bundelId);
+    if (tersimpan.createdBy != pencatatId) {
+      throw const LayananException(
+        'Hanya pencatat yang menginput pengunjung ini yang boleh menghitungnya.',
+      );
+    }
+    if (tersimpan.dihitung) {
+      throw const LayananException('Pengunjung ini sudah dihitung.');
+    }
+
+    final galat = validasiAmplop(
+      jenis: jenisBaru,
+      nama: tersimpan.nama,
+      nominal: nominalBaru,
+    );
+    if (galat != null) throw LayananException(galat);
+
+    final nominalEfektif = nominalSimpan(jenisBaru, nominalBaru);
+    final delta = deltaUbahAmplop(
+      jenisLama: tersimpan.jenis,
+      nominalLama: tersimpan.nominal,
+      jenisBaru: jenisBaru,
+      nominalBaru: nominalEfektif,
+    );
+
+    final batch = _db.batch();
+    batch.update(refAmplop, <String, dynamic>{
+      'nominal': nominalEfektif,
+      'jenis': jenisBaru.nilaiSimpan,
+      'dihitung': true,
     });
     batch.update(refBundel, <String, dynamic>{
       'totalRp': FieldValue.increment(delta.deltaRp),

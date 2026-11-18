@@ -12,6 +12,7 @@ import '../widgets/elemen.dart';
 import '../widgets/kartu_total.dart';
 import '../widgets/keadaan.dart';
 import 'daftar_rekap.dart';
+import 'mode_hitung.dart';
 
 /// Rekap acara (Batch 3) — layar pemilik.
 ///
@@ -104,6 +105,10 @@ class _RekapScreenState extends ConsumerState<RekapScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               _RingkasanTotal(acara: acara),
+              // Batch 32: peringatan + jalan pintas Mode Hitung
+              // selama masih ada entri Buku Tamu belum dihitung
+              // (widget ini hilang sendiri bila nol).
+              _BelumDihitung(acaraId: acara.id),
               const SizedBox(height: 16),
               _KartuEkspor(
                 sibuk: _mengekspor,
@@ -195,6 +200,57 @@ class _RingkasanTotal extends ConsumerWidget {
 
 /// Kartu statistik kecil (ikon + label + angka) di bawah kartu
 /// total Rekap.
+/// Batch 32: banner progres penghitungan Buku Tamu di Rekap.
+/// Tampil hanya selama masih ada entri belum dihitung (total Rp
+/// rekap belum termasuk mereka); ketuk untuk membuka Mode
+/// Hitung pemilik. Memuat datanya sendiri sekali tampil.
+class _BelumDihitung extends ConsumerWidget {
+  const _BelumDihitung({required this.acaraId});
+
+  final String acaraId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FutureBuilder(
+      future: ref.read(rekapServiceProvider).ambilDataLengkap(acaraId),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        if (data == null) return const SizedBox.shrink();
+        var belum = 0;
+        for (final bt in data) {
+          for (final a in bt.isi) {
+            if (!a.dihitung) belum++;
+          }
+        }
+        if (belum == 0) return const SizedBox.shrink();
+        final tema = Theme.of(context);
+        return Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Card(
+            color: tema.colorScheme.tertiaryContainer,
+            child: ListTile(
+              leading: const Icon(Icons.calculate_outlined),
+              title: Text('Belum dihitung: $belum pengunjung'),
+              subtitle: const Text(
+                'Entri Buku Tamu yang nominalnya belum diisi — '
+                'total Rp di atas belum termasuk mereka.',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ModeHitungScreen(acaraId: acaraId),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _MiniStatistik extends StatelessWidget {
   const _MiniStatistik({
     required this.ikon,
