@@ -355,11 +355,30 @@ class _BarisPengunjung extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    formatRupiah(a.nominal),
-                    style: tema.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                  // Batch 28: ikon sinkron di samping nominal,
+                  // bahasa visual yang sama dengan baris
+                  // pencatatan — emas = menunggu terkirim,
+                  // zamrud = sudah tersinkron.
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        formatRupiah(a.nominal),
+                        style: tema.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        a.menungguSinkron
+                            ? Icons.cloud_upload_outlined
+                            : Icons.cloud_done_outlined,
+                        size: 16,
+                        color: a.menungguSinkron
+                            ? skema.tertiary
+                            : skema.primary,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 3),
                   Text(

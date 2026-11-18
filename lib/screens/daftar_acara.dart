@@ -8,6 +8,7 @@ import '../widgets/elemen.dart';
 import '../widgets/keadaan.dart';
 import 'detail_acara.dart';
 import 'gabung_acara.dart';
+import 'info_aplikasi.dart';
 import 'panel_admin.dart';
 
 /// Halaman utama setelah masuk:
@@ -43,6 +44,7 @@ class DaftarAcaraScreen extends ConsumerWidget {
                 );
               },
             ),
+          const TombolInfo(),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Keluar',

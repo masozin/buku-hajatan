@@ -62,6 +62,7 @@ class Amplop {
     this.jenis = JenisAmplop.normal,
     this.createdAt,
     this.createdBy,
+    this.menungguSinkron = false,
   });
 
   final String id;
@@ -90,6 +91,14 @@ class Amplop {
   /// UID pencatat yang menginput.
   final String? createdBy;
 
+  /// Status sinkron dokumen ini (Batch 28): true bila salinan
+  /// lokal belum terkirim ke server (metadata hasPendingWrites).
+  /// BUKAN field Firestore — tidak ikut toMap; diisi dari
+  /// metadata snapshot saat fromFirestore. Dipakai ikon sinkron
+  /// di tab Pengunjung (di pencatatan status ini dibawa
+  /// AmplopTercatat).
+  final bool menungguSinkron;
+
   /// Nama untuk ditampilkan: amplop tanpa nama tampil "(Tanpa Nama)".
   String get tampilNama {
     if (jenis == JenisAmplop.tanpaNama || nama.trim().isEmpty) {
@@ -117,6 +126,7 @@ class Amplop {
       jenis: JenisAmplop.dariString(data['jenis'] as String?),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       createdBy: data['createdBy'] as String?,
+      menungguSinkron: doc.metadata.hasPendingWrites,
     );
   }
 

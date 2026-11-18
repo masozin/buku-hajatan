@@ -6,17 +6,25 @@ import '../core/format.dart';
 import '../models/acara.dart';
 import '../models/pemilik.dart';
 import '../providers.dart';
+import '../theme/tema_aplikasi.dart';
 import '../widgets/elemen.dart';
 import '../widgets/keadaan.dart';
 import 'buat_acara.dart';
-import 'daftar_acara.dart';
 import 'detail_pemilik.dart';
+import 'info_aplikasi.dart';
 import 'tambah_pemilik.dart';
 
 /// Panel Admin platform (Batch 4) — hanya terbuka untuk akun admin
 /// (`admin/{uid}` ada; dibuat lewat Firebase Console). Isi: ringkasan
-/// platform, daftar pemilik + blokir/aktifkan, daftar semua acara.
+/// platform dan daftar pengguna + blokir/aktifkan.
 /// Semua data dibaca lewat stream; rules yang menjaga servernya.
+///
+/// Dipoles Batch 28 atas permintaan Mark: tombol home & bagian
+/// Semua Acara dihapus, istilah "Pemilik" menjadi "Pengguna",
+/// tombol Buat Acara di atas dihapus (buat acara tetap ada per
+/// kartu pengguna), Tambah Pengguna pindah ke bawah daftar,
+/// kartu ringkasan bergaya panel gradasi, dan kartu pengguna
+/// tanpa avatar inisial (detail di kiri, ringkasan di kanan).
 class PanelAdminScreen extends ConsumerWidget {
   const PanelAdminScreen({super.key});
 
@@ -36,19 +44,7 @@ class PanelAdminScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Panel Admin'),
         actions: [
-          // Panel ini beranda utama admin (Batch 6) — sediakan jalan
-          // ke tampilan pemilik & keluar dari sini juga.
-          IconButton(
-            icon: const Icon(Icons.home_outlined),
-            tooltip: 'Tampilan Pemilik',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const DaftarAcaraScreen(),
-                ),
-              );
-            },
-          ),
+          const TombolInfo(),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Keluar',
@@ -79,41 +75,6 @@ class PanelAdminScreen extends ConsumerWidget {
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const TambahPemilikScreen(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.person_add_outlined),
-                          label: const Text('Tambah Pemilik'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const BuatAcaraScreen(
-                                  modeAdmin: true,
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.event_outlined),
-                          label: const Text('Buat Acara'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
                   _Ringkasan(
                     ringkasan: ringkasPlatform(
                       pemilik: pemilik,
@@ -121,24 +82,26 @@ class PanelAdminScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  JudulBagian(teks: 'Pemilik (${pemilik.length})'),
+                  JudulBagian(teks: 'Pengguna (${pemilik.length})'),
                   const SizedBox(height: 10),
                   if (pemilik.isEmpty)
-                    const Text('Belum ada pemilik terdaftar.')
+                    const Text('Belum ada pengguna terdaftar.')
                   else
                     for (final r in ringkasPerPemilik(pemilik, acara))
                       _KartuPemilik(ringkasan: r),
-                  const SizedBox(height: 20),
-                  JudulBagian(teks: 'Semua Acara (${acara.length})'),
-                  const SizedBox(height: 10),
-                  if (acara.isEmpty)
-                    const Text('Belum ada acara.')
-                  else
-                    for (final a in acara)
-                      _BarisAcara(
-                        acara: a,
-                        namaPemilik: _namaPemilik(pemilik, a.pemilikId),
-                      ),
+                  const SizedBox(height: 12),
+                  // Batch 28: tambah pengguna kini di bawah daftar.
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const TambahPemilikScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.person_add_outlined),
+                    label: const Text('Tambah Pengguna'),
+                  ),
                 ],
               );
             },
@@ -172,15 +135,11 @@ class PanelAdminScreen extends ConsumerWidget {
       await ref.read(authServiceProvider).keluar();
     }
   }
-
-  String _namaPemilik(List<Pemilik> pemilik, String uid) {
-    for (final p in pemilik) {
-      if (p.id == uid) return p.nama.isEmpty ? '(tanpa nama)' : p.nama;
-    }
-    return '(pemilik tidak ditemukan)';
-  }
 }
 
+/// Kartu ringkasan platform (Batch 28): panel gradasi zamrud
+/// senada KartuTotalAcara — total terkumpul sebagai angka utama,
+/// lalu statistik berikon (pengguna, acara, pengunjung).
 class _Ringkasan extends StatelessWidget {
   const _Ringkasan({required this.ringkasan});
 
@@ -188,48 +147,129 @@ class _Ringkasan extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _Angka(label: 'Pemilik', nilai: '${ringkasan.totalPemilik}'),
-            _Angka(label: 'Acara', nilai: '${ringkasan.totalAcara}'),
-            _Angka(label: 'Pengunjung', nilai: '${ringkasan.totalAmplop}'),
-            _Angka(label: 'Total', nilai: formatRupiah(ringkasan.totalRp)),
-          ],
-        ),
+    final tema = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: TemaAplikasi.gradasiPahlawan,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: TemaAplikasi.zamrud.withValues(alpha: 0.30),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            top: -46,
+            right: -30,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -60,
+            left: -24,
+            child: Container(
+              width: 130,
+              height: 130,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: TemaAplikasi.emasTerang.withValues(alpha: 0.14),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Total Terkumpul Semua Acara',
+                  style: tema.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.75),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  formatRupiah(ringkasan.totalRp),
+                  style: tema.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    _StatHero(
+                      ikon: Icons.groups_outlined,
+                      nilai: '${ringkasan.totalPemilik}',
+                      label: 'Pengguna',
+                    ),
+                    _StatHero(
+                      ikon: Icons.event_outlined,
+                      nilai: '${ringkasan.totalAcara}',
+                      label: 'Acara',
+                    ),
+                    _StatHero(
+                      ikon: Icons.people_outline,
+                      nilai: '${ringkasan.totalAmplop}',
+                      label: 'Pengunjung',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _Angka extends StatelessWidget {
-  const _Angka({required this.label, required this.nilai});
+class _StatHero extends StatelessWidget {
+  const _StatHero({
+    required this.ikon,
+    required this.nilai,
+    required this.label,
+  });
 
-  final String label;
+  final IconData ikon;
   final String nilai;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    return Column(
-      children: [
-        Text(
-          nilai,
-          style: tema.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(ikon, size: 20, color: Colors.white.withValues(alpha: 0.85)),
+          const SizedBox(height: 6),
+          Text(
+            nilai,
+            style: tema.textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: tema.textTheme.bodySmall?.copyWith(
-            color: tema.colorScheme.onSurfaceVariant,
+          Text(
+            label,
+            style: tema.textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.75),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -245,14 +285,13 @@ class _KartuPemilik extends ConsumerWidget {
     final yakin = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(memblokir ? 'Blokir pemilik?' : 'Aktifkan kembali?'),
+        title: Text(memblokir ? 'Blokir pengguna?' : 'Aktifkan kembali?'),
         content: Text(
           memblokir
-              ? '${pemilik.nama} tidak akan bisa masuk sebagai pemilik '
-                    'atau membuat acara selama diblokir. Acara & data '
-                    'yang sudah ada TIDAK dihapus.'
-              : '${pemilik.nama} akan bisa memakai aplikasinya lagi '
-                    'sebagai pemilik.',
+              ? '${pemilik.nama} tidak akan bisa masuk atau membuat '
+                    'acara selama diblokir. Acara & data yang sudah '
+                    'ada TIDAK dihapus.'
+              : '${pemilik.nama} akan bisa memakai aplikasinya lagi.',
         ),
         actions: [
           TextButton(
@@ -294,11 +333,16 @@ class _KartuPemilik extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pemilik = ringkasan.pemilik;
+    final tema = Theme.of(context);
+    final skema = tema.colorScheme;
+    // Batch 28: tanpa avatar inisial — detail pengguna di kiri,
+    // ringkasan (Rp + ikon acara & pengunjung) di kanan.
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          ListTile(
+          InkWell(
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -306,47 +350,99 @@ class _KartuPemilik extends ConsumerWidget {
                 ),
               );
             },
-            leading: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              child: Text(
-                pemilik.nama.isEmpty ? '?' : pemilik.nama[0].toUpperCase(),
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onPrimaryContainer,
-                ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          pemilik.nama.isEmpty
+                              ? '(tanpa nama)'
+                              : pemilik.nama,
+                          style: tema.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (pemilik.email != null) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            pemilik.email!,
+                            style: tema.textTheme.bodySmall?.copyWith(
+                              color: skema.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                        if (pemilik.noHp != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            pemilik.noHp!,
+                            style: tema.textTheme.bodySmall?.copyWith(
+                              color: skema.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (pemilik.diblokir) ...[
+                        Chip(
+                          label: const Text('Diblokir'),
+                          backgroundColor: skema.errorContainer,
+                          labelStyle: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: skema.onErrorContainer,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        const SizedBox(height: 6),
+                      ],
+                      Text(
+                        formatRupiah(ringkasan.totalRp),
+                        style: tema.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.event_outlined,
+                            size: 15,
+                            color: skema.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${ringkasan.jumlahAcara}',
+                            style: tema.textTheme.bodySmall,
+                          ),
+                          const SizedBox(width: 10),
+                          Icon(
+                            Icons.people_outline,
+                            size: 15,
+                            color: skema.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${ringkasan.totalAmplop}',
+                            style: tema.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            title: Text(
-              pemilik.nama.isEmpty ? '(tanpa nama)' : pemilik.nama,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Text(
-              [
-                if (pemilik.email != null) pemilik.email!,
-                if (pemilik.noHp != null) pemilik.noHp!,
-                '${ringkasan.jumlahAcara} acara • ${ringkasan.totalAmplop} '
-                    'pengunjung • ${formatRupiah(ringkasan.totalRp)}',
-              ].join('\n'),
-            ),
-            trailing: pemilik.diblokir
-                ? Chip(
-                    label: const Text('Diblokir'),
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.errorContainer,
-                    labelStyle: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onErrorContainer,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                  )
-                : null,
-            isThreeLine: true,
           ),
           OverflowBar(
             alignment: MainAxisAlignment.end,
@@ -380,27 +476,4 @@ class _KartuPemilik extends ConsumerWidget {
   }
 }
 
-class _BarisAcara extends StatelessWidget {
-  const _BarisAcara({required this.acara, required this.namaPemilik});
 
-  final Acara acara;
-  final String namaPemilik;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        title: Text(acara.namaAcara),
-        subtitle: Text(
-          'Pemilik: $namaPemilik\n'
-          '${acara.jenis} • ${formatTanggal(acara.tanggal)} • '
-          '${acara.totalAmplop} pengunjung • ${acara.totalBundel} bundel • '
-          '${formatRupiah(acara.totalRp)}',
-        ),
-        isThreeLine: true,
-        trailing: ChipStatusAcara(status: acara.status),
-      ),
-    );
-  }
-}

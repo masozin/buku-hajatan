@@ -813,3 +813,10 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
 - Fix pasang APK: sebab gagal membuka pemasang kini ditampilkan
   di dialog (diagnosis), akar FileProvider diperluas, jalur
   berkas dikanonikkan.
+- Panel Admin dipoles: tanpa tombol home & bagian Semua Acara,
+  istilah Pengguna, Tambah Pengguna di bawah, kartu ringkasan
+  gradasi, kartu pengguna tanpa inisial (detail kiri, Rp + ikon
+  acara/pengunjung kanan); Detail Pengguna ikut dirapikan.
+- Tab Pengunjung: ikon sinkron di samping nominal.
+- Halaman Info Aplikasi (ikon info di nav atas): info aplikasi,
+  pembuat, kontak pembuat, versi.

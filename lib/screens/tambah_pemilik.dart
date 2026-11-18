@@ -65,12 +65,12 @@ class _TambahPemilikScreenState extends ConsumerState<TambahPemilikScreen> {
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Akun pemilik dibuat'),
+          title: const Text('Akun pengguna dibuat'),
           content: Text(
             '${pemilik.nama} (${pemilik.email}) sudah bisa masuk.\n\n'
-            'Sampaikan kata sandi awal yang baru dibuat ke pemiliknya '
+            'Sampaikan kata sandi awal yang baru dibuat ke penggunanya '
             '(mis. lewat WhatsApp). Setelah itu buat acaranya dari '
-            'Panel Admin > Buat Acara.',
+            'kartu pengguna di Panel Admin.',
           ),
           actions: [
             FilledButton(
@@ -93,14 +93,14 @@ class _TambahPemilikScreenState extends ConsumerState<TambahPemilikScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tambah Pemilik')),
+      appBar: AppBar(title: const Text('Tambah Pengguna')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Akun ini dibuatkan oleh admin. Pemilik tinggal masuk '
+              'Akun ini dibuatkan oleh admin. Pengguna tinggal masuk '
               'dengan email & kata sandi awal di bawah ini.',
             ),
             const SizedBox(height: 16),
@@ -108,7 +108,7 @@ class _TambahPemilikScreenState extends ConsumerState<TambahPemilikScreen> {
               controller: _nama,
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
-                labelText: 'Nama Pemilik',
+                labelText: 'Nama Pengguna',
               ),
             ),
             const SizedBox(height: 12),

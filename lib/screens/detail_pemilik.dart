@@ -7,12 +7,18 @@ import '../models/acara.dart';
 import '../models/pemilik.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
+import '../theme/tema_aplikasi.dart';
+import '../widgets/elemen.dart';
 import '../widgets/keadaan.dart';
 import 'buat_acara.dart';
 
-/// Detail satu pemilik untuk admin (Batch 6): profil, ringkasan,
+/// Detail satu pengguna untuk admin (Batch 6): profil, ringkasan,
 /// daftar acaranya, dan aksi Buat Acara / Reset Sandi / Blokir.
-/// Dibuka dengan mengetuk kartu pemilik di Panel Admin.
+/// Dibuka dengan mengetuk kartu pengguna di Panel Admin.
+///
+/// Dirapikan Batch 28 senada Panel Admin: istilah "Pengguna",
+/// profil tanpa avatar inisial, dan ringkasan sebagai panel
+/// gradasi zamrud.
 class DetailPemilikScreen extends ConsumerWidget {
   const DetailPemilikScreen({super.key, required this.pemilikAwal});
 
@@ -22,7 +28,7 @@ class DetailPemilikScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final admin = ref.watch(adminServiceProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Detail Pemilik')),
+      appBar: AppBar(title: const Text('Detail Pengguna')),
       body: StreamBuilder<List<Pemilik>>(
         stream: admin.semuaPemilikStream(),
         builder: (context, snapPemilik) {
@@ -51,38 +57,14 @@ class DetailPemilikScreen extends ConsumerWidget {
                 children: [
                   _KartuProfil(pemilik: pemilik),
                   const SizedBox(height: 12),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _Angka(
-                            label: 'Acara',
-                            nilai: '${ringkasan.jumlahAcara}',
-                          ),
-                          _Angka(
-                            label: 'Pengunjung',
-                            nilai: '${ringkasan.totalAmplop}',
-                          ),
-                          _Angka(
-                            label: 'Total',
-                            nilai: formatRupiah(ringkasan.totalRp),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+                  _KartuRingkasan(ringkasan: ringkasan),
+                  const SizedBox(height: 16),
                   _DeretAksi(pemilik: pemilik),
                   const SizedBox(height: 20),
-                  Text(
-                    'Acara Miliknya (${acaranya.length})',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
+                  JudulBagian(teks: 'Acara (${acaranya.length})'),
+                  const SizedBox(height: 10),
                   if (acaranya.isEmpty)
-                    const Text('Belum ada acara untuk pemilik ini.')
+                    const Text('Belum ada acara untuk pengguna ini.')
                   else
                     for (final a in acaranya) _BarisAcara(acara: a),
                 ],
@@ -95,6 +77,9 @@ class DetailPemilikScreen extends ConsumerWidget {
   }
 }
 
+/// Profil pengguna (Batch 28): nama besar + chip status, lalu
+/// rincian berikon (email, no HP, tanggal terdaftar) — tanpa
+/// avatar inisial, senada kartu pengguna di Panel Admin.
 class _KartuProfil extends StatelessWidget {
   const _KartuProfil({required this.pemilik});
 
@@ -102,47 +87,208 @@ class _KartuProfil extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final skema = tema.colorScheme;
     return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          radius: 24,
-          child: Text(
-            pemilik.nama.isEmpty ? '?' : pemilik.nama[0].toUpperCase(),
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-        ),
-        title: Text(pemilik.nama.isEmpty ? '(tanpa nama)' : pemilik.nama),
-        subtitle: Text(
-          [
-            if (pemilik.email != null) pemilik.email!,
-            if (pemilik.noHp != null) pemilik.noHp!,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    pemilik.nama.isEmpty ? '(tanpa nama)' : pemilik.nama,
+                    style: tema.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Chip(
+                  label: Text(pemilik.diblokir ? 'Diblokir' : 'Aktif'),
+                  backgroundColor: pemilik.diblokir
+                      ? skema.errorContainer
+                      : skema.primaryContainer,
+                  labelStyle: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: pemilik.diblokir
+                        ? skema.onErrorContainer
+                        : skema.onPrimaryContainer,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (pemilik.email != null)
+              _RincianProfil(
+                ikon: Icons.mail_outline,
+                teks: pemilik.email!,
+              ),
+            if (pemilik.noHp != null)
+              _RincianProfil(
+                ikon: Icons.phone_outlined,
+                teks: pemilik.noHp!,
+              ),
             if (pemilik.createdAt != null)
-              'Terdaftar ${formatTanggal(pemilik.createdAt!)}',
-          ].join('\n'),
-        ),
-        isThreeLine: true,
-        trailing: Chip(
-          label: Text(pemilik.diblokir ? 'Diblokir' : 'Aktif'),
-          visualDensity: VisualDensity.compact,
+              _RincianProfil(
+                ikon: Icons.calendar_month_outlined,
+                teks: 'Terdaftar ${formatTanggal(pemilik.createdAt!)}',
+              ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _Angka extends StatelessWidget {
-  const _Angka({required this.label, required this.nilai});
+class _RincianProfil extends StatelessWidget {
+  const _RincianProfil({required this.ikon, required this.teks});
 
-  final String label;
-  final String nilai;
+  final IconData ikon;
+  final String teks;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(nilai, style: Theme.of(context).textTheme.titleMedium),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
+    final tema = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Icon(ikon, size: 16, color: tema.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              teks,
+              style: tema.textTheme.bodyMedium?.copyWith(
+                color: tema.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ringkasan pengguna (Batch 28): panel gradasi zamrud senada
+/// Panel Admin — total terkumpul besar + statistik berikon.
+class _KartuRingkasan extends StatelessWidget {
+  const _KartuRingkasan({required this.ringkasan});
+
+  final RingkasanPemilikAdmin ringkasan;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: TemaAplikasi.gradasiPahlawan,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: TemaAplikasi.zamrud.withValues(alpha: 0.30),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            top: -46,
+            right: -30,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Total Terkumpul',
+                  style: tema.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.75),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  formatRupiah(ringkasan.totalRp),
+                  style: tema.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    _StatRingkasan(
+                      ikon: Icons.event_outlined,
+                      nilai: '${ringkasan.jumlahAcara}',
+                      label: 'Acara',
+                    ),
+                    _StatRingkasan(
+                      ikon: Icons.people_outline,
+                      nilai: '${ringkasan.totalAmplop}',
+                      label: 'Pengunjung',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatRingkasan extends StatelessWidget {
+  const _StatRingkasan({
+    required this.ikon,
+    required this.nilai,
+    required this.label,
+  });
+
+  final IconData ikon;
+  final String nilai;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(ikon, size: 20, color: Colors.white.withValues(alpha: 0.85)),
+          const SizedBox(height: 6),
+          Text(
+            nilai,
+            style: tema.textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            label,
+            style: tema.textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -163,7 +309,7 @@ class _DeretAksi extends ConsumerWidget {
   Future<void> _resetSandi(BuildContext context, WidgetRef ref) async {
     final email = pemilik.email;
     if (email == null || email.isEmpty) {
-      _beriTahu(context, 'Pemilik ini belum punya email tersimpan.');
+      _beriTahu(context, 'Pengguna ini belum punya email tersimpan.');
       return;
     }
     final yakin = await showDialog<bool>(
@@ -204,14 +350,13 @@ class _DeretAksi extends ConsumerWidget {
     final yakin = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(memblokir ? 'Blokir pemilik?' : 'Aktifkan kembali?'),
+        title: Text(memblokir ? 'Blokir pengguna?' : 'Aktifkan kembali?'),
         content: Text(
           memblokir
-              ? '${pemilik.nama} tidak akan bisa masuk sebagai pemilik '
-                    'atau dibuatkan acara selama diblokir. Data yang '
-                    'sudah ada TIDAK dihapus.'
-              : '${pemilik.nama} akan bisa memakai aplikasinya lagi '
-                    'sebagai pemilik.',
+              ? '${pemilik.nama} tidak akan bisa masuk atau dibuatkan '
+                    'acara selama diblokir. Data yang sudah ada '
+                    'TIDAK dihapus.'
+              : '${pemilik.nama} akan bisa memakai aplikasinya lagi.',
         ),
         actions: [
           TextButton(
@@ -293,7 +438,10 @@ class _BarisAcara extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        title: Text(acara.namaAcara),
+        title: Text(
+          acara.namaAcara,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
         subtitle: Text(
           '${acara.jenis} • ${formatTanggal(acara.tanggal)} • '
           '${acara.totalAmplop} pengunjung • ${acara.totalBundel} bundel • '
@@ -301,10 +449,7 @@ class _BarisAcara extends StatelessWidget {
           'Kode gabung: ${acara.kodeGabung}',
         ),
         isThreeLine: true,
-        trailing: Chip(
-          label: Text(acara.sudahSelesai ? 'Selesai' : 'Aktif'),
-          visualDensity: VisualDensity.compact,
-        ),
+        trailing: ChipStatusAcara(status: acara.status),
       ),
     );
   }

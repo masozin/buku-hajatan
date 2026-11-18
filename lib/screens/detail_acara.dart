@@ -13,6 +13,7 @@ import '../widgets/elemen.dart';
 import '../widgets/kartu_total.dart';
 import '../widgets/keadaan.dart';
 import 'daftar_pengunjung.dart';
+import 'info_aplikasi.dart';
 import 'koreksi_amplop.dart';
 import 'pencatatan.dart';
 import 'rekap.dart';
@@ -91,6 +92,7 @@ class DetailAcaraScreen extends ConsumerWidget {
                 // Pencatat kini bermuara langsung ke panel ini
                 // (Batch 8) — beri jalan keluar sesi di sini.
                 actions: [
+                const TombolInfo(),
                 IconButton(
                   tooltip: 'Keluar',
                   icon: const Icon(Icons.logout),
@@ -160,6 +162,7 @@ class DetailAcaraScreen extends ConsumerWidget {
           child: Scaffold(
             appBar: AppBar(
               title: const Text('Detail Acara'),
+              actions: const [TombolInfo()],
               bottom: const TabBar(
                 tabs: [
                   Tab(icon: Icon(Icons.summarize_outlined), text: 'Ringkasan'),
