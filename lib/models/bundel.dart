@@ -29,6 +29,7 @@ class Bundel {
     this.totalRp = 0,
     this.jumlahKosong = 0,
     this.jumlahTanpaNama = 0,
+    this.bebas = false,
     this.createdAt,
     this.ditutupAt,
   });
@@ -45,13 +46,19 @@ class Bundel {
   final int totalRp;
   final int jumlahKosong;
   final int jumlahTanpaNama;
+
+  /// Bundel BEBAS (Batch 30): wadah Metode Langsung — satu per
+  /// pencatat, nomor 0, tidak pernah penuh, urut amplop berjalan
+  /// terus. Tidak ditampilkan sebagai bundel di UI.
+  final bool bebas;
   final DateTime? createdAt;
   final DateTime? ditutupAt;
 
   /// Kode bundel seperti di buku manual, mis. `A003`.
   String get kode => buatKodeBundel(prefix, nomor);
 
-  bool get sudahPenuh => status == StatusBundel.penuh || jumlahAmplop >= 10;
+  bool get sudahPenuh =>
+      !bebas && (status == StatusBundel.penuh || jumlahAmplop >= 10);
 
   factory Bundel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc, {
@@ -69,6 +76,7 @@ class Bundel {
       totalRp: (data['totalRp'] as num?)?.toInt() ?? 0,
       jumlahKosong: (data['jumlahKosong'] as num?)?.toInt() ?? 0,
       jumlahTanpaNama: (data['jumlahTanpaNama'] as num?)?.toInt() ?? 0,
+      bebas: data['bebas'] == true,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       ditutupAt: (data['ditutupAt'] as Timestamp?)?.toDate(),
     );
@@ -85,6 +93,7 @@ class Bundel {
       'totalRp': totalRp,
       'jumlahKosong': jumlahKosong,
       'jumlahTanpaNama': jumlahTanpaNama,
+      'bebas': bebas,
       'createdAt': createdAt == null
           ? FieldValue.serverTimestamp()
           : Timestamp.fromDate(createdAt!),

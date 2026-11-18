@@ -12,6 +12,28 @@ enum StatusAcara {
   String get label => this == StatusAcara.aktif ? 'Aktif' : 'Selesai';
 }
 
+/// Metode pencatatan acara (Batch 30, rancangan multi-metode v2):
+/// dimensi WADAH — amplop dikelompokkan per bundel, atau dicatat
+/// mengalir tanpa bundel. Dimensi lain (pengisi petugas/buku tamu
+/// dan fitur daftar undangan/QR) adalah pengaturan terpisah di
+/// dokumen acara, bukan nilai enum ini.
+enum MetodePencatatan {
+  bundel,
+  langsung;
+
+  static MetodePencatatan dariString(String? nilai) {
+    return nilai == 'langsung' ? MetodePencatatan.langsung : MetodePencatatan.bundel;
+  }
+
+  String get label => this == MetodePencatatan.bundel
+      ? 'Bundel (per 10, masuk kotak)'
+      : 'Langsung (tanpa bundel)';
+
+  String get penjelasan => this == MetodePencatatan.bundel
+      ? 'Amplop dikelompokkan per 10 berkode lalu dimasukkan ke kotak — cara buku manual.'
+      : 'Pengunjung dicatat mengalir satu per satu; tidak ada kelompok bundel dan kode bundel.';
+}
+
 /// Satu hajatan. Dokumen: `acara/{acaraId}`.
 ///
 /// Field [totalAmplop], [totalRp], [totalBundel] adalah AGREGAT yang
@@ -30,6 +52,9 @@ class Acara {
     required this.tanggal,
     this.lokasi,
     this.status = StatusAcara.aktif,
+    this.metodePencatatan = MetodePencatatan.bundel,
+    this.fiturUndangan = false,
+    this.fiturBukuTamu = false,
     required this.kodeGabung,
     this.totalAmplop = 0,
     this.totalRp = 0,
@@ -49,6 +74,21 @@ class Acara {
   final DateTime tanggal;
   final String? lokasi;
   final StatusAcara status;
+
+  /// Metode wadah pencatatan (Batch 30). Acara lama tanpa field
+  /// ini terbaca sebagai bundel — tanpa migrasi.
+  final MetodePencatatan metodePencatatan;
+
+  /// Fitur tambahan (Batch 30 sakelarnya; fungsinya Batch 32):
+  /// daftar tamu disiapkan dulu, pencatat menandai hadir.
+  final bool fiturUndangan;
+
+  /// Fitur tambahan (Batch 30 sakelarnya; fungsinya Batch 31):
+  /// perangkat pencatat boleh masuk Mode Buku Tamu.
+  final bool fiturBukuTamu;
+
+  bool get metodeLangsung =>
+      metodePencatatan == MetodePencatatan.langsung;
 
   /// Kode 6 karakter untuk pencatat bergabung (pasangannya: PIN gabung).
   final String kodeGabung;
@@ -76,6 +116,11 @@ class Acara {
       tanggal: (data['tanggal'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lokasi: data['lokasi'] as String?,
       status: StatusAcara.dariString(data['status'] as String?),
+      metodePencatatan: MetodePencatatan.dariString(
+        data['metodePencatatan'] as String?,
+      ),
+      fiturUndangan: data['fiturUndangan'] == true,
+      fiturBukuTamu: data['fiturBukuTamu'] == true,
       kodeGabung: (data['kodeGabung'] as String?) ?? '',
       totalAmplop: (data['totalAmplop'] as num?)?.toInt() ?? 0,
       totalRp: (data['totalRp'] as num?)?.toInt() ?? 0,
@@ -94,6 +139,9 @@ class Acara {
       'tanggal': Timestamp.fromDate(tanggal),
       'lokasi': lokasi,
       'status': status.name,
+      'metodePencatatan': metodePencatatan.name,
+      'fiturUndangan': fiturUndangan,
+      'fiturBukuTamu': fiturBukuTamu,
       'kodeGabung': kodeGabung,
       'totalAmplop': totalAmplop,
       'totalRp': totalRp,

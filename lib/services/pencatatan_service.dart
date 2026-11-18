@@ -182,6 +182,61 @@ class PencatatanService {
     return bundelBaru;
   }
 
+  /// Buka (atau buat bila belum ada) BUNDEL BEBAS pencatat ini
+  /// (Batch 30, Metode Langsung): satu wadah per pencatat yang
+  /// tidak pernah penuh. Berbeda dengan bundel fisik: pembuatan-
+  /// nya TIDAK menaikkan totalBundel acara maupun
+  /// nomorBundelTerakhir pencatat, dan penulisannya cukup satu
+  /// set (tidak ada agregat lain yang berubah).
+  Future<Bundel> bukaBundelBebas({
+    required String acaraId,
+    required String pencatatId,
+  }) async {
+    final refAcara = _db.collection('acara').doc(acaraId);
+    final refPencatat = refAcara.collection('pencatat').doc(pencatatId);
+
+    final docAcara = await refAcara.get();
+    if (!docAcara.exists) {
+      throw const LayananException('Acara tidak ditemukan.');
+    }
+    if (Acara.fromFirestore(docAcara).sudahSelesai) {
+      throw const LayananException(
+        'Acara sudah selesai — pencatatan ditutup.',
+      );
+    }
+    final docPencatat = await refPencatat.get();
+    if (!docPencatat.exists) {
+      throw const LayananException('Kamu belum terdaftar di acara ini.');
+    }
+    final pencatat = Pencatat.fromFirestore(docPencatat, acaraId: acaraId);
+    if (!pencatat.aktif) {
+      throw const LayananException(
+        'Statusmu sedang dinonaktifkan pemilik acara.',
+      );
+    }
+    _periksaSesi(pencatat);
+
+    final snap = await _bundelRef(
+      acaraId,
+    ).where('pencatatId', isEqualTo: pencatatId).get();
+    for (final doc in snap.docs) {
+      final bundel = Bundel.fromFirestore(doc, acaraId: acaraId);
+      if (bundel.bebas) return bundel;
+    }
+
+    final refBaru = _bundelRef(acaraId).doc();
+    final baru = Bundel(
+      id: refBaru.id,
+      acaraId: acaraId,
+      pencatatId: pencatatId,
+      prefix: pencatat.prefix,
+      nomor: 0,
+      bebas: true,
+    );
+    await refBaru.set(baru.toMap());
+    return baru;
+  }
+
   // -------------------------------------------------------------- amplop
 
   /// Isi satu bundel, urut 1..10, lengkap dengan status sinkron
@@ -269,14 +324,18 @@ class PencatatanService {
     if (bundelKini.pencatatId != pencatatId) {
       throw const LayananException('Bundel ini milik pencatat lain.');
     }
-    if (bundelPenuh(bundelKini.jumlahAmplop)) {
+    // Bundel bebas (Batch 30) tidak pernah penuh dan tidak
+    // pernah menutup — urutnya berjalan terus.
+    if (!bundelKini.bebas && bundelPenuh(bundelKini.jumlahAmplop)) {
       throw LayananException(
         'Bundel ${bundelKini.kode} sudah penuh — buka bundel baru.',
       );
     }
 
     final urut = urutBerikutnya(bundelKini.jumlahAmplop);
-    final menutup = amplopIniMenutupBundel(bundelKini.jumlahAmplop);
+    final menutup =
+        !bundelKini.bebas &&
+        amplopIniMenutupBundel(bundelKini.jumlahAmplop);
 
     final amplop = Amplop(
       id: '',
@@ -347,6 +406,7 @@ class PencatatanService {
         jumlahTanpaNama:
             bundelKini.jumlahTanpaNama +
             (jenis == JenisAmplop.tanpaNama ? 1 : 0),
+        bebas: bundelKini.bebas,
         createdAt: bundelKini.createdAt,
         ditutupAt: menutup ? DateTime.now() : bundelKini.ditutupAt,
       ),

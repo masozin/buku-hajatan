@@ -165,6 +165,132 @@ class EksporService {
     ], text: 'Rekap pengunjung acara ${acara.namaAcara} (Excel)');
   }
 
+  /// Excel DATAR untuk Metode Langsung (Batch 30): satu baris
+  /// per pengunjung tanpa pengelompokan bundel — No berjalan,
+  /// Nama, Alamat gabungan, Nominal, Jenis, Pencatat (prefix),
+  /// Keterangan, Waktu; TOTAL di bawah seperti format buku.
+  Future<void> eksporExcelDatar({
+    required Acara acara,
+    required String tanggalTeks,
+    required List<BundelTerisi> data,
+  }) async {
+    final baris = buatBarisEkspor(data);
+    if (baris.isEmpty) {
+      throw const LayananException(
+        'Belum ada pengunjung tercatat — tidak ada yang bisa diekspor.',
+      );
+    }
+
+    final buku = Excel.createExcel();
+    final sheet = buku['Daftar Pengunjung'];
+    buku.delete('Sheet1');
+
+    sheet.setColumnWidth(0, 5);
+    sheet.setColumnWidth(1, 32);
+    sheet.setColumnWidth(2, 46);
+    sheet.setColumnWidth(3, 16);
+    sheet.setColumnWidth(4, 13);
+    sheet.setColumnWidth(5, 11);
+    sheet.setColumnWidth(6, 28);
+    sheet.setColumnWidth(7, 17);
+
+    void tulisSel(
+      int kolom,
+      int barisKe,
+      CellValue nilai, {
+      bool tebal = false,
+    }) {
+      final sel = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: kolom, rowIndex: barisKe),
+      );
+      sel.value = nilai;
+      if (tebal) sel.cellStyle = CellStyle(bold: true);
+    }
+
+    tulisSel(0, 0, TextCellValue('BUKU HAJATAN — DAFTAR PENGUNJUNG'), tebal: true);
+    tulisSel(0, 1, TextCellValue('Acara'));
+    tulisSel(1, 1, TextCellValue(acara.namaAcara));
+    tulisSel(0, 2, TextCellValue('Tuan Rumah'));
+    tulisSel(1, 2, TextCellValue(acara.tuanRumah));
+    tulisSel(0, 3, TextCellValue('Jenis / Tanggal'));
+    tulisSel(1, 3, TextCellValue('${acara.jenis} / $tanggalTeks'));
+
+    const barisHeader = 5;
+    const judulKolom = [
+      'No',
+      'Nama',
+      'Alamat',
+      'Nominal (Rp)',
+      'Jenis',
+      'Pencatat',
+      'Keterangan',
+      'Waktu',
+    ];
+    for (var k = 0; k < judulKolom.length; k++) {
+      tulisSel(k, barisHeader, TextCellValue(judulKolom[k]), tebal: true);
+    }
+
+    var r = barisHeader + 1;
+    var totalRp = 0;
+    var jumlahKosong = 0;
+    var jumlahTanpaNama = 0;
+    for (var i = 0; i < baris.length; i++) {
+      final b = baris[i];
+      tulisSel(0, r, IntCellValue(i + 1));
+      tulisSel(1, r, TextCellValue(b.nama));
+      tulisSel(
+        2,
+        r,
+        TextCellValue(
+          gabungAlamat(
+            alamat: b.alamat,
+            dusun: b.dusun,
+            rt: b.rt,
+            rw: b.rw,
+          ),
+        ),
+      );
+      tulisSel(3, r, IntCellValue(b.nominal));
+      tulisSel(4, r, TextCellValue(b.jenis.label));
+      tulisSel(5, r, TextCellValue(b.prefixPencatat));
+      if (b.keterangan != null && b.keterangan!.isNotEmpty) {
+        tulisSel(6, r, TextCellValue(b.keterangan!));
+      }
+      if (b.waktu != null) {
+        tulisSel(7, r, TextCellValue(formatWaktuCsv(b.waktu!)));
+      }
+      totalRp += b.nominal;
+      if (b.jenis == JenisAmplop.kosong) jumlahKosong++;
+      if (b.jenis == JenisAmplop.tanpaNama) jumlahTanpaNama++;
+      r++;
+    }
+
+    r += 1;
+    tulisSel(1, r, TextCellValue('TOTAL'), tebal: true);
+    tulisSel(3, r, IntCellValue(totalRp), tebal: true);
+    r += 1;
+    tulisSel(
+      1,
+      r,
+      TextCellValue(
+        'Jumlah pengunjung: ${baris.length} '
+        '(kosong: $jumlahKosong, tanpa nama: $jumlahTanpaNama)',
+      ),
+    );
+
+    final bytes = buku.encode();
+    if (bytes == null) {
+      throw const LayananException('Gagal membuat file Excel.');
+    }
+    final file = await _tulisFileSementara(
+      buatNamaFile(acara.namaAcara, 'xlsx'),
+      bytes,
+    );
+    await Share.shareXFiles([
+      XFile(file.path),
+    ], text: 'Daftar pengunjung acara ${acara.namaAcara} (Excel)');
+  }
+
   /// Buat file .csv lalu buka share sheet.
   Future<void> eksporCsv({
     required Acara acara,
@@ -177,7 +303,9 @@ class EksporService {
       );
     }
     // BOM UTF-8 supaya Excel di Windows langsung membaca dengan benar.
-    final isi = '\uFEFF${buatCsv(baris)}';
+    // Batch 30: Metode Langsung memakai CSV datar (tanpa kode bundel).
+    final isi =
+        '\uFEFF${acara.metodeLangsung ? buatCsvDatar(baris) : buatCsv(baris)}';
     final file = await _tulisFileSementara(
       buatNamaFile(acara.namaAcara, 'csv'),
       utf8.encode(isi),

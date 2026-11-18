@@ -830,3 +830,16 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   bisa diketuk membuka daftar pengunjung kelompoknya; kelompok
   alamat urut abjad. Rules: ubah pencatat kini mengizinkan field
   RT/RW (sempat tertinggal dari daftar field Batch 25).
+- Batch 30 (Metode Langsung — rancangan multi-metode v2, tahap 1):
+  acara gains metodePencatatan (bundel/langsung) + sakelar
+  fiturUndangan & fiturBukuTamu (sakelarnya menyimpan pilihan;
+  fungsi Buku Tamu Batch 31, Daftar Undangan Batch 32). Admin
+  memilih metode & fitur di Buat Acara; pemilik bisa mengganti
+  metode selama acara masih kosong dari kartu Metode & Fitur di
+  Ringkasan Detail Acara. Metode Langsung: pencatat mencatat ke
+  satu "bundel bebas" per pencatat (urut berjalan terus, tidak
+  pernah penuh), tab Bundel disembunyikan, kode bundel hilang
+  dari baris/detail/ekspor, statistik Bundel hilang dari kartu
+  total, ekspor Excel & CSV menjadi format datar (PDF memang
+  sudah datar). Rules: batas urut 10 hanya berlaku untuk acara
+  ber-metode bundel (fungsi metodeLangsung membaca field acara).

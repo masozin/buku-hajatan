@@ -88,6 +88,7 @@ class BundelTerisi {
 class BarisEkspor {
   const BarisEkspor({
     required this.kodeBundel,
+    this.prefixPencatat = '',
     required this.urut,
     required this.nama,
     required this.alamat,
@@ -101,6 +102,10 @@ class BarisEkspor {
   });
 
   final String kodeBundel;
+
+  /// Prefix pencatat pemilik bundel (Batch 30, untuk kolom
+  /// Pencatat di ekspor datar Metode Langsung).
+  final String prefixPencatat;
   final int urut;
   final String nama;
   final String alamat;
@@ -134,6 +139,7 @@ List<BarisEkspor> buatBarisEkspor(List<BundelTerisi> data) {
       baris.add(
         BarisEkspor(
           kodeBundel: bt.bundel.kode,
+          prefixPencatat: bt.bundel.prefix,
           urut: a.urut,
           nama: a.tampilNama,
           alamat: a.alamat ?? '',
@@ -221,6 +227,39 @@ String buatCsv(List<BarisEkspor> baris) {
         ),
         b.nominal.toString(),
         selCsv(b.jenis.label),
+        selCsv(b.keterangan ?? ''),
+        selCsv(b.waktu == null ? '' : formatWaktuCsv(b.waktu!)),
+      ].join(','),
+    );
+  }
+  return sb.toString();
+}
+
+/// CSV DATAR untuk Metode Langsung (Batch 30): tanpa kolom kode
+/// bundel (tidak ada bundel) — nomor berjalan 1..N mengikuti
+/// urutan baris (per pencatat, lalu urut catat), plus kolom
+/// Pencatat berisi prefix pencatatnya.
+String buatCsvDatar(List<BarisEkspor> baris) {
+  final sb = StringBuffer();
+  sb.writeln('No,Nama,Alamat,Nominal (Rp),Jenis,Pencatat,Keterangan,Waktu');
+  var no = 0;
+  for (final b in baris) {
+    no++;
+    sb.writeln(
+      [
+        no.toString(),
+        selCsv(b.nama),
+        selCsv(
+          gabungAlamat(
+            alamat: b.alamat,
+            dusun: b.dusun,
+            rt: b.rt,
+            rw: b.rw,
+          ),
+        ),
+        b.nominal.toString(),
+        selCsv(b.jenis.label),
+        selCsv(b.prefixPencatat),
         selCsv(b.keterangan ?? ''),
         selCsv(b.waktu == null ? '' : formatWaktuCsv(b.waktu!)),
       ].join(','),

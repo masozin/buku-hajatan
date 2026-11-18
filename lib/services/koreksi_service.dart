@@ -124,7 +124,8 @@ class KoreksiService {
     final galat = validasiAmplop(jenis: jenis, nama: nama, nominal: nominal);
     if (galat != null) throw LayananException(galat);
     final bundel = (await _pastikanBolehKoreksi(acaraId, bundelId)).bundel;
-    if (bundelPenuh(bundel.jumlahAmplop)) {
+    // Bundel bebas (Batch 30) tidak pernah penuh.
+    if (!bundel.bebas && bundelPenuh(bundel.jumlahAmplop)) {
       throw const LayananException(
         'Bundel ini sudah penuh (10 pengunjung) — tambah tidak tersedia. '
         'Pilih bundel lain yang belum penuh.',
@@ -132,17 +133,22 @@ class KoreksiService {
     }
     final namaEfektif = namaSimpan(jenis, nama);
     final nominalEfektif = nominalSimpan(jenis, nominal);
-    final menutup = amplopIniMenutupBundel(bundel.jumlahAmplop);
+    final menutup =
+        !bundel.bebas && amplopIniMenutupBundel(bundel.jumlahAmplop);
 
     // Nomor urut dari slot kosong, bukan jumlah + 1: setelah hapus di
     // tengah bundel, nomor lama tetap terpakai (lihat slotUrutKosong).
+    // Bundel bebas: urut berjalan terus — nomor terbesar + 1.
     final refBundel = _refBundel(acaraId, bundelId);
     final snapAmplop = await refBundel.collection('amplop').get();
-    final urut = slotUrutKosong(
-      snapAmplop.docs.map(
-        (d) => Amplop.fromFirestore(d, bundelId: bundelId).urut,
-      ),
-    );
+    final urutTerpakai = snapAmplop.docs
+        .map((d) => Amplop.fromFirestore(d, bundelId: bundelId).urut)
+        .toList();
+    final int? urut = bundel.bebas
+        ? (urutTerpakai.isEmpty
+              ? 1
+              : urutTerpakai.reduce((a, b) => a > b ? a : b) + 1)
+        : slotUrutKosong(urutTerpakai);
     if (urut == null) {
       throw const LayananException('Bundel ini sudah penuh (10 pengunjung).');
     }
@@ -253,7 +259,8 @@ class KoreksiService {
     required Amplop amplop,
   }) async {
     final bundel = (await _pastikanBolehKoreksi(acaraId, bundelId)).bundel;
-    final tadinyaPenuh = bundelPenuh(bundel.jumlahAmplop);
+    final tadinyaPenuh =
+        !bundel.bebas && bundelPenuh(bundel.jumlahAmplop);
 
     final refBundel = _refBundel(acaraId, bundelId);
     final batch = _db.batch();

@@ -48,11 +48,20 @@ class _RekapScreenState extends ConsumerState<RekapScreen> {
           .ambilDataLengkap(acara.id);
       final ekspor = ref.read(eksporServiceProvider);
       if (format == 'excel') {
-        await ekspor.eksporExcel(
-          acara: acara,
-          tanggalTeks: formatTanggal(acara.tanggal),
-          data: data,
-        );
+        // Batch 30: Metode Langsung memakai Excel datar.
+        if (acara.metodeLangsung) {
+          await ekspor.eksporExcelDatar(
+            acara: acara,
+            tanggalTeks: formatTanggal(acara.tanggal),
+            data: data,
+          );
+        } else {
+          await ekspor.eksporExcel(
+            acara: acara,
+            tanggalTeks: formatTanggal(acara.tanggal),
+            data: data,
+          );
+        }
       } else if (format == 'pdf') {
         await ekspor.eksporPdf(
           acara: acara,
@@ -103,9 +112,17 @@ class _RekapScreenState extends ConsumerState<RekapScreen> {
                 onPdf: () => _ekspor(acara, 'pdf'),
               ),
               const SizedBox(height: 16),
-              _PerPencatat(acaraId: acara.id, sudahSelesai: acara.sudahSelesai),
+              _PerPencatat(
+                acaraId: acara.id,
+                sudahSelesai: acara.sudahSelesai,
+                tanpaBundel: acara.metodeLangsung,
+              ),
               const SizedBox(height: 16),
-              _PerAlamat(acaraId: acara.id, sudahSelesai: acara.sudahSelesai),
+              _PerAlamat(
+                acaraId: acara.id,
+                sudahSelesai: acara.sudahSelesai,
+                tanpaBundel: acara.metodeLangsung,
+              ),
             ],
           );
         },
@@ -306,13 +323,20 @@ class _KartuEkspor extends StatelessWidget {
 
 /// Rincian per pencatat dari stream bundel.
 class _PerPencatat extends ConsumerWidget {
-  const _PerPencatat({required this.acaraId, required this.sudahSelesai});
+  const _PerPencatat({
+    required this.acaraId,
+    required this.sudahSelesai,
+    this.tanpaBundel = false,
+  });
 
   final String acaraId;
 
   /// Diteruskan ke daftar grup: menentukan hak Ubah/Hapus di
   /// lembar detail (koreksi pemilik hanya setelah selesai).
   final bool sudahSelesai;
+
+  /// Metode Langsung (Batch 30): diteruskan ke daftar grup.
+  final bool tanpaBundel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -368,6 +392,7 @@ class _PerPencatat extends ConsumerWidget {
                                     ? 'Pencatat ${r.prefix}'
                                     : r.nama,
                                 pencatatId: r.pencatatId,
+                                tanpaBundel: tanpaBundel,
                               ),
                             ),
                           );
@@ -461,12 +486,19 @@ class _PerPencatat extends ConsumerWidget {
 /// bisa diketuk membuka daftar pengunjung kelompok itu — pulang
 /// dari daftar, ringkasan di sini dimuat ulang.
 class _PerAlamat extends ConsumerStatefulWidget {
-  const _PerAlamat({required this.acaraId, required this.sudahSelesai});
+  const _PerAlamat({
+    required this.acaraId,
+    required this.sudahSelesai,
+    this.tanpaBundel = false,
+  });
 
   final String acaraId;
 
   /// Diteruskan ke daftar grup: hak Ubah/Hapus di lembar detail.
   final bool sudahSelesai;
+
+  /// Metode Langsung (Batch 30): diteruskan ke daftar grup.
+  final bool tanpaBundel;
 
   @override
   ConsumerState<_PerAlamat> createState() => _PerAlamatState();
@@ -532,6 +564,7 @@ class _PerAlamatState extends ConsumerState<_PerAlamat> {
                               sudahSelesai: widget.sudahSelesai,
                               judul: r.alamat,
                               kunciAlamat: r.kunci,
+                              tanpaBundel: widget.tanpaBundel,
                             ),
                           ),
                         );

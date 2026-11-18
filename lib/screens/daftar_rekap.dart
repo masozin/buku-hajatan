@@ -32,6 +32,7 @@ class DaftarRekapGrupScreen extends ConsumerStatefulWidget {
     required this.judul,
     this.pencatatId,
     this.kunciAlamat,
+    this.tanpaBundel = false,
   });
 
   final String acaraId;
@@ -49,6 +50,9 @@ class DaftarRekapGrupScreen extends ConsumerStatefulWidget {
   /// Kelompok per alamat: RingkasanAlamat.kunci ('' = tanpa
   /// alamat).
   final String? kunciAlamat;
+
+  /// Metode Langsung (Batch 30): kode bundel disembunyikan.
+  final bool tanpaBundel;
 
   @override
   ConsumerState<DaftarRekapGrupScreen> createState() =>
@@ -117,7 +121,7 @@ class _DaftarRekapGrupScreenState
     final hasil = await tampilkanDetailPengunjung(
       context: context,
       amplop: ditemukan.amplop,
-      kodeBundel: ditemukan.kodeBundel,
+      kodeBundel: widget.tanpaBundel ? '' : ditemukan.kodeBundel,
       bisaUbah: bisa,
       bisaHapus: bisa,
       onHapus: (bisa && b != null)
@@ -194,6 +198,7 @@ class _DaftarRekapGrupScreenState
                 final ditemukan = tampil[i - 1];
                 return _BarisItemRekap(
                   ditemukan: ditemukan,
+                  tampilkanKode: !widget.tanpaBundel,
                   onTap: () => _tampilkanDetail(
                     ditemukan,
                     petaBundel[ditemukan.kodeBundel],
@@ -213,9 +218,16 @@ class _DaftarRekapGrupScreenState
 /// bundel-urut di kanan — bahasa visual yang sama dengan baris
 /// tab Pengunjung, tanpa tombol aksi (aksi ada di detail).
 class _BarisItemRekap extends StatelessWidget {
-  const _BarisItemRekap({required this.ditemukan, this.onTap});
+  const _BarisItemRekap({
+    required this.ditemukan,
+    this.tampilkanKode = true,
+    this.onTap,
+  });
 
   final AmplopDitemukan ditemukan;
+
+  /// false pada Metode Langsung (Batch 30).
+  final bool tampilkanKode;
   final VoidCallback? onTap;
 
   @override
@@ -287,11 +299,13 @@ class _BarisItemRekap extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${ditemukan.kodeBundel}-${a.urut}',
-                    style: gayaSamping,
-                  ),
+                  if (tampilkanKode) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      '${ditemukan.kodeBundel}-${a.urut}',
+                      style: gayaSamping,
+                    ),
+                  ],
                 ],
               ),
             ],

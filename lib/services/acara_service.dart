@@ -40,6 +40,9 @@ class AcaraService {
     required DateTime tanggal,
     String? lokasi,
     required String pinGabung,
+    MetodePencatatan metodePencatatan = MetodePencatatan.bundel,
+    bool fiturUndangan = false,
+    bool fiturBukuTamu = false,
   }) async {
     // Cari kode gabung yang belum dipakai (tabrakan sangat jarang,
     // tapi tetap diperiksa karena kode ini kunci pencarian acara).
@@ -59,6 +62,9 @@ class AcaraService {
       jenis: jenis,
       tanggal: tanggal,
       lokasi: (lokasi == null || lokasi.trim().isEmpty) ? null : lokasi.trim(),
+      metodePencatatan: metodePencatatan,
+      fiturUndangan: fiturUndangan,
+      fiturBukuTamu: fiturBukuTamu,
       kodeGabung: kode,
     );
 
@@ -130,6 +136,25 @@ class AcaraService {
   Future<void> ubahStatusAcara(String acaraId, StatusAcara status) {
     return _acara.doc(acaraId).update(<String, dynamic>{
       'status': status.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Ubah pengaturan metode & fitur acara (Batch 30): hanya field
+  /// yang diteruskan yang ditulis. Haknya dijaga rules (pemilik
+  /// acara bebas mengubah dokumen acaranya); kunci "metode tidak
+  /// boleh diganti setelah ada catatan" dijaga UI Detail Acara.
+  Future<void> ubahPengaturanAcara(
+    String acaraId, {
+    MetodePencatatan? metodePencatatan,
+    bool? fiturUndangan,
+    bool? fiturBukuTamu,
+  }) {
+    return _acara.doc(acaraId).update(<String, dynamic>{
+      if (metodePencatatan != null)
+        'metodePencatatan': metodePencatatan.name,
+      if (fiturUndangan != null) 'fiturUndangan': fiturUndangan,
+      if (fiturBukuTamu != null) 'fiturBukuTamu': fiturBukuTamu,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

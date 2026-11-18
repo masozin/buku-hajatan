@@ -339,6 +339,44 @@ void main() {
     });
   });
 
+  group('buatCsvDatar (Batch 30, Metode Langsung)', () {
+    test('header tanpa kode bundel; nomor berjalan; ada kolom pencatat', () {
+      final data = [
+        BundelTerisi(
+          bundel: bundelUji(id: 'b1', pencatatId: 'pA', prefix: 'A', nomor: 0),
+          isi: [
+            amplopUji(urut: 1, nama: 'Dedi', nominal: 100000),
+            amplopUji(
+              urut: 2,
+              nama: 'Sari',
+              alamat: 'Krajan',
+              nominal: 50000,
+            ),
+          ],
+        ),
+        BundelTerisi(
+          bundel: bundelUji(id: 'b2', pencatatId: 'pB', prefix: 'B', nomor: 0),
+          isi: [amplopUji(urut: 1, nama: 'Joko', nominal: 25000)],
+        ),
+      ];
+      final baris = buatBarisEkspor(data);
+      // Prefix pencatat terbawa ke baris ekspor.
+      expect(baris.map((b) => b.prefixPencatat).toList(), ['A', 'A', 'B']);
+      final csv = buatCsvDatar(baris);
+      final barisCsv = csv.trim().split('\n');
+      expect(
+        barisCsv.first,
+        'No,Nama,Alamat,Nominal (Rp),Jenis,Pencatat,Keterangan,Waktu',
+      );
+      expect(barisCsv.length, 4);
+      expect(barisCsv[1], startsWith('1,Dedi,,100000,Normal,A,,'));
+      expect(barisCsv[2], startsWith('2,Sari,Krajan,50000,Normal,A,,'));
+      expect(barisCsv[3], startsWith('3,Joko,,25000,Normal,B,,'));
+      // Tidak ada kode bundel di format datar.
+      expect(csv.contains('A000'), isFalse);
+    });
+  });
+
   group('ringkasPerPencatat bundel pemilik', () {
     test('bundel PM tampil sebagai Pemilik', () {
       final hasil = ringkasPerPencatat(

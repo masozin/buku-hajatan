@@ -35,6 +35,7 @@ class DaftarPengunjungTab extends ConsumerStatefulWidget {
     required this.sudahSelesai,
     this.modePencatat = false,
     this.pencatatIdSaya,
+    this.metodeLangsung = false,
   });
 
   final String acaraId;
@@ -50,6 +51,9 @@ class DaftarPengunjungTab extends ConsumerStatefulWidget {
   /// amplop mana yang boleh ia ubah. Null = sesi tidak ditemukan,
   /// tidak ada hak ubah sama sekali.
   final String? pencatatIdSaya;
+
+  /// Metode Langsung (Batch 30): kode bundel disembunyikan.
+  final bool metodeLangsung;
 
   @override
   ConsumerState<DaftarPengunjungTab> createState() =>
@@ -113,7 +117,7 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
     final hasil = await tampilkanDetailPengunjung(
       context: context,
       amplop: a,
-      kodeBundel: ditemukan.kodeBundel,
+      kodeBundel: widget.metodeLangsung ? '' : ditemukan.kodeBundel,
       bisaUbah: bisaUbah,
       bisaHapus: bisaHapus,
       onHapus: (bisaHapus && b != null) ? () => _hapusAmplop(a, b) : null,
@@ -272,6 +276,7 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
                     final ditemukan = tampil[i - 1];
                     return _BarisPengunjung(
                       ditemukan: ditemukan,
+                      tampilkanKode: !widget.metodeLangsung,
                       onTap: () => _tampilkanDetail(
                         ditemukan,
                         petaBundel[ditemukan.kodeBundel],
@@ -293,9 +298,17 @@ class _DaftarPengunjungTabState extends ConsumerState<DaftarPengunjungTab> {
 /// sisi kanan berisi nominal, lalu kode bundel-urut (mis.
 /// "A001-1") dan cap waktu di bawahnya. Tanpa avatar inisial.
 class _BarisPengunjung extends StatelessWidget {
-  const _BarisPengunjung({required this.ditemukan, this.onTap});
+  const _BarisPengunjung({
+    required this.ditemukan,
+    this.tampilkanKode = true,
+    this.onTap,
+  });
 
   final AmplopDitemukan ditemukan;
+
+  /// false pada Metode Langsung (Batch 30): baris kode-urut
+  /// disembunyikan karena tidak ada bundel.
+  final bool tampilkanKode;
   final VoidCallback? onTap;
 
   @override
@@ -378,11 +391,13 @@ class _BarisPengunjung extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${ditemukan.kodeBundel}-${a.urut}',
-                    style: gayaSamping,
-                  ),
+                  if (tampilkanKode) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      '${ditemukan.kodeBundel}-${a.urut}',
+                      style: gayaSamping,
+                    ),
+                  ],
                   if (a.createdAt != null)
                     Text(
                       formatWaktuKonteks(a.createdAt!),

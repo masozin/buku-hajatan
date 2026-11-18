@@ -72,21 +72,26 @@ class DetailAcaraScreen extends ConsumerWidget {
         }
         if (!sebagaiPemilik) {
           return DefaultTabController(
-            length: 3,
+            // Batch 30: Metode Langsung tidak punya tab Bundel.
+            length: acara.metodeLangsung ? 2 : 3,
             child: Scaffold(
               appBar: AppBar(
                 title: const Text('Detail Acara'),
-                bottom: const TabBar(
+                bottom: TabBar(
                   tabs: [
-                    Tab(
+                    const Tab(
                       icon: Icon(Icons.summarize_outlined),
                       text: 'Ringkasan',
                     ),
-                    Tab(icon: Icon(Icons.people_outline), text: 'Pengunjung'),
-                    Tab(
-                      icon: Icon(Icons.inventory_2_outlined),
-                      text: 'Bundel',
+                    const Tab(
+                      icon: Icon(Icons.people_outline),
+                      text: 'Pengunjung',
                     ),
+                    if (!acara.metodeLangsung)
+                      const Tab(
+                        icon: Icon(Icons.inventory_2_outlined),
+                        text: 'Bundel',
+                      ),
                   ],
                 ),
                 // Pencatat kini bermuara langsung ke panel ini
@@ -158,19 +163,27 @@ class DetailAcaraScreen extends ConsumerWidget {
           );
         }
         return DefaultTabController(
-          length: 3,
+          // Batch 30: Metode Langsung tidak punya tab Bundel.
+          length: acara.metodeLangsung ? 2 : 3,
           child: Scaffold(
             appBar: AppBar(
               title: const Text('Detail Acara'),
               actions: const [TombolInfo()],
-              bottom: const TabBar(
+              bottom: TabBar(
                 tabs: [
-                  Tab(icon: Icon(Icons.summarize_outlined), text: 'Ringkasan'),
-                  Tab(icon: Icon(Icons.people_outline), text: 'Pengunjung'),
-                  Tab(
-                    icon: Icon(Icons.inventory_2_outlined),
-                    text: 'Bundel',
+                  const Tab(
+                    icon: Icon(Icons.summarize_outlined),
+                    text: 'Ringkasan',
                   ),
+                  const Tab(
+                    icon: Icon(Icons.people_outline),
+                    text: 'Pengunjung',
+                  ),
+                  if (!acara.metodeLangsung)
+                    const Tab(
+                      icon: Icon(Icons.inventory_2_outlined),
+                      text: 'Bundel',
+                    ),
                 ],
               ),
             ),
@@ -189,6 +202,8 @@ class DetailAcaraScreen extends ConsumerWidget {
                     _InfoAcara(acara: acara, tampilkanKode: true),
                     const SizedBox(height: 16),
                     _TotalAcara(acara: acara),
+                    const SizedBox(height: 16),
+                    _PengaturanMetode(acara: acara),
                     const SizedBox(height: 16),
                     _KelolaPencatat(acara: acara),
                     const SizedBox(height: 16),
@@ -211,8 +226,9 @@ class DetailAcaraScreen extends ConsumerWidget {
                 DaftarPengunjungTab(
                   acaraId: acara.id,
                   sudahSelesai: acara.sudahSelesai,
+                  metodeLangsung: acara.metodeLangsung,
                 ),
-                DaftarBundelTab(acara: acara),
+                if (!acara.metodeLangsung) DaftarBundelTab(acara: acara),
               ],
             ),
           ),
@@ -302,14 +318,16 @@ class _TabPencatatDetail extends ConsumerWidget {
               sudahSelesai: acara.sudahSelesai,
               modePencatat: true,
               pencatatIdSaya: saya?.id,
+              metodeLangsung: acara.metodeLangsung,
             ),
-            saya == null
-                ? const TampilKosong(
-                    teks: 'Kamu belum terdaftar sebagai pencatat di '
-                        'acara ini.',
-                    ikon: Icons.inventory_2_outlined,
-                  )
-                : DaftarBundelTab(acara: acara, pencatatIdSaya: saya.id),
+            if (!acara.metodeLangsung)
+              saya == null
+                  ? const TampilKosong(
+                      teks: 'Kamu belum terdaftar sebagai pencatat di '
+                          'acara ini.',
+                      ikon: Icons.inventory_2_outlined,
+                    )
+                  : DaftarBundelTab(acara: acara, pencatatIdSaya: saya.id),
           ],
         );
       },
@@ -349,6 +367,117 @@ class _FabPencatat extends ConsumerWidget {
           child: const Icon(Icons.edit_note_rounded),
         );
       },
+    );
+  }
+}
+
+
+/// Kartu Metode & Fitur di Ringkasan pemilik (Batch 30):
+/// menampilkan metode wadah acara ini — boleh diganti selama
+/// acara masih kosong (belum ada catatan pertama; setelah itu
+/// terkunci, rancangan multi-metode §3) — plus sakelar dua fitur
+/// tambahan. Sakelarnya di batch ini baru MENYIMPAN pilihan;
+/// fungsi Buku Tamu tiba di Batch 31 dan Daftar Undangan di
+/// Batch 32.
+class _PengaturanMetode extends ConsumerWidget {
+  const _PengaturanMetode({required this.acara});
+
+  final Acara acara;
+
+  Future<void> _ubah(
+    BuildContext context,
+    WidgetRef ref, {
+    MetodePencatatan? metode,
+    bool? fiturUndangan,
+    bool? fiturBukuTamu,
+  }) async {
+    try {
+      await ref
+          .read(acaraServiceProvider)
+          .ubahPengaturanAcara(
+            acara.id,
+            metodePencatatan: metode,
+            fiturUndangan: fiturUndangan,
+            fiturBukuTamu: fiturBukuTamu,
+          );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(pesanDari(e))));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tema = Theme.of(context);
+    final bisaGantiMetode =
+        acara.totalAmplop == 0 && !acara.sudahSelesai;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Metode & Fitur Pencatatan',
+              style: tema.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text('Metode: ${acara.metodePencatatan.label}'),
+            const SizedBox(height: 8),
+            if (bisaGantiMetode) ...[
+              SegmentedButton<MetodePencatatan>(
+                segments: const [
+                  ButtonSegment(
+                    value: MetodePencatatan.bundel,
+                    label: Text('Bundel'),
+                  ),
+                  ButtonSegment(
+                    value: MetodePencatatan.langsung,
+                    label: Text('Langsung'),
+                  ),
+                ],
+                selected: {acara.metodePencatatan},
+                onSelectionChanged: (pilihan) =>
+                    _ubah(context, ref, metode: pilihan.first),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Metode masih bisa diganti — terkunci setelah '
+                'catatan pertama masuk.',
+                style: tema.textTheme.bodySmall,
+              ),
+            ] else
+              Text(
+                'Metode terkunci karena acara sudah berisi catatan.',
+                style: tema.textTheme.bodySmall,
+              ),
+            const Divider(height: 24),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Fitur Daftar Undangan'),
+              subtitle: const Text(
+                'Nama tamu diinput dulu; petugas menandai hadir. '
+                '(Tiba di pembaruan berikutnya.)',
+              ),
+              value: acara.fiturUndangan,
+              onChanged: (v) => _ubah(context, ref, fiturUndangan: v),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Fitur Buku Tamu'),
+              subtitle: const Text(
+                'Pengunjung boleh mengisi sendiri di perangkat '
+                'pencatat. (Tiba di pembaruan berikutnya.)',
+              ),
+              value: acara.fiturBukuTamu,
+              onChanged: (v) => _ubah(context, ref, fiturBukuTamu: v),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

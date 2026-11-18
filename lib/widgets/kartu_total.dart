@@ -102,11 +102,14 @@ class KartuTotalAcara extends StatelessWidget {
                       label: 'Pengunjung',
                       nilai: '${acara.totalAmplop}',
                     ),
-                    _PemisahStatistik(),
-                    _Statistik(
-                      label: 'Bundel',
-                      nilai: '${acara.totalBundel}',
-                    ),
+                    // Metode Langsung (Batch 30): tidak ada bundel.
+                    if (!acara.metodeLangsung) ...[
+                      _PemisahStatistik(),
+                      _Statistik(
+                        label: 'Bundel',
+                        nilai: '${acara.totalBundel}',
+                      ),
+                    ],
                   ],
                 ),
               ],

@@ -54,6 +54,10 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   var _sudahBuka = false;
   String? _galatBuka;
 
+  /// Batch 30: true bila acara ini Metode Langsung (wadahnya
+  /// bundel bebas, bukan bundel 10). Ditentukan di _siapkan.
+  var _langsung = false;
+
   /// Sugesti alamat untuk kolom Alamat (Batch 14): alamat unik
   /// yang pernah dipakai di acara ini.
   List<String> _saranAlamat = const [];
@@ -67,8 +71,7 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _bukaBundel();
-      _muatSaranAlamat();
+      _siapkan();
     });
   }
 
@@ -98,16 +101,42 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
     super.dispose();
   }
 
+  /// Batch 30: tentukan dulu metode acara ini, baru buka
+  /// wadahnya — bundel aktif untuk Metode Bundel, bundel bebas
+  /// untuk Metode Langsung.
+  Future<void> _siapkan() async {
+    try {
+      final acara = await ref
+          .read(acaraServiceProvider)
+          .acaraStream(widget.acaraId)
+          .first;
+      if (mounted && acara != null) {
+        setState(() => _langsung = acara.metodeLangsung);
+      }
+    } catch (_) {
+      // Gagal membaca acara: anggap Bundel (bawaan) — layanan
+      // buka bundel akan menyampaikan galat yang sebenarnya.
+    }
+    await _bukaBundel();
+    _muatSaranAlamat();
+  }
+
   Future<void> _bukaBundel() async {
     if (_sudahBuka) return;
     _sudahBuka = true;
     try {
-      await ref
-          .read(pencatatanServiceProvider)
-          .bukaBundelAktif(
-            acaraId: widget.acaraId,
-            pencatatId: widget.pencatatId,
-          );
+      final layanan = ref.read(pencatatanServiceProvider);
+      if (_langsung) {
+        await layanan.bukaBundelBebas(
+          acaraId: widget.acaraId,
+          pencatatId: widget.pencatatId,
+        );
+      } else {
+        await layanan.bukaBundelAktif(
+          acaraId: widget.acaraId,
+          pencatatId: widget.pencatatId,
+        );
+      }
     } on LayananException catch (e) {
       if (mounted) {
         setState(() => _galatBuka = e.pesan);
@@ -188,8 +217,15 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Tersimpan: $namaTampil — ${formatRupiah(nominalTampil)} '
-            '(${hasil.bundelSesudah.jumlahAmplop}/10 di ${hasil.bundelSesudah.kode}).',
+            _langsung
+                ? 'Tersimpan: $namaTampil — '
+                      '${formatRupiah(nominalTampil)} '
+                      '(pengunjung ke-${hasil.bundelSesudah.jumlahAmplop} '
+                      'yang kamu catat).'
+                : 'Tersimpan: $namaTampil — '
+                      '${formatRupiah(nominalTampil)} '
+                      '(${hasil.bundelSesudah.jumlahAmplop}/10 di '
+                      '${hasil.bundelSesudah.kode}).',
           ),
         ),
       );
@@ -238,19 +274,28 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
             return TampilGalat(pesan: pesanDari(snapshot.error!));
           }
           final daftar = snapshot.data ?? const <Bundel>[];
-          final terbuka = daftar
-              .where((b) => b.status == StatusBundel.terbuka)
-              .toList();
-          // Bundel aktif = yang terbuka bernomor terbesar.
-          terbuka.sort((a, b) => b.nomor.compareTo(a.nomor));
-          final bundel = terbuka.isEmpty ? null : terbuka.first;
-          // Batch 26: mode tinjau — bundel yang baru penuh
-          // ditampilkan menggantikan bundel aktif sampai pengguna
-          // mengetuk Lanjut.
+          Bundel? bundel;
           Bundel? bundelTinjau;
-          if (_idBundelTinjau != null) {
+          if (_langsung) {
+            // Metode Langsung: wadahnya bundel bebas pencatat ini
+            // (satu-satunya); tidak ada mode tinjau bundel penuh.
             for (final b in daftar) {
-              if (b.id == _idBundelTinjau) bundelTinjau = b;
+              if (b.bebas) bundel = b;
+            }
+          } else {
+            final terbuka = daftar
+                .where((b) => b.status == StatusBundel.terbuka)
+                .toList();
+            // Bundel aktif = yang terbuka bernomor terbesar.
+            terbuka.sort((a, b) => b.nomor.compareTo(a.nomor));
+            bundel = terbuka.isEmpty ? null : terbuka.first;
+            // Batch 26: mode tinjau — bundel yang baru penuh
+            // ditampilkan menggantikan bundel aktif sampai
+            // pengguna mengetuk Lanjut.
+            if (_idBundelTinjau != null) {
+              for (final b in daftar) {
+                if (b.id == _idBundelTinjau) bundelTinjau = b;
+              }
             }
           }
           final tampil = bundelTinjau ?? bundel;
@@ -261,9 +306,12 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Belum ada bundel aktif. Ketuk tombol di bawah '
-                    'untuk membuka bundel pertama.',
+                  Text(
+                    _langsung
+                        ? 'Catatan belum dibuka. Ketuk tombol di '
+                              'bawah untuk mulai mencatat.'
+                        : 'Belum ada bundel aktif. Ketuk tombol di '
+                              'bawah untuk membuka bundel pertama.',
                   ),
                   const SizedBox(height: 16),
                   FilledButton.icon(
@@ -276,7 +324,7 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                             if (mounted) setState(() => _sibuk = false);
                           },
                     icon: const Icon(Icons.inventory_2_outlined),
-                    label: const Text('Buka Bundel'),
+                    label: Text(_langsung ? 'Buka Catatan' : 'Buka Bundel'),
                   ),
                   if (_galatBuka != null) ...[
                     const SizedBox(height: 12),
@@ -289,10 +337,13 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _KartuBundelAktif(
-                bundel: tampil,
-                judul: meninjau ? 'Bundel Penuh' : 'Bundel Aktif',
-              ),
+              if (_langsung)
+                _KartuCatatanBebas(bundel: tampil)
+              else
+                _KartuBundelAktif(
+                  bundel: tampil,
+                  judul: meninjau ? 'Bundel Penuh' : 'Bundel Aktif',
+                ),
               const SizedBox(height: 16),
               if (!meninjau)
                 _FormAmplop(
@@ -337,7 +388,9 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                 ),
               const SizedBox(height: 16),
               Text(
-                'Isi bundel ${tampil.kode}',
+                _langsung
+                    ? 'Pengunjung yang saya catat'
+                    : 'Isi bundel ${tampil.kode}',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
@@ -362,16 +415,38 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                       (a, b) => b.amplop.urut.compareTo(a.amplop.urut),
                     );
                   if (isi.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text('Belum ada pengunjung di bundel ini.'),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        _langsung
+                            ? 'Belum ada pengunjung tercatat.'
+                            : 'Belum ada pengunjung di bundel ini.',
+                      ),
                     );
                   }
-                  return Card(
-                    child: Column(
-                      children: [
-                        for (final tercatat in isi)
-                          BarisAmplop(
+                  // Batch 30: bundel bebas bisa berisi ratusan —
+                  // layar ini menampilkan 50 catatan terakhir saja
+                  // (daftar lengkap ada di tab Pengunjung).
+                  final terpotong = _langsung && isi.length > 50;
+                  final isiTampil = terpotong
+                      ? isi.sublist(0, 50)
+                      : isi;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (terpotong)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'Menampilkan 50 catatan terakhir — daftar '
+                            'lengkapnya ada di tab Pengunjung.',
+                          ),
+                        ),
+                      Card(
+                        child: Column(
+                          children: [
+                            for (final tercatat in isiTampil)
+                              BarisAmplop(
                             tercatat: tercatat,
                             // Pencatat boleh mengubah amplop yang ia
                             // input sendiri (Batch 8) — tombol pensil
@@ -387,10 +462,12 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                                   ),
                                 ),
                               );
-                            },
-                          ),
-                      ],
-                    ),
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -715,6 +792,82 @@ class _FormAmplop extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Kartu ringkasan Metode Langsung (Batch 30): panel gradasi
+/// sekeluarga dengan kartu bundel aktif, tetapi isinya hitungan
+/// berjalan pencatat ini — tidak ada kode bundel, tidak ada
+/// batas 10.
+class _KartuCatatanBebas extends StatelessWidget {
+  const _KartuCatatanBebas({required this.bundel});
+
+  /// Bundel bebas pencatat ini (wadah catatan langsungnya).
+  final Bundel bundel;
+
+  @override
+  Widget build(BuildContext context) {
+    final putihRedup = Colors.white.withValues(alpha: 0.78);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: TemaAplikasi.gradasiPahlawan,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: TemaAplikasi.zamrud.withValues(alpha: 0.28),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Catatan Langsung (tanpa bundel)',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: putihRedup,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${bundel.jumlahAmplop} pengunjung',
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text('Total saya', style: TextStyle(color: putihRedup)),
+              const Spacer(),
+              Text(
+                formatRupiah(bundel.totalRp),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          if (bundel.jumlahKosong > 0 || bundel.jumlahTanpaNama > 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Kosong: ${bundel.jumlahKosong} • '
+              'Tanpa nama: ${bundel.jumlahTanpaNama}',
+              style: TextStyle(fontSize: 12.5, color: putihRedup),
+            ),
+          ],
+        ],
       ),
     );
   }

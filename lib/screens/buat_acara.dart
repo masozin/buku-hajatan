@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
 import '../core/kode.dart';
+import '../models/acara.dart';
 import '../models/pemilik.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
@@ -47,6 +48,11 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
   final _lokasi = TextEditingController();
   final _pin = TextEditingController(text: buatPinGabung());
   String _jenis = pilihanJenisAcara.first;
+  // Batch 30: metode wadah + fitur tambahan (rancangan
+  // multi-metode v2). Fitur bisa diatur lagi oleh pemilik.
+  MetodePencatatan _metode = MetodePencatatan.bundel;
+  bool _fiturUndangan = false;
+  bool _fiturBukuTamu = false;
   DateTime _tanggal = DateTime.now();
   bool _sibuk = false;
   String? _galat;
@@ -108,6 +114,9 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
             tanggal: _tanggal,
             lokasi: _lokasi.text,
             pinGabung: _pin.text.trim(),
+            metodePencatatan: _metode,
+            fiturUndangan: _fiturUndangan,
+            fiturBukuTamu: _fiturBukuTamu,
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -207,6 +216,43 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
               decoration: const InputDecoration(
                 labelText: 'Jenis Acara',
               ),
+            ),
+            const SizedBox(height: 12),
+            // Batch 30: metode pencatatan + fitur tambahan.
+            DropdownButtonFormField<MetodePencatatan>(
+              initialValue: _metode,
+              items: MetodePencatatan.values
+                  .map(
+                    (m) => DropdownMenuItem(value: m, child: Text(m.label)),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => _metode = v ?? _metode),
+              decoration: InputDecoration(
+                labelText: 'Metode Pencatatan',
+                helperText: _metode.penjelasan,
+              ),
+            ),
+            const SizedBox(height: 4),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Fitur Daftar Undangan'),
+              subtitle: const Text(
+                'Nama tamu diinput sebelum acara; petugas tinggal '
+                'menandai hadir. (Fungsinya tiba di pembaruan '
+                'berikutnya.)',
+              ),
+              value: _fiturUndangan,
+              onChanged: (v) => setState(() => _fiturUndangan = v),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Fitur Buku Tamu'),
+              subtitle: const Text(
+                'Pengunjung boleh mengisi sendiri di perangkat '
+                'pencatat. (Fungsinya tiba di pembaruan berikutnya.)',
+              ),
+              value: _fiturBukuTamu,
+              onChanged: (v) => setState(() => _fiturBukuTamu = v),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(

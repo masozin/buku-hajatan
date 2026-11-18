@@ -34,7 +34,12 @@ Future<String?> tampilkanDetailPengunjung({
   final a = amplop;
   final baris = <(String, String)>[
     ('Nominal', formatRupiah(a.nominal)),
-    ('Bundel', '$kodeBundel • nomor ${a.urut}'),
+    // Metode Langsung (Batch 30): kodeBundel dikirim kosong —
+    // tidak ada bundel, tampilkan nomor urut saja.
+    if (kodeBundel.isNotEmpty)
+      ('Bundel', '$kodeBundel • nomor ${a.urut}')
+    else
+      ('Nomor urut', '${a.urut}'),
     if (a.alamat != null && a.alamat!.isNotEmpty) ('Alamat', a.alamat!),
     if (a.dusun != null) ('Dusun', '${a.dusun}'),
     if (a.rt != null) ('RT', '${a.rt}'),
@@ -98,10 +103,14 @@ Future<String?> tampilkanDetailPengunjung({
                       builder: (dialogContext) => AlertDialog(
                         title: const Text('Hapus pengunjung?'),
                         content: Text(
-                          'Pengunjung ${a.tampilNama} '
-                          '(${formatRupiah(a.nominal)}) akan dihapus '
-                          'dari bundel $kodeBundel. Total bundel & '
-                          'acara ikut berkurang.',
+                          kodeBundel.isEmpty
+                              ? 'Pengunjung ${a.tampilNama} '
+                                    '(${formatRupiah(a.nominal)}) akan '
+                                    'dihapus. Total acara ikut berkurang.'
+                              : 'Pengunjung ${a.tampilNama} '
+                                    '(${formatRupiah(a.nominal)}) akan '
+                                    'dihapus dari bundel $kodeBundel. '
+                                    'Total bundel & acara ikut berkurang.',
                         ),
                         actions: [
                           TextButton(

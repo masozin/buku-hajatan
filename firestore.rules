@@ -93,6 +93,14 @@ service cloud.firestore {
           .status == 'selesai';
     }
 
+    // Metode Langsung (Batch 30): acara tanpa bundel — urut
+    // amplopnya berjalan terus tanpa batas 10. Acara lama tanpa
+    // field metodePencatatan terbaca sebagai bundel.
+    function metodeLangsung(acaraId) {
+      return get(/databases/$(database)/documents/acara/$(acaraId)).data
+          .get('metodePencatatan', 'bundel') == 'langsung';
+    }
+
     // -------------------------------------------------------------- admin
     match /admin/{uid} {
       // Aplikasi hanya perlu mengecek status adminnya sendiri.
@@ -279,7 +287,10 @@ service cloud.firestore {
             && request.resource.data.nominal >= 0
             && request.resource.data.jenis in ['normal', 'kosong', 'tanpa_nama']
             && request.resource.data.urut >= 1
-            && request.resource.data.urut <= 10;
+            // Batch 30: batas 10 hanya untuk Metode Bundel; Metode
+            // Langsung urutnya berjalan terus (bundel bebas).
+            && (request.resource.data.urut <= 10
+                || metodeLangsung(acaraId));
           // Ubah: pemilik setelah acara selesai (koreksi Batch 6),
           // ATAU pencatat penginputnya sendiri selama acara aktif
           // (Batch 8 — hanya field isi yang boleh berubah, bukan
