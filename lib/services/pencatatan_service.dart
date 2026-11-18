@@ -519,6 +519,7 @@ class PencatatanService {
       // Batch 32: ubah manual menetapkan nominal & jenis final —
       // entri Buku Tamu yang diubah di sini dianggap terhitung.
       'dihitung': true,
+      'dihitungOleh': pencatatId,
     });
     batch.update(refBundel, <String, dynamic>{
       'totalRp': FieldValue.increment(delta.deltaRp),
@@ -534,12 +535,18 @@ class PencatatanService {
     await batch.commit();
   }
 
-  /// Mode Hitung sisi pencatat (Batch 32): mengisi nominal satu
-  /// entri Buku Tamu yang BELUM dihitung (dihitung == false) —
-  /// hasil membuka amplop fisiknya dan mencocokkan nama yang
-  /// tertulis di amplop. Hanya entri catatannya sendiri, hanya
-  /// selama acara aktif. [jenisBaru] normal/kosong/hadir;
-  /// nominal efektif mengikuti aturan jenisnya.
+  /// Mode Hitung sisi pencatat (Batch 32, dilonggarkan Batch
+  /// 33): mengisi nominal satu entri Buku Tamu yang BELUM
+  /// dihitung (dihitung == false) — hasil membuka amplop
+  /// fisiknya dan mencocokkan nama yang tertulis di amplop.
+  /// Batch 33: boleh entri dari perangkat MANA PUN — di lapangan
+  /// bisa ada 2 tablet buku tamu tetapi hanya 1 kotak amplop,
+  /// jadi petugas yang membuka amplop tidak tahu entri tamu itu
+  /// ditulis dari tablet mana. Yang tetap dijaga: sesi aktif
+  /// petugas ini, acara belum selesai, dan entri dibaca ulang
+  /// (menolak bila ternyata sudah dihitung petugas lain).
+  /// Penghitungnya dicatat di field dihitungOleh. [jenisBaru]
+  /// normal/kosong/hadir; nominal efektif mengikuti jenisnya.
   Future<void> hitungAmplop({
     required String acaraId,
     required String pencatatId,
@@ -578,10 +585,9 @@ class PencatatanService {
     if (!docBundel.exists) {
       throw const LayananException('Bundel tidak ditemukan. Buka lagi.');
     }
-    if (Bundel.fromFirestore(docBundel, acaraId: acaraId).pencatatId !=
-        pencatatId) {
-      throw const LayananException('Bundel ini milik pencatat lain.');
-    }
+    // Batch 33: bundel tujuan boleh milik pencatat lain (entri
+    // buku tamu dari tablet sebelah) — agregatnya tetap diupdate
+    // di bundel asal entri itu.
 
     final refAmplop = refBundel.collection('amplop').doc(amplopLama.id);
     final docAmplop = await refAmplop.get();
@@ -589,13 +595,10 @@ class PencatatanService {
       throw const LayananException('Pengunjung tidak ditemukan. Muat ulang.');
     }
     final tersimpan = Amplop.fromFirestore(docAmplop, bundelId: bundelId);
-    if (tersimpan.createdBy != pencatatId) {
-      throw const LayananException(
-        'Hanya pencatat yang menginput pengunjung ini yang boleh menghitungnya.',
-      );
-    }
     if (tersimpan.dihitung) {
-      throw const LayananException('Pengunjung ini sudah dihitung.');
+      throw const LayananException(
+        'Pengunjung ini sudah dihitung petugas lain.',
+      );
     }
 
     final galat = validasiAmplop(
@@ -618,6 +621,7 @@ class PencatatanService {
       'nominal': nominalEfektif,
       'jenis': jenisBaru.nilaiSimpan,
       'dihitung': true,
+      'dihitungOleh': pencatatId,
     });
     batch.update(refBundel, <String, dynamic>{
       'totalRp': FieldValue.increment(delta.deltaRp),

@@ -76,6 +76,7 @@ class Amplop {
     this.createdBy,
     this.menungguSinkron = false,
     this.dihitung = true,
+    this.dihitungOleh,
   });
 
   final String id;
@@ -119,6 +120,13 @@ class Amplop {
   /// terbaca true: mereka memang sudah ternominal sejak dicatat.
   final bool dihitung;
 
+  /// Siapa yang menghitung entri ini (Batch 33): ID pencatat
+  /// atau UID pemilik yang mengisi nominalnya lewat Mode
+  /// Hitung / ubah manual. Jejak audit uang — dengan banyak
+  /// tablet buku tamu dan satu kotak, penghitungnya bisa
+  /// berbeda dari pencatat entri.
+  final String? dihitungOleh;
+
   /// Nama untuk ditampilkan: amplop tanpa nama tampil "(Tanpa Nama)".
   String get tampilNama {
     if (jenis == JenisAmplop.tanpaNama || nama.trim().isEmpty) {
@@ -148,6 +156,7 @@ class Amplop {
       createdBy: data['createdBy'] as String?,
       menungguSinkron: doc.metadata.hasPendingWrites,
       dihitung: data['dihitung'] != false,
+      dihitungOleh: data['dihitungOleh'] as String?,
     );
   }
 
@@ -163,6 +172,7 @@ class Amplop {
       'nominal': nominal,
       'jenis': jenis.nilaiSimpan,
       'dihitung': dihitung,
+      'dihitungOleh': dihitungOleh,
       'createdAt': createdAt == null
           ? FieldValue.serverTimestamp()
           : Timestamp.fromDate(createdAt!),

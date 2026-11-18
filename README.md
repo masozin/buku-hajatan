@@ -882,3 +882,14 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   penghitungan, dan ekspor menandai jenisnya "Belum Dihitung".
   Rules: cabang urut untuk bundel bebas di semua acara +
   'dihitung' masuk daftar ubah pencatat — tempel ulang Console.
+- Batch 33 (Mode Hitung lintas perangkat — kasus lapangan Mark
+  2026-11-19): 2 tablet Buku Tamu tetapi hanya 1 kotak amplop —
+  petugas yang membuka amplop tidak tahu entri tamu ditulis dari
+  tablet mana. Mode Hitung pencatat kini menampilkan SEMUA entri
+  belum dihitung se-acara (bukan hanya catatannya sendiri) dan
+  boleh menghitung entri dari perangkat mana pun; penghitung
+  dicatat di field baru Amplop.dihitungOleh (jejak audit).
+  Rules: cabang ubah amplop khusus penghitungan lintas (hanya
+  nominal/jenis/dihitung/dihitungOleh pada entri yang belum
+  dihitung) + cabang agregat bundel untuk pencatat acara —
+  tempel ulang Console (cukup sekali sesudah Batch 32+33).

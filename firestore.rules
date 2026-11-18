@@ -277,7 +277,19 @@ service cloud.firestore {
         allow update: if (pemilikAcara(acaraId)
               && acaraSudahSelesai(acaraId))
           || (pencatatAcara(acaraId)
-              && resource.data.pencatatId == idPencatatSaya(acaraId));
+              && resource.data.pencatatId == idPencatatSaya(acaraId))
+          // Batch 33: penghitungan lintas perangkat menaikkan
+          // agregat bundel milik pencatat LAIN (entri buku tamu
+          // dari tablet sebelah) — cabang ini hanya mengizinkan
+          // perubahan field agregat saja.
+          || (pencatatAcara(acaraId)
+              && !acaraSudahSelesai(acaraId)
+              && request.resource.data
+                  .diff(resource.data)
+                  .changedKeys()
+                  .hasOnly([
+                    'totalRp', 'jumlahKosong', 'jumlahTanpaNama',
+                  ]));
         allow delete: if pemilikAcara(acaraId)
           && acaraSudahSelesai(acaraId);
 
@@ -321,9 +333,24 @@ service cloud.firestore {
                     .hasOnly([
                       'nama', 'alamat', 'dusun', 'keterangan',
                       'nominal', 'jenis', 'rt', 'rw',
-                      // Batch 32: Mode Hitung pencatat menandai
-                      // entri Buku Tamu-nya sudah dihitung.
-                      'dihitung',
+                      // Batch 32/33: Mode Hitung menandai entri
+                      // sudah dihitung + siapa penghitungnya.
+                      'dihitung', 'dihitungOleh',
+                    ]))
+            // Batch 33: hitung LINTAS perangkat — kotak amplop
+            // biasanya cuma satu untuk banyak tablet buku tamu,
+            // jadi pencatat acara mana pun boleh MENGHITUNG entri
+            // yang belum dihitung dari perangkat mana pun. Cabang
+            // ini hanya mengizinkan perubahan field penghitungan;
+            // identitas tamu (nama/alamat/dll) tidak bisa disentuh.
+            || (pencatatAcara(acaraId)
+                && !acaraSudahSelesai(acaraId)
+                && resource.data.dihitung == false
+                && request.resource.data
+                    .diff(resource.data)
+                    .changedKeys()
+                    .hasOnly([
+                      'nominal', 'jenis', 'dihitung', 'dihitungOleh',
                     ]));
           allow delete: if pemilikAcara(acaraId)
             && acaraSudahSelesai(acaraId);

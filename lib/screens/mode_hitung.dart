@@ -19,9 +19,13 @@ import '../widgets/keadaan.dart';
 /// diandalkan), jadi daftar ini dilengkapi pencarian nama.
 ///
 /// Dua mode:
-/// - Pencatat ([pencatatId] terisi): entri catatannya SENDIRI,
+/// - Pencatat ([pencatatId] terisi): SEMUA entri acara ini,
 ///   selama acara aktif — petugas bisa membantu menghitung di
-///   sela acara walau acara belum ditandai selesai.
+///   sela acara walau acara belum ditandai selesai. Batch 33:
+///   ruang lingkupnya acara (bukan per perangkat) karena kotak
+///   amplop di lapangan biasanya cuma satu untuk banyak tablet
+///   buku tamu — petugas yang membuka amplop tidak tahu entri
+///   tamu itu ditulis dari tablet mana.
 /// - Pemilik ([pencatatId] null): SEMUA entri, mengikuti gerbang
 ///   koreksi — mengisi nominal dari sisi pemilik terbuka setelah
 ///   acara ditandai selesai; sebelum itu daftar tampil baca-saja
@@ -82,18 +86,12 @@ class _ModeHitungScreenState extends ConsumerState<ModeHitungScreen> {
     }
   }
 
-  /// Semua entri dalam ruang lingkup layar ini (pencatat: hanya
-  /// catatannya sendiri; pemilik: semua).
+  /// Semua entri acara ini (kedua mode melihat daftar yang
+  /// sama — satu kotak, satu daftar; Batch 33).
   List<AmplopDitemukan> get _semua {
     final data = _data;
     if (data == null) return const [];
-    var hasil = semuaPengunjung(data);
-    if (widget.modePencatat) {
-      hasil = hasil
-          .where((d) => d.amplop.createdBy == widget.pencatatId)
-          .toList();
-    }
-    return hasil;
+    return semuaPengunjung(data);
   }
 
   bool get _bisaHitung =>
@@ -128,6 +126,7 @@ class _ModeHitungScreenState extends ConsumerState<ModeHitungScreen> {
               amplopLama: ditemukan.amplop,
               jenisBaru: hasil.jenis,
               nominalBaru: hasil.nominal,
+              pemilikId: ref.read(statusPenggunaProvider).valueOrNull?.uid,
             );
       }
       if (!mounted) return;
@@ -298,9 +297,10 @@ class _ModeHitungScreenState extends ConsumerState<ModeHitungScreen> {
                   const SizedBox(height: 8),
                   Text(
                     widget.modePencatat
-                        ? 'Menampilkan entri catatanmu sendiri. '
-                              'Cocokkan nama yang tertulis di amplop, '
-                              'lalu isi nominalnya.'
+                        ? 'Satu kotak untuk semua tablet — daftar '
+                              'ini berisi entri Buku Tamu dari semua '
+                              'perangkat. Cocokkan nama yang tertulis '
+                              'di amplop, lalu isi nominalnya.'
                         : 'Cocokkan nama yang tertulis di amplop, '
                               'lalu isi nominalnya.',
                     style: tema.textTheme.bodySmall,

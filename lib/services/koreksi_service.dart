@@ -264,6 +264,7 @@ class KoreksiService {
     required Amplop amplopLama,
     required JenisAmplop jenisBaru,
     required int nominalBaru,
+    String? pemilikId,
   }) async {
     if (amplopLama.dihitung) {
       throw const LayananException('Pengunjung ini sudah dihitung.');
@@ -292,6 +293,8 @@ class KoreksiService {
         'nominal': nominalEfektif,
         'jenis': jenisBaru.nilaiSimpan,
         'dihitung': true,
+        // Batch 33: jejak audit penghitung (bila UID dikirim).
+        if (pemilikId != null) 'dihitungOleh': pemilikId,
       },
     );
     batch.update(refBundel, <String, dynamic>{
