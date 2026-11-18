@@ -799,3 +799,7 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   (controller dialog kini dimiliki widget dialog sendiri),
   baris pencatat disusun ke bawah dengan tombol aksi satu baris,
   halaman Masuk dibersihkan + tombol WhatsApp admin.
+- Batch 24: pembaruan kini diunduh DI DALAM aplikasi dengan
+  indikator progres, lalu tombol Pasang membuka pemasang paket
+  Android (FileProvider + izin REQUEST_INSTALL_PACKAGES);
+  jalur browser tetap sebagai cadangan.

@@ -107,3 +107,14 @@ bool rilisLebihBaru({
   if (rilis.kodeVersi != null) return rilis.kodeVersi! > kodeTerpasang;
   return bandingNamaVersi(rilis.versiNama, versiTerpasang) > 0;
 }
+
+/// Format ukuran berkas untuk label progres unduhan (Batch 24):
+/// di bawah 1 MB tampil dalam KB (tanpa desimal), selebihnya MB
+/// dengan satu desimal berkoma ala Indonesia.
+String formatUkuran(int bita) {
+  if (bita < 1024 * 1024) {
+    return '${(bita / 1024).toStringAsFixed(0)} KB';
+  }
+  final mb = bita / (1024 * 1024);
+  return '${mb.toStringAsFixed(1).replaceAll('.', ',')} MB';
+}

@@ -92,4 +92,12 @@ void main() {
       );
     });
   });
+
+  group('formatUkuran', () {
+    test('KB tanpa desimal, MB satu desimal berkoma', () {
+      expect(formatUkuran(512 * 1024), '512 KB');
+      expect(formatUkuran(2 * 1024 * 1024), '2,0 MB');
+      expect(formatUkuran(15 * 1024 * 1024 + 512 * 1024), '15,5 MB');
+    });
+  });
 }

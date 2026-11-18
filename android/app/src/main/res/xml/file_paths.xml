@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 24: wilayah berkas yang boleh dibagikan FileProvider.
+     APK pembaruan diunduh ke folder cache aplikasi. -->
+<paths>
+    <cache-path name="cache" path="." />
+</paths>
