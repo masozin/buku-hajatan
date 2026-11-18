@@ -795,3 +795,7 @@ keystore + merilis ke GitHub Releases ada di panduan terpisah
 (panduan-rilis-github-buku-hajatan.md, dibagikan ke Mark).
 Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
 `flutter build apk --release` (satu file), bukan split per ABI.
+- Batch 23: perbaiki layar merah saat dialog Atur PIN ditutup
+  (controller dialog kini dimiliki widget dialog sendiri),
+  baris pencatat disusun ke bawah dengan tombol aksi satu baris,
+  halaman Masuk dibersihkan + tombol WhatsApp admin.

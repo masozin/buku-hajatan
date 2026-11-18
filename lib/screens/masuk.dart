@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers.dart';
 import '../services/layanan_exception.dart';
@@ -139,9 +140,8 @@ class _TabPencatat extends ConsumerWidget {
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
-                      'Untuk petugas pencatat pengunjung. Isi kode '
-                      'acara, namamu (sesuai yang didaftarkan '
-                      'pemilik), dan PIN-mu untuk bergabung.',
+                      'Hubungi tuan rumah untuk mendapatkan '
+                      'kode akses.',
                     ),
                   ),
                 ],
@@ -235,6 +235,24 @@ class _TabPemilikState extends ConsumerState<_TabPemilik> {
     }
   }
 
+  /// Buka WhatsApp admin untuk meminta dibuatkan akun
+  /// (Batch 23, permintaan Mark) — akun pemilik hanya dibuat
+  /// oleh admin, jadi calon pemilik diarahkan ke sini.
+  Future<void> _hubungiAdmin() async {
+    final uri = Uri.parse('https://wa.me/6281279373439');
+    final bisa = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!bisa && mounted) {
+      setState(
+        () => _galat =
+            'Tidak bisa membuka WhatsApp. Hubungi admin di '
+            '0812-7937-3439.',
+      );
+    }
+  }
+
   Future<void> _kirim() async {
     setState(() {
       _sibuk = true;
@@ -262,15 +280,6 @@ class _TabPemilikState extends ConsumerState<_TabPemilik> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Masuk sebagai pemilik acara untuk memantau acara '
-            'hajatanmu. Akun dibuatkan oleh admin Buku Hajatan — '
-            'hubungi admin bila belum punya akun.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
           TextField(
             controller: _email,
             keyboardType: TextInputType.emailAddress,
@@ -309,6 +318,12 @@ class _TabPemilikState extends ConsumerState<_TabPemilik> {
           TextButton(
             onPressed: _sibuk ? null : _lupaSandi,
             child: const Text('Lupa kata sandi?'),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _sibuk ? null : _hubungiAdmin,
+            icon: const Icon(Icons.chat_outlined),
+            label: const Text('Belum punya akun? Hubungi admin'),
           ),
         ],
       ),

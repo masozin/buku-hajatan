@@ -83,9 +83,9 @@ class _GabungAcaraFormState extends ConsumerState<GabungAcaraForm> {
       children: [
         if (widget.tampilkanPengantar) ...[
           const Text(
-            'Untuk petugas pencatat pengunjung. Kode acara & PIN '
-            'pribadimu didapat dari pemilik acara; namamu harus '
-            'sudah didaftarkan pemilik acara.',
+            'Hubungi tuan rumah untuk mendapatkan kode akses. '
+            'Isi kode acara, namamu (sesuai yang didaftarkan '
+            'tuan rumah), dan PIN-mu untuk bergabung.',
           ),
           const SizedBox(height: 16),
         ],

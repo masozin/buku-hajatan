@@ -600,36 +600,25 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
   }
 
   /// Dialog atur/ganti PIN untuk satu undangan (Batch 10).
+  /// Batch 23: isi dialog dipindah ke widget ber-State sendiri
+  /// ([_DialogAturPin]) yang MEMILIKI controller-nya. Pola lama —
+  /// controller dibuat di sini lalu di-dispose tepat setelah
+  /// showDialog selesai — memunculkan layar merah
+  /// "_dependents.isEmpty" saat Batal/Simpan ditekan, karena
+  /// controller dibuang selagi pohon widget dialog belum selesai
+  /// dilepas dari framework.
   Future<void> _aturPin({
     required String undanganId,
     required String nama,
     String? pinSaatIni,
   }) async {
-    final kontrol = TextEditingController(text: pinSaatIni ?? '');
     final pinBaru = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('PIN $nama'),
-        content: TextField(
-          controller: kontrol,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'PIN (4–6 digit angka)',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(kontrol.text),
-            child: const Text('Simpan'),
-          ),
-        ],
+      builder: (context) => _DialogAturPin(
+        nama: nama,
+        pinSaatIni: pinSaatIni,
       ),
     );
-    kontrol.dispose();
     if (pinBaru == null || !mounted) return;
     try {
       await ref
@@ -688,7 +677,9 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
         leading: const Icon(Icons.badge_outlined),
         title: const Text('Pencatat'),
         subtitle: const Text('Ketuk untuk mengelola'),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        // Batch 23: padding atas 12 — form tambah pencatat tidak
+        // lagi menempel ke judul bagian.
+        childrenPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -782,41 +773,69 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
                       'Sudah bergabung:',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
+                    // Batch 23 (permintaan Mark): detail pencatat
+                    // disusun KE BAWAH — nama, lalu rincian per
+                    // baris, lalu semua tombol aksi dalam SATU
+                    // baris di bawahnya. Pola lama (ListTile dengan
+                    // tiga aksi menumpuk di trailing) sempit dan
+                    // teksnya terpotong di layar HP.
                     for (final p in daftar)
-                      ListTile(
-                        dense: true,
-                        title: Text(p.nama),
-                        subtitle: Text(
-                          'Bundel terakhir: ${p.nomorBundelTerakhir}'
-                          ' • PIN: ${p.pinPribadi ?? 'belum diatur'}'
-                          '${p.uidAktif != null ? ' • sesi aktif di 1 perangkat' : ' • tidak sedang masuk'}',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (p.undanganId != null)
-                              IconButton(
-                                icon: const Icon(Icons.key_outlined),
-                                tooltip: 'Atur PIN',
-                                onPressed: () => _aturPin(
-                                  undanganId: p.undanganId!,
-                                  nama: p.nama,
-                                  pinSaatIni: p.pinPribadi,
+                            Text(
+                              p.nama,
+                              style:
+                                  Theme.of(context).textTheme.titleSmall,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Bundel terakhir: ${p.nomorBundelTerakhir}\n'
+                              'PIN: ${p.pinPribadi ?? 'belum diatur'}\n'
+                              '${p.uidAktif != null ? 'Sesi aktif di 1 perangkat' : 'Tidak sedang masuk'}',
+                              style:
+                                  Theme.of(context).textTheme.bodySmall,
+                            ),
+                            Row(
+                              children: [
+                                if (p.undanganId != null)
+                                  IconButton(
+                                    icon: const Icon(Icons.key_outlined),
+                                    tooltip: 'Atur PIN',
+                                    onPressed: () => _aturPin(
+                                      undanganId: p.undanganId!,
+                                      nama: p.nama,
+                                      pinSaatIni: p.pinPribadi,
+                                    ),
+                                  ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.phonelink_erase_outlined,
+                                  ),
+                                  tooltip: 'Reset sesi (lepas perangkat)',
+                                  onPressed: () => _resetSesi(p),
                                 ),
-                              ),
-                            IconButton(
-                              icon: const Icon(Icons.phonelink_erase_outlined),
-                              tooltip: 'Reset sesi (lepas perangkat)',
-                              onPressed: () => _resetSesi(p),
+                                const Spacer(),
+                                Text(
+                                  'Aktif',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall,
+                                ),
+                                Switch(
+                                  value: p.aktif,
+                                  onChanged: (v) =>
+                                      layanan.setAktifPencatat(
+                                    widget.acara.id,
+                                    p.id,
+                                    v,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Switch(
-                              value: p.aktif,
-                              onChanged: (v) => layanan.setAktifPencatat(
-                                widget.acara.id,
-                                p.id,
-                                v,
-                              ),
-                            ),
+                            const Divider(height: 1),
                           ],
                         ),
                       ),
@@ -828,6 +847,61 @@ class _KelolaPencatatState extends ConsumerState<_KelolaPencatat> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Isi dialog atur PIN (Batch 23): StatefulWidget yang memiliki
+/// controller teksnya sendiri — controller dibuang di dispose()
+/// State ini, yaitu SETELAH rute dialog benar-benar dilepas dari
+/// pohon widget. Mengembalikan PIN baru lewat Navigator.pop, atau
+/// null bila dibatalkan.
+class _DialogAturPin extends StatefulWidget {
+  const _DialogAturPin({required this.nama, this.pinSaatIni});
+
+  final String nama;
+  final String? pinSaatIni;
+
+  @override
+  State<_DialogAturPin> createState() => _DialogAturPinState();
+}
+
+class _DialogAturPinState extends State<_DialogAturPin> {
+  late final TextEditingController _kontrol;
+
+  @override
+  void initState() {
+    super.initState();
+    _kontrol = TextEditingController(text: widget.pinSaatIni ?? '');
+  }
+
+  @override
+  void dispose() {
+    _kontrol.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('PIN ${widget.nama}'),
+      content: TextField(
+        controller: _kontrol,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(
+          labelText: 'PIN (4–6 digit angka)',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_kontrol.text),
+          child: const Text('Simpan'),
+        ),
+      ],
     );
   }
 }
