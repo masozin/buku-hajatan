@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
-import '../core/kode.dart';
 import '../models/acara.dart';
 import '../models/pemilik.dart';
 import '../providers.dart';
@@ -13,6 +11,8 @@ import '../widgets/keadaan.dart';
 const List<String> pilihanJenisAcara = [
   'Pernikahan',
   'Khitanan',
+  'Kelahiran',
+  'Aqiqah',
   'Tasyakuran',
   'Pengajian',
   'Lainnya',
@@ -46,11 +46,12 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
   final _namaAcara = TextEditingController();
   final _tuanRumah = TextEditingController();
   final _lokasi = TextEditingController();
-  final _pin = TextEditingController(text: buatPinGabung());
   String _jenis = pilihanJenisAcara.first;
-  // Batch 30: metode wadah + fitur tambahan (rancangan
-  // multi-metode v2). Fitur bisa diatur lagi oleh pemilik.
-  MetodePencatatan _metode = MetodePencatatan.bundel;
+  // Metode wadah + fitur tambahan (rancangan multi-metode v2).
+  // Semua kini saklar true/false (permintaan Mark 2026-11-18):
+  // _langsung false (bawaan) = Metode Bundel; true = Langsung.
+  // Fitur bisa diatur lagi oleh pemilik.
+  bool _langsung = false;
   bool _fiturUndangan = false;
   bool _fiturBukuTamu = false;
   DateTime _tanggal = DateTime.now();
@@ -65,7 +66,6 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
     _namaAcara.dispose();
     _tuanRumah.dispose();
     _lokasi.dispose();
-    _pin.dispose();
     super.dispose();
   }
 
@@ -95,10 +95,6 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
       setState(() => _galat = 'Nama acara dan tuan rumah wajib diisi.');
       return;
     }
-    if (!RegExp(r'^\d{4,6}$').hasMatch(_pin.text.trim())) {
-      setState(() => _galat = 'PIN gabung harus 4-6 digit angka.');
-      return;
-    }
     setState(() {
       _sibuk = true;
       _galat = null;
@@ -113,8 +109,9 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
             jenis: _jenis,
             tanggal: _tanggal,
             lokasi: _lokasi.text,
-            pinGabung: _pin.text.trim(),
-            metodePencatatan: _metode,
+            metodePencatatan: _langsung
+                ? MetodePencatatan.langsung
+                : MetodePencatatan.bundel,
             fiturUndangan: _fiturUndangan,
             fiturBukuTamu: _fiturBukuTamu,
           );
@@ -122,8 +119,7 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Acara dibuat. Kode gabung pencatat: ${acara.kodeGabung} '
-            '(PIN: ${_pin.text.trim()}).',
+            'Acara dibuat. Kode gabung pencatat: ${acara.kodeGabung}.',
           ),
           duration: const Duration(seconds: 6),
         ),
@@ -218,19 +214,19 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            // Batch 30: metode pencatatan + fitur tambahan.
-            DropdownButtonFormField<MetodePencatatan>(
-              initialValue: _metode,
-              items: MetodePencatatan.values
-                  .map(
-                    (m) => DropdownMenuItem(value: m, child: Text(m.label)),
-                  )
-                  .toList(),
-              onChanged: (v) => setState(() => _metode = v ?? _metode),
-              decoration: InputDecoration(
-                labelText: 'Metode Pencatatan',
-                helperText: _metode.penjelasan,
+            // Metode pencatatan sebagai saklar (seragam dengan
+            // sakelar fitur di bawahnya): mati = Bundel (bawaan),
+            // menyala = Langsung tanpa bundel.
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Metode Langsung (tanpa bundel)'),
+              subtitle: Text(
+                _langsung
+                    ? MetodePencatatan.langsung.penjelasan
+                    : 'Mati = Metode Bundel: ${MetodePencatatan.bundel.penjelasan}',
               ),
+              value: _langsung,
+              onChanged: (v) => setState(() => _langsung = v),
             ),
             const SizedBox(height: 4),
             SwitchListTile(
@@ -266,26 +262,6 @@ class _BuatAcaraScreenState extends ConsumerState<BuatAcaraScreen> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Lokasi (opsional)',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _pin,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(6),
-              ],
-              decoration: InputDecoration(
-                labelText: 'PIN Gabung untuk Pencatat',
-                helperText:
-                    'Kode gabung dibuat otomatis; PIN ini yang kamu '
-                    'bagikan ke pencatat bersama kodenya.',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.refresh),
-                  tooltip: 'Buat PIN acak baru',
-                  onPressed: () => setState(() => _pin.text = buatPinGabung()),
-                ),
               ),
             ),
             if (_galat != null) ...[

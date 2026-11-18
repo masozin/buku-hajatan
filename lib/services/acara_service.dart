@@ -21,7 +21,7 @@ class Keikutsertaan {
 ///
 /// pemilik/{uid}
 /// acara/{acaraId} (+ sub: pencatat, undanganPencatat, bundel)
-/// kodeAcara/{kodeGabung} -> { acaraId, pinGabung, pemilikId }
+/// kodeAcara/{kodeGabung} -> { acaraId, pemilikId }
 class AcaraService {
   FirebaseFirestore get _db => FirebaseFirestore.instance;
 
@@ -39,7 +39,6 @@ class AcaraService {
     required String jenis,
     required DateTime tanggal,
     String? lokasi,
-    required String pinGabung,
     MetodePencatatan metodePencatatan = MetodePencatatan.bundel,
     bool fiturUndangan = false,
     bool fiturBukuTamu = false,
@@ -70,9 +69,11 @@ class AcaraService {
 
     final batch = _db.batch();
     batch.set(refAcara, acara.toMap());
+    // PIN gabung acara tidak lagi ditulis: sejak Batch 10 gabung
+    // memakai PIN PRIBADI tiap pencatat; dokumen kodeAcara lama
+    // yang masih menyimpan pinGabung tidak terganggu.
     batch.set(_db.collection('kodeAcara').doc(kode), <String, dynamic>{
       'acaraId': refAcara.id,
-      'pinGabung': pinGabung,
       'pemilikId': pemilikId,
     });
     await batch.commit();
@@ -157,13 +158,6 @@ class AcaraService {
       if (fiturBukuTamu != null) 'fiturBukuTamu': fiturBukuTamu,
       'updatedAt': FieldValue.serverTimestamp(),
     });
-  }
-
-  /// PIN gabung acara (hanya untuk ditampilkan ke pemiliknya).
-  Future<String?> ambilPinGabung(String kodeGabung) async {
-    final doc = await _db.collection('kodeAcara').doc(kodeGabung).get();
-    if (!doc.exists) return null;
-    return doc.data()?['pinGabung'] as String?;
   }
 
   // ------------------------------------------------------------- pencatat

@@ -428,22 +428,24 @@ class _PengaturanMetode extends ConsumerWidget {
             Text('Metode: ${acara.metodePencatatan.label}'),
             const SizedBox(height: 8),
             if (bisaGantiMetode) ...[
-              SegmentedButton<MetodePencatatan>(
-                segments: const [
-                  ButtonSegment(
-                    value: MetodePencatatan.bundel,
-                    label: Text('Bundel'),
-                  ),
-                  ButtonSegment(
-                    value: MetodePencatatan.langsung,
-                    label: Text('Langsung'),
-                  ),
-                ],
-                selected: {acara.metodePencatatan},
-                onSelectionChanged: (pilihan) =>
-                    _ubah(context, ref, metode: pilihan.first),
+              // Seragam saklar (permintaan Mark): mati = Bundel
+              // (bawaan), menyala = Langsung.
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Metode Langsung (tanpa bundel)'),
+                subtitle: const Text(
+                  'Mati = Metode Bundel. Menyala = pengunjung '
+                  'dicatat mengalir tanpa bundel.',
+                ),
+                value: acara.metodeLangsung,
+                onChanged: (v) => _ubah(
+                  context,
+                  ref,
+                  metode: v
+                      ? MetodePencatatan.langsung
+                      : MetodePencatatan.bundel,
+                ),
               ),
-              const SizedBox(height: 6),
               Text(
                 'Metode masih bisa diganti — terkunci setelah '
                 'catatan pertama masuk.',
