@@ -807,3 +807,6 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   koreksi; teks Mode Koreksi + Ganti Bundel dihapus dari form
   pemilik; ekspor PDF baru (kop acara, tabel abjad, alamat
   gabungan, rekap) — kolom Alamat Excel/CSV juga digabungkan.
+- Batch 26: bundel penuh tidak lagi memunculkan popup — layar
+  masuk mode tinjau (form disembunyikan, isi bundel ditampilkan
+  untuk diperiksa, tombol Lanjut ke bundel berikutnya).

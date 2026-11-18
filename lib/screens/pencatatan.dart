@@ -58,6 +58,11 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   /// yang pernah dipakai di acara ini.
   List<String> _saranAlamat = const [];
 
+  /// Id bundel yang sedang DITINJAU setelah penuh (Batch 26):
+  /// selama terisi, layar menampilkan bundel itu untuk diperiksa
+  /// dan form disembunyikan; null = mode mencatat biasa.
+  String? _idBundelTinjau;
+
   @override
   void initState() {
     super.initState();
@@ -188,25 +193,12 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
           ),
         ),
       );
-      if (hasil.menutupBundel && hasil.bundelBaru != null) {
-        await showDialog<void>(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: Text('Bundel ${hasil.bundelSesudah.kode} penuh'),
-            content: Text(
-              'Masukkan bundel ${hasil.bundelSesudah.kode} ke kotak.\n'
-              'Bundel ${hasil.bundelBaru!.kode} sudah terbuka — '
-              'lanjut mencatat.',
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Lanjut'),
-              ),
-            ],
-          ),
-        );
+      if (hasil.menutupBundel) {
+        // Batch 26 (permintaan Mark): TIDAK ada popup lagi.
+        // Masuk mode tinjau — bundel yang baru penuh ditampilkan
+        // untuk diperiksa dulu, form disembunyikan, dan pengguna
+        // melanjutkan sendiri lewat tombol Lanjut di bawah daftar.
+        setState(() => _idBundelTinjau = hasil.bundelSesudah.id);
       }
     } on LayananException catch (e) {
       if (mounted) {
@@ -252,7 +244,18 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
           // Bundel aktif = yang terbuka bernomor terbesar.
           terbuka.sort((a, b) => b.nomor.compareTo(a.nomor));
           final bundel = terbuka.isEmpty ? null : terbuka.first;
-          if (bundel == null) {
+          // Batch 26: mode tinjau — bundel yang baru penuh
+          // ditampilkan menggantikan bundel aktif sampai pengguna
+          // mengetuk Lanjut.
+          Bundel? bundelTinjau;
+          if (_idBundelTinjau != null) {
+            for (final b in daftar) {
+              if (b.id == _idBundelTinjau) bundelTinjau = b;
+            }
+          }
+          final tampil = bundelTinjau ?? bundel;
+          final meninjau = bundelTinjau != null;
+          if (tampil == null) {
             return Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -286,33 +289,62 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _KartuBundelAktif(bundel: bundel),
-              const SizedBox(height: 16),
-              _FormAmplop(
-                jenis: _jenis,
-                onJenis: _gantiJenis,
-                nama: _nama,
-                alamat: _alamat,
-                dusun: _dusun,
-                rt: _rt,
-                rw: _rw,
-                nominal: _nominal,
-                keterangan: _keterangan,
-                fokusNama: _fokusNama,
-                sibuk: _sibuk,
-                saranAlamat: _saranAlamat,
-                onSimpan: () => _simpan(bundel),
+              _KartuBundelAktif(
+                bundel: tampil,
+                judul: meninjau ? 'Bundel Penuh' : 'Bundel Aktif',
               ),
               const SizedBox(height: 16),
+              if (!meninjau)
+                _FormAmplop(
+                  jenis: _jenis,
+                  onJenis: _gantiJenis,
+                  nama: _nama,
+                  alamat: _alamat,
+                  dusun: _dusun,
+                  rt: _rt,
+                  rw: _rw,
+                  nominal: _nominal,
+                  keterangan: _keterangan,
+                  fokusNama: _fokusNama,
+                  sibuk: _sibuk,
+                  saranAlamat: _saranAlamat,
+                  onSimpan: () => _simpan(tampil),
+                )
+              else
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.fact_check_outlined,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Bundel ${tampil.kode} sudah penuh — '
+                            'masukkan ke kotak. Periksa daftar '
+                            'pengunjung di bawah; ketuk pensil bila '
+                            'ada yang perlu dibetulkan. Kalau sudah, '
+                            'ketuk tombol Lanjut di bawah daftar.',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
               Text(
-                'Isi bundel ${bundel.kode}',
+                'Isi bundel ${tampil.kode}',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
               StreamBuilder<List<AmplopTercatat>>(
                 stream: layanan.amplopBundelStream(
                   widget.acaraId,
-                  bundel.id,
+                  tampil.id,
                 ),
                 builder: (context, snapshotIsi) {
                   if (snapshotIsi.connectionState ==
@@ -349,7 +381,7 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                                 MaterialPageRoute(
                                   builder: (_) => KoreksiAmplopScreen(
                                     acaraId: widget.acaraId,
-                                    bundel: bundel,
+                                    bundel: tampil,
                                     amplopLama: tercatat.amplop,
                                     pencatatId: widget.pencatatId,
                                   ),
@@ -363,6 +395,22 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                 },
               ),
               const SizedBox(height: 8),
+              // Batch 26: tombol melanjutkan dari mode tinjau —
+              // kembali ke form bundel berikutnya yang sudah
+              // terbuka otomatis.
+              if (meninjau) ...[
+                FilledButton.icon(
+                  onPressed: () =>
+                      setState(() => _idBundelTinjau = null),
+                  icon: const Icon(Icons.arrow_forward),
+                  label: Text(
+                    bundel == null
+                        ? 'Lanjut'
+                        : 'Lanjut ke Bundel ${bundel.kode}',
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               Row(
                 children: [
                   Icon(
@@ -397,9 +445,16 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
 /// bundel besar, lencana kemajuan n/10, batang kemajuan putih,
 /// dan total bundel. Titik fokus layar pencatatan.
 class _KartuBundelAktif extends StatelessWidget {
-  const _KartuBundelAktif({required this.bundel});
+  const _KartuBundelAktif({
+    required this.bundel,
+    this.judul = 'Bundel Aktif',
+  });
 
   final Bundel bundel;
+
+  /// Label kecil di atas kode bundel — "Bundel Penuh" saat mode
+  /// tinjau Batch 26.
+  final String judul;
 
   @override
   Widget build(BuildContext context) {
@@ -428,7 +483,7 @@ class _KartuBundelAktif extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Bundel Aktif',
+                      judul,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
