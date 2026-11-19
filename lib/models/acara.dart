@@ -59,6 +59,10 @@ class Acara {
     this.totalAmplop = 0,
     this.totalRp = 0,
     this.totalBundel = 0,
+    this.totalUndangan = 0,
+    this.totalHadir = 0,
+    this.totalTidakHadir = 0,
+    this.totalRpHadir = 0,
     this.createdAt,
     this.updatedAt,
   });
@@ -79,7 +83,7 @@ class Acara {
   /// ini terbaca sebagai bundel — tanpa migrasi.
   final MetodePencatatan metodePencatatan;
 
-  /// Fitur tambahan (Batch 30 sakelarnya; fungsinya Batch 32):
+  /// Fitur tambahan (Batch 30 sakelarnya; fungsinya Batch 34):
   /// daftar tamu disiapkan dulu, pencatat menandai hadir.
   final bool fiturUndangan;
 
@@ -96,8 +100,28 @@ class Acara {
   final int totalAmplop;
   final int totalRp;
   final int totalBundel;
+
+  /// Agregat kehadiran (Batch 34, rancangan §6.1): hanya
+  /// dipelihara bila fitur Daftar Undangan menyala. Acara lama
+  /// tanpa field ini terbaca 0 — tanpa migrasi.
+  /// [totalUndangan] menghitung SEMUA baris daftar (yang
+  /// disiapkan + walk-in yang tercatat otomatis); [totalRpHadir]
+  /// adalah uang dari tamu yang hadir beramplop (hadir tanpa
+  /// amplop tidak menambah uang).
+  final int totalUndangan;
+  final int totalHadir;
+  final int totalTidakHadir;
+  final int totalRpHadir;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  /// Tamu yang "belum ada kabar" — diundang tetapi belum ditandai
+  /// hadir maupun tidak hadir.
+  int get totalBelumHadir {
+    final sisa = totalUndangan - totalHadir - totalTidakHadir;
+    return sisa < 0 ? 0 : sisa;
+  }
 
   bool get sudahSelesai => status == StatusAcara.selesai;
 
@@ -125,6 +149,10 @@ class Acara {
       totalAmplop: (data['totalAmplop'] as num?)?.toInt() ?? 0,
       totalRp: (data['totalRp'] as num?)?.toInt() ?? 0,
       totalBundel: (data['totalBundel'] as num?)?.toInt() ?? 0,
+      totalUndangan: (data['totalUndangan'] as num?)?.toInt() ?? 0,
+      totalHadir: (data['totalHadir'] as num?)?.toInt() ?? 0,
+      totalTidakHadir: (data['totalTidakHadir'] as num?)?.toInt() ?? 0,
+      totalRpHadir: (data['totalRpHadir'] as num?)?.toInt() ?? 0,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -146,6 +174,10 @@ class Acara {
       'totalAmplop': totalAmplop,
       'totalRp': totalRp,
       'totalBundel': totalBundel,
+      'totalUndangan': totalUndangan,
+      'totalHadir': totalHadir,
+      'totalTidakHadir': totalTidakHadir,
+      'totalRpHadir': totalRpHadir,
       'createdAt': createdAt == null
           ? FieldValue.serverTimestamp()
           : Timestamp.fromDate(createdAt!),

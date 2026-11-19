@@ -56,6 +56,19 @@ String buatKodeGabung([Random? acak]) {
   ).join();
 }
 
+/// Kode tamu undangan acak 8 karakter (Batch 34, rancangan §6.1/§7):
+/// isi QR undangan `BH1:<kodeGabung>:<kodeTamu>`. Unik dalam satu
+/// acara — diperiksa layanannya saat daftar dibuat (tabrakan
+/// di-regenerasi). Alfabet sama dengan kode gabung: tanpa 0/O/1/I
+/// supaya tidak ambigu saat dibaca dari undangan cetak.
+String buatKodeTamu([Random? acak]) {
+  final rng = acak ?? Random.secure();
+  return List.generate(
+    8,
+    (_) => _alfabetKodeGabung[rng.nextInt(_alfabetKodeGabung.length)],
+  ).join();
+}
+
 /// PIN gabung 4 digit acak, mis. `0427` (nol di depan dipertahankan).
 String buatPinGabung([Random? acak]) {
   final rng = acak ?? Random.secure();

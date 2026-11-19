@@ -172,9 +172,11 @@ service cloud.firestore {
         && !pemilikDiblokir(request.resource.data.pemilikId);
       // Pemilik bebas mengubah. Pencatat BOLEH mengubah, tapi HANYA
       // agregat hitungannya (Batch 2: tiap amplop menaikkan totalAmplop
-      // / totalRp / totalBundel dalam batch tulis yang sama) dan HANYA
-      // selama acara masih aktif — field lain (pemilik, nama, status,
-      // kode gabung, ...) tidak boleh disentuh pencatat.
+      // / totalRp / totalBundel dalam batch tulis yang sama; Batch 34:
+      // agregat kehadiran totalUndangan / totalHadir / totalTidakHadir
+      // / totalRpHadir) dan HANYA selama acara masih aktif — field
+      // lain (pemilik, nama, status, kode gabung, ...) tidak boleh
+      // disentuh pencatat.
       allow update: if sudahMasuk()
         && (resource.data.pemilikId == request.auth.uid
             || (pencatatAcara(acaraId)
@@ -186,6 +188,10 @@ service cloud.firestore {
                       'totalAmplop',
                       'totalRp',
                       'totalBundel',
+                      'totalUndangan',
+                      'totalHadir',
+                      'totalTidakHadir',
+                      'totalRpHadir',
                       'updatedAt',
                     ])));
       allow delete: if sudahMasuk()
@@ -256,6 +262,37 @@ service cloud.firestore {
               && resource.data.status == 'menunggu'
               && request.resource.data.status == 'diklaim'
               && request.resource.data.claimedBy == request.auth.uid);
+      }
+
+      // -------------------------------------------------- tamuUndangan
+      // Daftar Undangan (Batch 34, rancangan §6.1/§9): sub-koleksi
+      // tamu yang disiapkan pemilik sebelum acara.
+      match /tamuUndangan/{tamuId} {
+        allow get, list: if pemilikAcara(acaraId)
+          || pencatatAcara(acaraId);
+        // Buat: pemilik bebas. Pencatat HANYA untuk walk-in
+        // (asal 'langsung', langsung berstatus hadir — dibuat
+        // otomatis oleh pencatatan saat mencatat tamu tak
+        // terdaftar, §6.3).
+        allow create: if pemilikAcara(acaraId)
+          || (pencatatAcara(acaraId)
+              && !acaraSudahSelesai(acaraId)
+              && request.resource.data.asal == 'langsung'
+              && request.resource.data.statusHadir == 'hadir');
+        // Ubah: pemilik bebas (pengelolaan daftar). Pencatat
+        // HANYA field status selama acara aktif (tandai hadir /
+        // tidak, batal tandai) — identitas tamu tidak bisa
+        // disentuh pencatat.
+        allow update: if pemilikAcara(acaraId)
+          || (pencatatAcara(acaraId)
+              && !acaraSudahSelesai(acaraId)
+              && request.resource.data
+                  .diff(resource.data)
+                  .changedKeys()
+                  .hasOnly([
+                    'statusHadir', 'hadirAt', 'amplopId', 'dicatatOleh',
+                  ]));
+        allow delete: if pemilikAcara(acaraId);
       }
 
       // ---------------------------------------------------------- bundel
@@ -353,7 +390,16 @@ service cloud.firestore {
                       'nominal', 'jenis', 'dihitung', 'dihitungOleh',
                     ]));
           allow delete: if pemilikAcara(acaraId)
-            && acaraSudahSelesai(acaraId);
+            && acaraSudahSelesai(acaraId)
+            // Batch 34: pencatat yang menandai hadir boleh
+            // MEMBATALKAN tandanya selama acara aktif — amplop
+            // yang terhapus adalah amplop buatannya sendiri yang
+            // tertaut ke tamu undangan (field tamuId); amplop
+            // manual biasa tetap tidak bisa dihapus pencatat.
+            || (pencatatAcara(acaraId)
+                && !acaraSudahSelesai(acaraId)
+                && resource.data.createdBy == idPencatatSaya(acaraId)
+                && resource.data.get('tamuId', null) != null);
         }
       }
     }

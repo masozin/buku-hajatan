@@ -833,7 +833,7 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
 - Batch 30 (Metode Langsung — rancangan multi-metode v2, tahap 1):
   acara gains metodePencatatan (bundel/langsung) + sakelar
   fiturUndangan & fiturBukuTamu (sakelarnya menyimpan pilihan;
-  fungsi Buku Tamu Batch 31, Daftar Undangan Batch 32). Admin
+  fungsi Buku Tamu Batch 31, Daftar Undangan Batch 34). Admin
   memilih metode & fitur di Buat Acara; pemilik bisa mengganti
   metode selama acara masih kosong dari kartu Metode & Fitur di
   Ringkasan Detail Acara. Metode Langsung: pencatat mencatat ke
@@ -893,3 +893,32 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   nominal/jenis/dihitung/dihitungOleh pada entri yang belum
   dihitung) + cabang agregat bundel untuk pencatat acara —
   tempel ulang Console (cukup sekali sesudah Batch 32+33).
+- Batch 34 (Daftar Undangan — rancangan multi-metode v2, tahap
+  Undangan; nomornya bergeser karena Batch 32–33 dipakai Mode
+  Buku Tamu / Mode Hitung): sub-koleksi tamuUndangan + agregat
+  kehadiran di acara (totalUndangan / totalHadir /
+  totalTidakHadir / totalRpHadir; acara lama terbaca 0). Pemilik
+  menyiapkan daftar di Ringkasan Detail Acara — tambah manual,
+  tempel daftar teks, atau impor CSV (header otomatis dilewati;
+  pratinjau jumlah + contoh sebelum simpan; maks 200 baris
+  sekali simpan). Petugas menandai dari layar pencatatan: Hadir
+  + isi nominal (amplop masuk wadah metodenya, tertaut amplopId),
+  Hadir tanpa amplop (status saja, D4), atau Tidak hadir; salah
+  tandai bisa dibatalkan selama aktif oleh pencatat yang
+  menandai (amplopnya ikut terhapus). Perangkat Buku Tamu: tamu
+  memilih namanya sendiri dari daftar ("Saya diundang"), hadir
+  sebagai entri belum dihitung, nominal menyusul lewat Mode
+  Hitung. Walk-in (catat manual nama tak terdaftar) otomatis
+  membuat baris tamu asal 'langsung' berstatus hadir — mengetik
+  manual nama yang sudah ada di daftar akan tercatat sebagai
+  walk-in kedua, jadi pakai Daftar Undangan untuk tamu
+  terdaftar. Rekap gains kartu Kehadiran (Diundang / Hadir /
+  Tidak hadir / Belum ada kabar + uang dari yang hadir);
+  ekspor Excel gains lembar 'Daftar Kehadiran' (CSV/PDF belum).
+  Amplop gains tautan tamuId supaya Mode Hitung & koreksi ikut
+  menggeser totalRpHadir saat nominal berubah; hapus amplop
+  tertaut oleh pemilik mengembalikan tamunya ke 'belum'. Rules:
+  blok tamuUndangan baru + agregat kehadiran masuk daftar ubah
+  pencatat + pencatat boleh menghapus amplop buatannya sendiri
+  yang tertaut tamuId selama aktif (untuk batal tandai) —
+  tempel ulang Console.

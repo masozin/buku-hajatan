@@ -250,6 +250,10 @@ class KoreksiService {
     batch.update(_refAcara(acaraId), <String, dynamic>{
       'totalRp': FieldValue.increment(delta.deltaRp),
       'updatedAt': FieldValue.serverTimestamp(),
+      // Batch 34: amplop tertaut ke tamu undangan — perubahan
+      // nominalnya ikut menggeser uang kehadiran.
+      if (amplopLama.tamuId != null)
+        'totalRpHadir': FieldValue.increment(delta.deltaRp),
     });
     await batch.commit();
   }
@@ -307,6 +311,10 @@ class KoreksiService {
     batch.update(_refAcara(acaraId), <String, dynamic>{
       'totalRp': FieldValue.increment(delta.deltaRp),
       'updatedAt': FieldValue.serverTimestamp(),
+      // Batch 34: entri Buku Tamu yang tertaut ke tamu undangan
+      // — saat dihitung pemilik, nominalnya masuk uang kehadiran.
+      if (amplopLama.tamuId != null)
+        'totalRpHadir': FieldValue.increment(delta.deltaRp),
     });
     await batch.commit();
   }
@@ -339,7 +347,26 @@ class KoreksiService {
       'totalAmplop': FieldValue.increment(-1),
       'totalRp': FieldValue.increment(-amplop.nominal),
       'updatedAt': FieldValue.serverTimestamp(),
+      // Batch 34: amplop yang dihapus ternyata tertaut ke tamu
+      // undangan — tamunya kembali 'belum' (bukan hadir) dan
+      // agregat kehadirannya mundur; pemilik bisa menandainya
+      // ulang dari Daftar Undangan.
+      if (amplop.tamuId != null)
+        'totalHadir': FieldValue.increment(-1),
+      if (amplop.tamuId != null)
+        'totalRpHadir': FieldValue.increment(-amplop.nominal),
     });
+    if (amplop.tamuId != null) {
+      batch.update(
+        _refAcara(acaraId).collection('tamuUndangan').doc(amplop.tamuId!),
+        <String, dynamic>{
+          'statusHadir': 'belum',
+          'hadirAt': FieldValue.delete(),
+          'amplopId': FieldValue.delete(),
+          'dicatatOleh': FieldValue.delete(),
+        },
+      );
+    }
     await batch.commit();
   }
 }

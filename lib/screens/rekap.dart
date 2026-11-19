@@ -47,6 +47,13 @@ class _RekapScreenState extends ConsumerState<RekapScreen> {
       final data = await ref
           .read(rekapServiceProvider)
           .ambilDataLengkap(acara.id);
+      // Batch 34: ekspor Excel ikut menyertakan lembar Daftar
+      // Kehadiran bila fitur Undangan menyala.
+      final undangan = acara.fiturUndangan
+          ? await ref
+                .read(undanganServiceProvider)
+                .daftarUndanganSekali(acara.id)
+          : null;
       final ekspor = ref.read(eksporServiceProvider);
       if (format == 'excel') {
         // Batch 30: Metode Langsung memakai Excel datar.
@@ -55,12 +62,14 @@ class _RekapScreenState extends ConsumerState<RekapScreen> {
             acara: acara,
             tanggalTeks: formatTanggal(acara.tanggal),
             data: data,
+            undangan: undangan,
           );
         } else {
           await ekspor.eksporExcel(
             acara: acara,
             tanggalTeks: formatTanggal(acara.tanggal),
             data: data,
+            undangan: undangan,
           );
         }
       } else if (format == 'pdf') {
@@ -105,6 +114,12 @@ class _RekapScreenState extends ConsumerState<RekapScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               _RingkasanTotal(acara: acara),
+              // Batch 34: kartu Kehadiran — hanya bila fitur
+              // Daftar Undangan menyala di acara ini.
+              if (acara.fiturUndangan) ...[
+                const SizedBox(height: 16),
+                _Kehadiran(acara: acara),
+              ],
               // Batch 32: peringatan + jalan pintas Mode Hitung
               // selama masih ada entri Buku Tamu belum dihitung
               // (widget ini hilang sendiri bila nol).
@@ -194,6 +209,86 @@ class _RingkasanTotal extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// Kartu Kehadiran (Batch 34, rancangan §6.4): ringkasan
+/// Daftar Undangan dari agregat dokumen acara — tanpa membaca
+/// ulang daftar tamu. "Belum ada kabar" dihitung dari
+/// totalUndangan − hadir − tidak hadir (walk-in menaikkan
+/// diundang & hadir bersama, jadi tidak mengacaukan sisanya).
+class _Kehadiran extends StatelessWidget {
+  const _Kehadiran({required this.acara});
+
+  final Acara acara;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Kehadiran Undangan', style: tema.textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _MiniStatistik(
+                    ikon: Icons.mail_outline_rounded,
+                    label: 'Diundang',
+                    nilai: '${acara.totalUndangan}',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _MiniStatistik(
+                    ikon: Icons.check_circle_outline,
+                    label: 'Hadir',
+                    nilai: '${acara.totalHadir}',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _MiniStatistik(
+                    ikon: Icons.person_off_outlined,
+                    label: 'Tidak hadir',
+                    nilai: '${acara.totalTidakHadir}',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _MiniStatistik(
+                    ikon: Icons.help_outline,
+                    label: 'Belum ada kabar',
+                    nilai: '${acara.totalBelumHadir}',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text('Uang dari yang hadir', style: tema.textTheme.bodyMedium),
+                const Spacer(),
+                Text(
+                  formatRupiah(acara.totalRpHadir),
+                  style: tema.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -11,6 +11,7 @@ import '../core/format.dart';
 import '../core/rekap.dart';
 import '../models/acara.dart';
 import '../models/amplop.dart';
+import '../models/tamu_undangan.dart';
 import 'layanan_exception.dart';
 
 /// Pembuatan file ekspor rekap (Batch 3) + membagikannya lewat
@@ -29,6 +30,7 @@ class EksporService {
     required Acara acara,
     required String tanggalTeks,
     required List<BundelTerisi> data,
+    List<TamuUndangan>? undangan,
   }) async {
     final baris = buatBarisEkspor(data);
     if (baris.isEmpty) {
@@ -152,6 +154,11 @@ class EksporService {
       ),
     );
 
+    // Batch 34: lembar tambahan Daftar Kehadiran (rancangan §6.4).
+    if (undangan != null && undangan.isNotEmpty) {
+      _tulisLembarKehadiran(buku, undangan, _nominalPerAmplop(data));
+    }
+
     final bytes = buku.encode();
     if (bytes == null) {
       throw const LayananException('Gagal membuat file Excel.');
@@ -173,6 +180,7 @@ class EksporService {
     required Acara acara,
     required String tanggalTeks,
     required List<BundelTerisi> data,
+    List<TamuUndangan>? undangan,
   }) async {
     final baris = buatBarisEkspor(data);
     if (baris.isEmpty) {
@@ -277,6 +285,11 @@ class EksporService {
         '(kosong: $jumlahKosong, tanpa nama: $jumlahTanpaNama)',
       ),
     );
+
+    // Batch 34: lembar tambahan Daftar Kehadiran (rancangan §6.4).
+    if (undangan != null && undangan.isNotEmpty) {
+      _tulisLembarKehadiran(buku, undangan, _nominalPerAmplop(data));
+    }
 
     final bytes = buku.encode();
     if (bytes == null) {
@@ -497,6 +510,123 @@ class EksporService {
     await Share.shareXFiles([
       XFile(file.path),
     ], text: 'Rekap pengunjung acara ${acara.namaAcara} (PDF)');
+  }
+
+  /// Nominal per amplop (ID amplop -> nominal) untuk lembar
+  /// kehadiran: tamu hadir beramplop menampilkan nominalnya,
+  /// hadir tanpa amplop menampilkan sel kosong.
+  Map<String, int> _nominalPerAmplop(List<BundelTerisi> data) {
+    final peta = <String, int>{};
+    for (final bt in data) {
+      for (final a in bt.isi) {
+        peta[a.id] = a.nominal;
+      }
+    }
+    return peta;
+  }
+
+  /// Lembar tambahan 'Daftar Kehadiran' (Batch 34, rancangan
+  /// §6.4): seluruh tamu undangan + status + nominal (untuk
+  /// yang hadir beramplop). Urut abjad nama, seperti PDF.
+  void _tulisLembarKehadiran(
+    Excel buku,
+    List<TamuUndangan> undangan,
+    Map<String, int> nominalPerAmplop,
+  ) {
+    final sheet = buku['Daftar Kehadiran'];
+    sheet.setColumnWidth(0, 5);
+    sheet.setColumnWidth(1, 32);
+    sheet.setColumnWidth(2, 46);
+    sheet.setColumnWidth(3, 16);
+    sheet.setColumnWidth(4, 20);
+    sheet.setColumnWidth(5, 16);
+
+    void tulisSel(
+      int kolom,
+      int barisKe,
+      CellValue nilai, {
+      bool tebal = false,
+    }) {
+      final sel = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: kolom, rowIndex: barisKe),
+      );
+      sel.value = nilai;
+      if (tebal) sel.cellStyle = CellStyle(bold: true);
+    }
+
+    tulisSel(0, 0, TextCellValue('DAFTAR KEHADIRAN — UNDANGAN'), tebal: true);
+    const barisHeader = 2;
+    const judulKolom = [
+      'No',
+      'Nama',
+      'Alamat',
+      'Kategori',
+      'Status',
+      'Nominal (Rp)',
+    ];
+    for (var k = 0; k < judulKolom.length; k++) {
+      tulisSel(k, barisHeader, TextCellValue(judulKolom[k]), tebal: true);
+    }
+
+    final terurut = [...undangan]
+      ..sort(
+        (a, b) => a.nama.toLowerCase().compareTo(b.nama.toLowerCase()),
+      );
+    var r = barisHeader + 1;
+    var totalHadirRp = 0;
+    var jumlahHadir = 0;
+    var jumlahTidak = 0;
+    for (var i = 0; i < terurut.length; i++) {
+      final t = terurut[i];
+      final status = switch (t.statusHadir) {
+        StatusHadir.belum => 'Belum ada kabar',
+        StatusHadir.hadir =>
+          t.amplopId == null ? 'Hadir (tanpa amplop)' : 'Hadir',
+        StatusHadir.tidak => 'Tidak hadir',
+      };
+      tulisSel(0, r, IntCellValue(i + 1));
+      tulisSel(1, r, TextCellValue(t.nama));
+      tulisSel(
+        2,
+        r,
+        TextCellValue(
+          gabungAlamat(
+            alamat: t.alamat,
+            dusun: t.dusun,
+            rt: t.rt,
+            rw: t.rw,
+          ),
+        ),
+      );
+      if (t.kategori != null && t.kategori!.isNotEmpty) {
+        tulisSel(3, r, TextCellValue(t.kategori!));
+      }
+      tulisSel(4, r, TextCellValue(status));
+      if (t.statusHadir == StatusHadir.hadir) {
+        jumlahHadir++;
+        if (t.amplopId != null) {
+          final nominal = nominalPerAmplop[t.amplopId] ?? 0;
+          tulisSel(5, r, IntCellValue(nominal));
+          totalHadirRp += nominal;
+        }
+      }
+      if (t.statusHadir == StatusHadir.tidak) jumlahTidak++;
+      r++;
+    }
+
+    r += 1;
+    tulisSel(1, r, TextCellValue('TOTAL HADIR'), tebal: true);
+    tulisSel(5, r, IntCellValue(totalHadirRp), tebal: true);
+    r += 1;
+    tulisSel(
+      1,
+      r,
+      TextCellValue(
+        'Diundang: ${terurut.length} • Hadir: $jumlahHadir • '
+        'Tidak hadir: $jumlahTidak • Belum ada kabar: '
+        '${terurut.length - jumlahHadir - jumlahTidak}',
+      ),
+    );
   }
 
   Future<File> _tulisFileSementara(String namaFile, List<int> bytes) async {

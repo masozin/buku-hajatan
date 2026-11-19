@@ -6,8 +6,10 @@ import '../core/format.dart';
 import '../core/kode.dart';
 import '../core/pencatatan.dart';
 import '../core/rekap.dart';
+import '../core/undangan.dart';
 import '../models/amplop.dart';
 import '../models/bundel.dart';
+import '../models/tamu_undangan.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../services/pencatatan_service.dart';
@@ -65,6 +67,10 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   var _fiturBukuTamu = false;
   var _namaAcara = '';
 
+  /// Batch 34: fitur Daftar Undangan acara ini menyala.
+  /// Ditentukan di _siapkan.
+  var _fiturUndangan = false;
+
   /// Sugesti alamat untuk kolom Alamat (Batch 14): alamat unik
   /// yang pernah dipakai di acara ini.
   List<String> _saranAlamat = const [];
@@ -121,6 +127,7 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
         setState(() {
           _langsung = acara.metodeLangsung;
           _fiturBukuTamu = acara.fiturBukuTamu;
+          _fiturUndangan = acara.fiturUndangan;
           _namaAcara = acara.namaAcara;
         });
       }
@@ -394,6 +401,17 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                   label: const Text(
                     'Mode Hitung — isi nominal buku tamu',
                   ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              // Batch 34: Daftar Undangan — cari nama tamu,
+              // ketuk untuk menandai hadir (dengan/tanpa amplop)
+              // atau tidak hadir. Tamu tak terdaftar tetap
+              // dicatat lewat form biasa (jadi walk-in).
+              if (_fiturUndangan && !meninjau) ...[
+                _DaftarUndanganPencatat(
+                  acaraId: widget.acaraId,
+                  pencatatId: widget.pencatatId,
                 ),
                 const SizedBox(height: 16),
               ],
@@ -684,6 +702,400 @@ class _KartuBundelAktif extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Daftar Undangan di layar pencatatan (Batch 34, rancangan
+/// §6.3): petugas mencari nama tamu lalu menandai hadir
+/// (dengan/tanpa amplop) atau tidak hadir. Yang sudah hadir
+/// hanya bisa dibatalkan oleh pencatat yang menandainya.
+/// Tamu tak terdaftar (walk-in) tidak ada di daftar ini — ia
+/// dicatat lewat form biasa di bawah.
+class _DaftarUndanganPencatat extends ConsumerStatefulWidget {
+  const _DaftarUndanganPencatat({
+    required this.acaraId,
+    required this.pencatatId,
+  });
+
+  final String acaraId;
+  final String pencatatId;
+
+  @override
+  ConsumerState<_DaftarUndanganPencatat> createState() =>
+      _DaftarUndanganPencatatState();
+}
+
+class _DaftarUndanganPencatatState
+    extends ConsumerState<_DaftarUndanganPencatat> {
+  final _kueri = TextEditingController();
+  var _cari = '';
+  var _tampilkanSemua = false;
+
+  @override
+  void dispose() {
+    _kueri.dispose();
+    super.dispose();
+  }
+
+  void _beriTahu(String pesan) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(pesan)));
+  }
+
+  Future<void> _tandaiHadir(TamuUndangan tamu) async {
+    final hasil = await showDialog<({JenisAmplop jenis, int nominalRibuan})>(
+      context: context,
+      builder: (_) => _DialogNominalHadir(nama: tamu.nama),
+    );
+    if (hasil == null || !mounted) return;
+    try {
+      await ref.read(undanganServiceProvider).tandaiHadirDenganAmplop(
+        acaraId: widget.acaraId,
+        pencatatId: widget.pencatatId,
+        tamu: tamu,
+        jenis: hasil.jenis,
+        // Sama seperti form biasa: nominal diketik dalam ribuan.
+        nominal: hasil.nominalRibuan * 1000,
+      );
+      _beriTahu(
+        '"${tamu.nama}" hadir — ${formatRupiah(hasil.nominalRibuan * 1000)}.',
+      );
+    } on LayananException catch (e) {
+      _beriTahu(e.pesan);
+    } catch (e) {
+      _beriTahu(pesanDari(e));
+    }
+  }
+
+  Future<void> _tandaiHadirTanpaAmplop(TamuUndangan tamu) async {
+    try {
+      await ref.read(undanganServiceProvider).tandaiHadirTanpaAmplop(
+        acaraId: widget.acaraId,
+        pencatatId: widget.pencatatId,
+        tamu: tamu,
+      );
+      _beriTahu('"${tamu.nama}" hadir (tanpa amplop).');
+    } on LayananException catch (e) {
+      _beriTahu(e.pesan);
+    } catch (e) {
+      _beriTahu(pesanDari(e));
+    }
+  }
+
+  Future<void> _tandaiTidak(TamuUndangan tamu) async {
+    try {
+      await ref.read(undanganServiceProvider).tandaiTidak(
+        acaraId: widget.acaraId,
+        tamu: tamu,
+        pencatatId: widget.pencatatId,
+      );
+      _beriTahu('"${tamu.nama}" ditandai tidak hadir.');
+    } on LayananException catch (e) {
+      _beriTahu(e.pesan);
+    } catch (e) {
+      _beriTahu(pesanDari(e));
+    }
+  }
+
+  Future<void> _batalTandai(TamuUndangan tamu) async {
+    final yakin = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Batalkan tanda hadir?'),
+        content: Text(
+          '"${tamu.nama}" kembali ke belum ada kabar; amplop yang '
+          'terlanjur dibuat ikut dihapus.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Ya, batalkan'),
+          ),
+        ],
+      ),
+    );
+    if (yakin != true || !mounted) return;
+    try {
+      await ref.read(undanganServiceProvider).batalTandai(
+        acaraId: widget.acaraId,
+        pencatatId: widget.pencatatId,
+        tamu: tamu,
+      );
+      _beriTahu('Tanda hadir "${tamu.nama}" dibatalkan.');
+    } on LayananException catch (e) {
+      _beriTahu(e.pesan);
+    } catch (e) {
+      _beriTahu(pesanDari(e));
+    }
+  }
+
+  void _bukaLembar(TamuUndangan tamu) {
+    final sayaYangMenandai =
+        tamu.statusHadir == StatusHadir.hadir &&
+        tamu.dicatatOleh == widget.pencatatId;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                tamu.nama,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Text(
+                gabungAlamat(
+                  alamat: tamu.alamat,
+                  dusun: tamu.dusun,
+                  rt: tamu.rt,
+                  rw: tamu.rw,
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              Text(
+                'Status: ${tamu.statusHadir.label}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              if (tamu.statusHadir == StatusHadir.belum) ...[
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _tandaiHadir(tamu);
+                  },
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Hadir + isi nominal amplop'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _tandaiHadirTanpaAmplop(tamu);
+                  },
+                  icon: const Icon(Icons.person_outline),
+                  label: const Text('Hadir tanpa amplop'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _tandaiTidak(tamu);
+                  },
+                  icon: const Icon(Icons.person_off_outlined),
+                  label: const Text('Tidak hadir'),
+                ),
+              ] else if (sayaYangMenandai) ...[
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _batalTandai(tamu);
+                  },
+                  icon: const Icon(Icons.undo_outlined),
+                  label: const Text('Batalkan tanda hadir'),
+                ),
+              ] else ...[
+                Text(
+                  tamu.statusHadir == StatusHadir.hadir
+                      ? 'Sudah ditandai hadir oleh pencatat lain — '
+                            'hanya pencatat itu (atau pemilik) yang bisa '
+                            'membatalkannya.'
+                      : 'Sudah ditandai tidak hadir.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Daftar Undangan', style: tema.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              'Ketuk nama tamu untuk menandai hadir. Tamu yang tidak '
+              'ada di daftar dicatat lewat form di bawah (walk-in).',
+              style: tema.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _kueri,
+              decoration: const InputDecoration(
+                hintText: 'Cari nama tamu…',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (v) => setState(() => _cari = v),
+            ),
+            const SizedBox(height: 8),
+            StreamBuilder<List<TamuUndangan>>(
+              stream: ref
+                  .watch(undanganServiceProvider)
+                  .daftarUndanganStream(widget.acaraId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const TampilMuat();
+                }
+                if (snapshot.hasError) {
+                  return TampilGalat(pesan: pesanDari(snapshot.error!));
+                }
+                final semua = (snapshot.data ?? const <TamuUndangan>[])
+                    .where(
+                      (t) => cocokUndangan(
+                        nama: t.nama,
+                        alamat: t.alamat,
+                        kueri: _cari,
+                      ),
+                    )
+                    .toList();
+                if (semua.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('Tidak ada tamu yang cocok.'),
+                  );
+                }
+                final tampil = _tampilkanSemua
+                    ? semua
+                    : semua.take(8).toList();
+                return Column(
+                  children: [
+                    for (final tamu in tampil)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: Text(tamu.nama),
+                        subtitle: Text(
+                          gabungAlamat(
+                            alamat: tamu.alamat,
+                            dusun: tamu.dusun,
+                            rt: tamu.rt,
+                            rw: tamu.rw,
+                          ),
+                        ),
+                        trailing: Text(
+                          tamu.statusHadir.label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: switch (tamu.statusHadir) {
+                              StatusHadir.hadir => Colors.green.shade700,
+                              StatusHadir.tidak => Colors.red.shade700,
+                              StatusHadir.belum =>
+                                tema.colorScheme.onSurfaceVariant,
+                            },
+                          ),
+                        ),
+                        onTap: () => _bukaLembar(tamu),
+                      ),
+                    if (!_tampilkanSemua && semua.length > 8)
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _tampilkanSemua = true),
+                        child: Text(
+                          'Tampilkan semua (${semua.length} tamu)',
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Dialog nominal untuk "Hadir + isi nominal amplop" (petugas):
+/// nominal diketik dalam ribuan seperti form biasa, jenis
+/// Normal / Kosong. Mengembalikan null bila dibatalkan.
+class _DialogNominalHadir extends StatefulWidget {
+  const _DialogNominalHadir({required this.nama});
+
+  final String nama;
+
+  @override
+  State<_DialogNominalHadir> createState() => _DialogNominalHadirState();
+}
+
+class _DialogNominalHadirState extends State<_DialogNominalHadir> {
+  final _nominal = TextEditingController();
+  var _jenis = JenisAmplop.normal;
+
+  @override
+  void dispose() {
+    _nominal.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Hadir — ${widget.nama}'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DropdownButtonFormField<JenisAmplop>(
+            value: _jenis,
+            decoration: const InputDecoration(labelText: 'Jenis amplop'),
+            items: const [
+              DropdownMenuItem(
+                value: JenisAmplop.normal,
+                child: Text('Normal'),
+              ),
+              DropdownMenuItem(
+                value: JenisAmplop.kosong,
+                child: Text('Kosong'),
+              ),
+            ],
+            onChanged: (v) {
+              if (v == null) return;
+              setState(() {
+                _jenis = v;
+                if (v == JenisAmplop.kosong) _nominal.clear();
+              });
+            },
+          ),
+          TextField(
+            controller: _nominal,
+            keyboardType: TextInputType.number,
+            enabled: _jenis != JenisAmplop.kosong,
+            decoration: const InputDecoration(
+              labelText: 'Nominal (dalam ribuan, mis. 50 = Rp 50.000)',
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop((
+            jenis: _jenis,
+            nominalRibuan: parseNominal(_nominal.text),
+          )),
+          child: const Text('Simpan Hadir'),
+        ),
+      ],
     );
   }
 }

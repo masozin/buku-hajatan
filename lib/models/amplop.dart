@@ -77,6 +77,7 @@ class Amplop {
     this.menungguSinkron = false,
     this.dihitung = true,
     this.dihitungOleh,
+    this.tamuId,
   });
 
   final String id;
@@ -127,6 +128,13 @@ class Amplop {
   /// berbeda dari pencatat entri.
   final String? dihitungOleh;
 
+  /// Tautan ke Daftar Undangan (Batch 34): ID dokumen tamu
+  /// undangan bila amplop ini dibuat lewat tandai-hadir atau
+  /// sebagai walk-in otomatis; null untuk catatan manual biasa.
+  /// Dipakai Mode Hitung & koreksi untuk menyesuaikan
+  /// `acara.totalRpHadir` saat nominal amplop ini berubah.
+  final String? tamuId;
+
   /// Nama untuk ditampilkan: amplop tanpa nama tampil "(Tanpa Nama)".
   String get tampilNama {
     if (jenis == JenisAmplop.tanpaNama || nama.trim().isEmpty) {
@@ -157,6 +165,7 @@ class Amplop {
       menungguSinkron: doc.metadata.hasPendingWrites,
       dihitung: data['dihitung'] != false,
       dihitungOleh: data['dihitungOleh'] as String?,
+      tamuId: data['tamuId'] as String?,
     );
   }
 
@@ -173,6 +182,7 @@ class Amplop {
       'jenis': jenis.nilaiSimpan,
       'dihitung': dihitung,
       'dihitungOleh': dihitungOleh,
+      'tamuId': tamuId,
       'createdAt': createdAt == null
           ? FieldValue.serverTimestamp()
           : Timestamp.fromDate(createdAt!),

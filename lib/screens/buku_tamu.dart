@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/rekap.dart';
+import '../core/undangan.dart';
 import '../models/amplop.dart';
 import '../models/bundel.dart';
+import '../models/tamu_undangan.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../widgets/elemen.dart';
@@ -62,6 +64,11 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
   /// null selagi dimuat / bila pencatat belum punya PIN.
   String? _pinPribadi;
 
+  /// Batch 34: fitur Daftar Undangan acara ini menyala + tamu
+  /// undangan yang dipilih tamu dari daftar ("Saya diundang").
+  var _fiturUndangan = false;
+  TamuUndangan? _tamuTerpilih;
+
   List<String> _saranAlamat = const [];
 
   /// Keadaan layar terima kasih sesudah simpan.
@@ -78,6 +85,17 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
   }
 
   Future<void> _muatPelengkap() async {
+    try {
+      final acara = await ref
+          .read(acaraServiceProvider)
+          .acaraStream(widget.acaraId)
+          .first;
+      if (mounted && acara != null) {
+        setState(() => _fiturUndangan = acara.fiturUndangan);
+      }
+    } catch (_) {
+      // Gagal membaca acara: anggap fitur mati.
+    }
     try {
       final daftar = await ref
           .read(acaraServiceProvider)
@@ -149,6 +167,43 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
     }
     setState(() => _sibuk = true);
     try {
+      // Batch 34: tamu yang memilih namanya dari Daftar
+      // Undangan — catatannya tertaut ke tamu itu (lahir belum
+      // dihitung seperti entri Buku Tamu biasa; nominal menyusul
+      // lewat Mode Hitung).
+      final tamuTerpilih = _tamuTerpilih;
+      if (tamuTerpilih != null) {
+        await ref.read(undanganServiceProvider).tandaiHadirBukuTamu(
+          acaraId: widget.acaraId,
+          pencatatId: widget.pencatatId,
+          bundel: bundel,
+          tamu: tamuTerpilih,
+          nama: _nama.text,
+          alamat: _alamat.text,
+          dusun: int.tryParse(_dusun.text.trim()),
+          rt: int.tryParse(_rt.text.trim()),
+          rw: int.tryParse(_rw.text.trim()),
+          keterangan: _keterangan.text,
+        );
+        // Muat ulang bundel bebas (jumlahnya bertambah satu).
+        final bebas = await ref
+            .read(pencatatanServiceProvider)
+            .bukaBundelBebas(
+              acaraId: widget.acaraId,
+              pencatatId: widget.pencatatId,
+            );
+        if (!mounted) return;
+        setState(() {
+          _bundel = bebas;
+          _namaSapa = _nama.text.trim();
+          _terimaKasih = true;
+        });
+        _timerReset?.cancel();
+        _timerReset = Timer(const Duration(seconds: 5), () {
+          if (mounted) _resetForm();
+        });
+        return;
+      }
       final hasil = await ref
           .read(pencatatanServiceProvider)
           .simpanAmplop(
@@ -202,8 +257,31 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
     _rt.clear();
     _rw.clear();
     _keterangan.clear();
-    setState(() => _terimaKasih = false);
+    setState(() {
+      _terimaKasih = false;
+      _tamuTerpilih = null;
+    });
     _fokusNama.requestFocus();
+  }
+
+  /// Batch 34: tamu mencari namanya sendiri di Daftar Undangan
+  /// ("Saya diundang") — form terisi dari data undangannya,
+  /// simpan nanti menautkan catatan ke tamu itu.
+  Future<void> _pilihTamuUndangan() async {
+    final tamu = await showModalBottomSheet<TamuUndangan>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _LembarCariUndangan(acaraId: widget.acaraId),
+    );
+    if (tamu == null || !mounted) return;
+    setState(() {
+      _tamuTerpilih = tamu;
+      _nama.text = tamu.nama;
+      _alamat.text = tamu.alamat ?? '';
+      _dusun.text = tamu.dusun?.toString() ?? '';
+      _rt.text = tamu.rt?.toString() ?? '';
+      _rw.text = tamu.rw?.toString() ?? '';
+    });
   }
 
   /// Keluar dari Mode Buku Tamu: wajib PIN pribadi pencatat
@@ -339,6 +417,33 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
           style: tema.textTheme.bodySmall,
         ),
         const SizedBox(height: 16),
+        // Batch 34: tamu yang diundang bisa memilih namanya
+        // dari daftar — datanya terisi otomatis dan kehadirannya
+        // tercatat di Daftar Undangan.
+        if (_fiturUndangan && !_terimaKasih) ...[
+          OutlinedButton.icon(
+            onPressed: _sibuk ? null : _pilihTamuUndangan,
+            icon: const Icon(Icons.mail_outline_rounded),
+            label: const Text('Saya diundang — cari namaku'),
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (_tamuTerpilih != null)
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.mail_outline_rounded),
+              title: Text('Undangan: ${_tamuTerpilih!.nama}'),
+              subtitle: const Text(
+                'Kehadiranmu akan ditandai di Daftar Undangan.',
+              ),
+              trailing: IconButton(
+                tooltip: 'Batalkan pilihan undangan',
+                icon: const Icon(Icons.close),
+                onPressed: () => setState(() => _tamuTerpilih = null),
+              ),
+            ),
+          ),
+        if (_tamuTerpilih != null) const SizedBox(height: 8),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -407,6 +512,128 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
           label: const Text('Simpan & Selesai'),
         ),
       ],
+    );
+  }
+}
+
+/// Lembar cari nama di Daftar Undangan untuk perangkat Buku
+/// Tamu (Batch 34): tamu mengetuk namanya sendiri (hanya yang
+/// berstatus 'belum' yang tampil — yang sudah hadir tidak bisa
+/// ditandai dua kali dari sini).
+class _LembarCariUndangan extends ConsumerStatefulWidget {
+  const _LembarCariUndangan({required this.acaraId});
+
+  final String acaraId;
+
+  @override
+  ConsumerState<_LembarCariUndangan> createState() =>
+      _LembarCariUndanganState();
+}
+
+class _LembarCariUndanganState extends ConsumerState<_LembarCariUndangan> {
+  final _kueri = TextEditingController();
+  var _cari = '';
+
+  @override
+  void dispose() {
+    _kueri.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Cari Namamu di Daftar Undangan', style: tema.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              'Ketuk namamu — form di bawah akan terisi otomatis.',
+              style: tema.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _kueri,
+              decoration: const InputDecoration(
+                hintText: 'Ketik namamu…',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (v) => setState(() => _cari = v),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 320,
+              child: StreamBuilder<List<TamuUndangan>>(
+                stream: ref
+                    .watch(undanganServiceProvider)
+                    .daftarUndanganStream(widget.acaraId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const TampilMuat();
+                  }
+                  if (snapshot.hasError) {
+                    return TampilGalat(pesan: pesanDari(snapshot.error!));
+                  }
+                  final semua = (snapshot.data ?? const <TamuUndangan>[])
+                      .where((t) => t.statusHadir == StatusHadir.belum)
+                      .where(
+                        (t) => cocokUndangan(
+                          nama: t.nama,
+                          alamat: t.alamat,
+                          kueri: _cari,
+                        ),
+                      )
+                      .toList();
+                  if (semua.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        'Namamu tidak ada di daftar — isi form seperti '
+                        'biasa, nanti tercatat sebagai tamu biasa.',
+                      ),
+                    );
+                  }
+                  return ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final tamu in semua.take(30))
+                        ListTile(
+                          title: Text(tamu.nama),
+                          subtitle: Text(
+                            gabungAlamat(
+                              alamat: tamu.alamat,
+                              dusun: tamu.dusun,
+                              rt: tamu.rt,
+                              rw: tamu.rw,
+                            ),
+                          ),
+                          onTap: () => Navigator.of(context).pop(tamu),
+                        ),
+                      if (semua.length > 30)
+                        const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Text('Persempit pencarian dengan nama lengkap.'),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

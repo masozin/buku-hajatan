@@ -3,9 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
+import '../core/rekap.dart';
+import '../core/undangan.dart';
 import '../models/acara.dart';
 import '../models/bundel.dart';
 import '../models/pencatat.dart';
+import '../models/tamu_undangan.dart';
 import '../providers.dart';
 import '../services/layanan_exception.dart';
 import '../theme/tema_aplikasi.dart';
@@ -206,6 +209,12 @@ class DetailAcaraScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
                     _PengaturanMetode(acara: acara),
                     const SizedBox(height: 16),
+                    // Batch 34: Daftar Undangan — hanya bila
+                    // fiturnya menyala di acara ini.
+                    if (acara.fiturUndangan) ...[
+                      _DaftarUndangan(acara: acara),
+                      const SizedBox(height: 16),
+                    ],
                     // Batch 32: jalan masuk Mode Hitung pemilik —
                     // hanya relevan bila fitur Buku Tamu menyala.
                     if (acara.fiturBukuTamu) ...[
@@ -402,9 +411,8 @@ class _FabPencatat extends ConsumerWidget {
 /// menampilkan metode wadah acara ini — boleh diganti selama
 /// acara masih kosong (belum ada catatan pertama; setelah itu
 /// terkunci, rancangan multi-metode §3) — plus sakelar dua fitur
-/// tambahan. Sakelarnya di batch ini baru MENYIMPAN pilihan;
-/// fungsi Buku Tamu tiba di Batch 31 dan Daftar Undangan di
-/// Batch 32.
+/// tambahan. Fungsi Buku Tamu tiba di Batch 31 dan Daftar
+/// Undangan di Batch 34.
 class _PengaturanMetode extends ConsumerWidget {
   const _PengaturanMetode({required this.acara});
 
@@ -488,8 +496,8 @@ class _PengaturanMetode extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
               title: const Text('Fitur Daftar Undangan'),
               subtitle: const Text(
-                'Nama tamu diinput dulu; petugas menandai hadir. '
-                '(Tiba di pembaruan berikutnya.)',
+                'Nama tamu diinput dulu; petugas menandai hadir '
+                'di hari-H.',
               ),
               value: acara.fiturUndangan,
               onChanged: (v) => _ubah(context, ref, fiturUndangan: v),
@@ -499,7 +507,7 @@ class _PengaturanMetode extends ConsumerWidget {
               title: const Text('Fitur Buku Tamu'),
               subtitle: const Text(
                 'Pengunjung boleh mengisi sendiri di perangkat '
-                'pencatat. (Tiba di pembaruan berikutnya.)',
+                'pencatat.',
               ),
               value: acara.fiturBukuTamu,
               onChanged: (v) => _ubah(context, ref, fiturBukuTamu: v),
@@ -507,6 +515,630 @@ class _PengaturanMetode extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Bagian Daftar Undangan di Ringkasan pemilik (Batch 34,
+/// rancangan §6.2): siapkan daftar sebelum acara — tambah
+/// satu-satu, tempel daftar teks, atau impor CSV — lalu pantau
+/// kehadiran. Baris tamu menampilkan alamat sebagai pembeda
+/// nama kembar. Ubah/hapus hanya untuk tamu berstatus 'belum';
+/// setelah acara selesai daftar dibekukan, yang tersisa tandai
+/// tidak hadir / kembalikan ke belum.
+class _DaftarUndangan extends ConsumerStatefulWidget {
+  const _DaftarUndangan({required this.acara});
+
+  final Acara acara;
+
+  @override
+  ConsumerState<_DaftarUndangan> createState() => _DaftarUndanganState();
+}
+
+class _DaftarUndanganState extends ConsumerState<_DaftarUndangan> {
+  final _kueri = TextEditingController();
+  var _cari = '';
+  var _tampilkanSemua = false;
+
+  @override
+  void dispose() {
+    _kueri.dispose();
+    super.dispose();
+  }
+
+  void _beriTahu(String pesan) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(pesan)));
+  }
+
+  Future<void> _jalankan(Future<void> Function() aksi, String berhasil) async {
+    try {
+      await aksi();
+      if (berhasil.isNotEmpty) _beriTahu(berhasil);
+    } on LayananException catch (e) {
+      _beriTahu(e.pesan);
+    } catch (e) {
+      _beriTahu(pesanDari(e));
+    }
+  }
+
+  Future<void> _tambah() async {
+    final data = await showDialog<
+      ({
+        String nama,
+        String? alamat,
+        int? dusun,
+        int? rt,
+        int? rw,
+        String? kategori,
+      })
+    >(context: context, builder: (_) => const _DialogTamuForm());
+    if (data == null) return;
+    await _jalankan(
+      () => ref.read(undanganServiceProvider).tambahTamu(
+        acaraId: widget.acara.id,
+        nama: data.nama,
+        alamat: data.alamat,
+        dusun: data.dusun,
+        rt: data.rt,
+        rw: data.rw,
+        kategori: data.kategori,
+      ),
+      'Tamu ditambahkan ke daftar undangan.',
+    );
+  }
+
+  Future<void> _ubah(TamuUndangan tamu) async {
+    final data = await showDialog<
+      ({
+        String nama,
+        String? alamat,
+        int? dusun,
+        int? rt,
+        int? rw,
+        String? kategori,
+      })
+    >(context: context, builder: (_) => _DialogTamuForm(tamu: tamu));
+    if (data == null) return;
+    await _jalankan(
+      () => ref.read(undanganServiceProvider).ubahTamu(
+        acaraId: widget.acara.id,
+        tamu: tamu,
+        nama: data.nama,
+        alamat: data.alamat,
+        dusun: data.dusun,
+        rt: data.rt,
+        rw: data.rw,
+        kategori: data.kategori,
+      ),
+      'Data tamu diperbarui.',
+    );
+  }
+
+  Future<void> _impor({required bool csv}) async {
+    final daftar = await showDialog<List<BarisTamu>>(
+      context: context,
+      builder: (_) => _DialogImporUndangan(csv: csv),
+    );
+    if (daftar == null) return;
+    await _jalankan(
+      () async {
+        final jumlah = await ref
+            .read(undanganServiceProvider)
+            .tambahBanyak(acaraId: widget.acara.id, daftar: daftar);
+        _beriTahu('$jumlah tamu ditambahkan ke daftar undangan.');
+      },
+      '',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final acara = widget.acara;
+    final tema = Theme.of(context);
+    final layanan = ref.watch(undanganServiceProvider);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Daftar Undangan', style: tema.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              'Diundang ${acara.totalUndangan} • Hadir '
+              '${acara.totalHadir} • Tidak hadir '
+              '${acara.totalTidakHadir} • Belum ada kabar '
+              '${acara.totalBelumHadir}',
+              style: tema.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _kueri,
+              decoration: const InputDecoration(
+                hintText: 'Cari nama atau alamat tamu…',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (v) => setState(() => _cari = v),
+            ),
+            const SizedBox(height: 8),
+            StreamBuilder<List<TamuUndangan>>(
+              stream: layanan.daftarUndanganStream(acara.id),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const TampilMuat();
+                }
+                if (snapshot.hasError) {
+                  return TampilGalat(pesan: pesanDari(snapshot.error!));
+                }
+                final semua = (snapshot.data ?? const <TamuUndangan>[])
+                    .where(
+                      (t) => cocokUndangan(
+                        nama: t.nama,
+                        alamat: t.alamat,
+                        kueri: _cari,
+                      ),
+                    )
+                    .toList();
+                if (semua.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      'Belum ada tamu di daftar ini — tambah lewat '
+                      'tombol di bawah.',
+                    ),
+                  );
+                }
+                final tampil = _tampilkanSemua
+                    ? semua
+                    : semua.take(10).toList();
+                return Column(
+                  children: [
+                    for (final tamu in tampil)
+                      _BarisTamuUndangan(
+                        tamu: tamu,
+                        sudahSelesai: acara.sudahSelesai,
+                        onUbah: () => _ubah(tamu),
+                        onHapus: () async {
+                          final yakin = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Hapus tamu ini?'),
+                              content: Text(
+                                '"${tamu.nama}" akan dihapus dari daftar '
+                                'undangan.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: const Text('Batal'),
+                                ),
+                                FilledButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
+                                  child: const Text('Hapus'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (yakin == true) {
+                            await _jalankan(
+                              () => ref
+                                  .read(undanganServiceProvider)
+                                  .hapusTamu(
+                                    acaraId: acara.id,
+                                    tamu: tamu,
+                                  ),
+                              'Tamu dihapus dari daftar undangan.',
+                            );
+                          }
+                        },
+                        onTandaiTidak: () => _jalankan(
+                          () => ref.read(undanganServiceProvider).tandaiTidak(
+                            acaraId: acara.id,
+                            tamu: tamu,
+                          ),
+                          '"${tamu.nama}" ditandai tidak hadir.',
+                        ),
+                        onResetTidak: () => _jalankan(
+                          () => ref.read(undanganServiceProvider).resetTidak(
+                            acaraId: acara.id,
+                            tamu: tamu,
+                          ),
+                          '"${tamu.nama}" dikembalikan ke belum ada kabar.',
+                        ),
+                      ),
+                    if (!_tampilkanSemua && semua.length > 10)
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _tampilkanSemua = true),
+                        child: Text(
+                          'Tampilkan semua (${semua.length} tamu)',
+                        ),
+                      ),
+                    if (_tampilkanSemua && semua.length > 10)
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _tampilkanSemua = false),
+                        child: const Text('Tampilkan lebih sedikit'),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            if (acara.sudahSelesai)
+              Text(
+                'Acara sudah selesai — daftar dibekukan; yang bisa '
+                'dilakukan hanya menandai tidak hadir / mengembalikan '
+                'ke belum ada kabar.',
+                style: tema.textTheme.bodySmall,
+              )
+            else
+              Wrap(
+                spacing: 8,
+                children: [
+                  FilledButton.icon(
+                    onPressed: _tambah,
+                    icon: const Icon(Icons.person_add_outlined),
+                    label: const Text('Tambah Tamu'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _impor(csv: false),
+                    icon: const Icon(Icons.content_paste_outlined),
+                    label: const Text('Tempel Daftar'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _impor(csv: true),
+                    icon: const Icon(Icons.upload_file_outlined),
+                    label: const Text('Impor CSV'),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Satu baris tamu undangan: nama + alamat gabungan (pembeda
+/// nama kembar) + chip status; aksi lewat menu titik-tiga.
+class _BarisTamuUndangan extends StatelessWidget {
+  const _BarisTamuUndangan({
+    required this.tamu,
+    required this.sudahSelesai,
+    required this.onUbah,
+    required this.onHapus,
+    required this.onTandaiTidak,
+    required this.onResetTidak,
+  });
+
+  final TamuUndangan tamu;
+  final bool sudahSelesai;
+  final VoidCallback onUbah;
+  final VoidCallback onHapus;
+  final VoidCallback onTandaiTidak;
+  final VoidCallback onResetTidak;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final warnaStatus = switch (tamu.statusHadir) {
+      StatusHadir.hadir => Colors.green.shade700,
+      StatusHadir.tidak => Colors.red.shade700,
+      StatusHadir.belum => tema.colorScheme.onSurfaceVariant,
+    };
+    final bisaKelola = !sudahSelesai && tamu.statusHadir == StatusHadir.belum;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        tamu.nama,
+        style: TextStyle(
+          fontWeight: tamu.statusHadir == StatusHadir.belum
+              ? FontWeight.normal
+              : FontWeight.bold,
+        ),
+      ),
+      subtitle: Text(
+        [
+          gabungAlamat(
+            alamat: tamu.alamat,
+            dusun: tamu.dusun,
+            rt: tamu.rt,
+            rw: tamu.rw,
+          ),
+          if (tamu.kategori != null && tamu.kategori!.isNotEmpty)
+            tamu.kategori!,
+          if (!tamu.dariDaftar) 'Walk-in',
+        ].where((s) => s.isNotEmpty).join(' • '),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            tamu.statusHadir.label,
+            style: TextStyle(color: warnaStatus, fontSize: 12),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Aksi tamu',
+            onSelected: (nilai) {
+              switch (nilai) {
+                case 'ubah':
+                  onUbah();
+                case 'hapus':
+                  onHapus();
+                case 'tidak':
+                  onTandaiTidak();
+                case 'reset':
+                  onResetTidak();
+              }
+            },
+            itemBuilder: (context) => [
+              if (bisaKelola) ...[
+                const PopupMenuItem(
+                  value: 'ubah',
+                  child: Text('Ubah data tamu'),
+                ),
+                const PopupMenuItem(
+                  value: 'hapus',
+                  child: Text('Hapus dari daftar'),
+                ),
+              ],
+              if (tamu.statusHadir == StatusHadir.belum)
+                const PopupMenuItem(
+                  value: 'tidak',
+                  child: Text('Tandai tidak hadir'),
+                ),
+              if (tamu.statusHadir == StatusHadir.tidak)
+                const PopupMenuItem(
+                  value: 'reset',
+                  child: Text('Kembalikan ke belum ada kabar'),
+                ),
+              if (tamu.statusHadir == StatusHadir.hadir)
+                const PopupMenuItem(
+                  value: 'hadir',
+                  enabled: false,
+                  child: Text('Sudah hadir — ubah lewat koreksi amplop'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Dialog tambah / ubah satu tamu undangan. Mengembalikan data
+/// form (pola yang sama dengan _DialogAturPin di file ini);
+/// pemanggil yang menyimpan lewat UndanganService.
+class _DialogTamuForm extends StatefulWidget {
+  const _DialogTamuForm({this.tamu});
+
+  final TamuUndangan? tamu;
+
+  @override
+  State<_DialogTamuForm> createState() => _DialogTamuFormState();
+}
+
+class _DialogTamuFormState extends State<_DialogTamuForm> {
+  late final _nama = TextEditingController(text: widget.tamu?.nama ?? '');
+  late final _alamat = TextEditingController(text: widget.tamu?.alamat ?? '');
+  late final _dusun = TextEditingController(
+    text: widget.tamu?.dusun?.toString() ?? '',
+  );
+  late final _rt = TextEditingController(
+    text: widget.tamu?.rt?.toString() ?? '',
+  );
+  late final _rw = TextEditingController(
+    text: widget.tamu?.rw?.toString() ?? '',
+  );
+  late final _kategori = TextEditingController(
+    text: widget.tamu?.kategori ?? '',
+  );
+
+  @override
+  void dispose() {
+    _nama.dispose();
+    _alamat.dispose();
+    _dusun.dispose();
+    _rt.dispose();
+    _rw.dispose();
+    _kategori.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.tamu == null ? 'Tambah Tamu' : 'Ubah Tamu'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _nama,
+              decoration: const InputDecoration(labelText: 'Nama tamu *'),
+              textCapitalization: TextCapitalization.words,
+            ),
+            TextField(
+              controller: _alamat,
+              decoration: const InputDecoration(labelText: 'Alamat'),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _dusun,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Dusun'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _rt,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'RT'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _rw,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'RW'),
+                  ),
+                ),
+              ],
+            ),
+            TextField(
+              controller: _kategori,
+              decoration: const InputDecoration(
+                labelText: 'Kategori (mis. Keluarga)',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (_nama.text.trim().isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Nama tamu belum diisi.')),
+              );
+              return;
+            }
+            Navigator.of(context).pop((
+              nama: _nama.text,
+              alamat: _alamat.text,
+              dusun: int.tryParse(_dusun.text.trim()),
+              rt: int.tryParse(_rt.text.trim()),
+              rw: int.tryParse(_rw.text.trim()),
+              kategori: _kategori.text,
+            ));
+          },
+          child: const Text('Simpan'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dialog tempel daftar / impor CSV: pengguna menempel teks, menekan
+/// Pratinjau untuk melihat jumlah + contoh baris, lalu Simpan.
+/// Mengembalikan daftar baris hasil parse; pemanggil yang
+/// menyimpan lewat UndanganService.tambahBanyak.
+class _DialogImporUndangan extends StatefulWidget {
+  const _DialogImporUndangan({required this.csv});
+
+  final bool csv;
+
+  @override
+  State<_DialogImporUndangan> createState() => _DialogImporUndanganState();
+}
+
+class _DialogImporUndanganState extends State<_DialogImporUndangan> {
+  final _teks = TextEditingController();
+  List<BarisTamu>? _pratinjau;
+
+  @override
+  void dispose() {
+    _teks.dispose();
+    super.dispose();
+  }
+
+  void _lihatPratinjau() {
+    final daftar = widget.csv
+        ? parseCsvUndangan(_teks.text)
+        : parseTempelUndangan(_teks.text);
+    setState(() => _pratinjau = daftar);
+    if (daftar.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tidak ada baris tamu yang dikenali — periksa formatnya.'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pratinjau = _pratinjau;
+    return AlertDialog(
+      title: Text(widget.csv ? 'Impor CSV' : 'Tempel Daftar'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.csv
+                  ? 'Satu baris = satu tamu, kolom dipisah koma:\n'
+                        'Nama, Alamat, Dusun, RT, RW, Kategori\n'
+                        'Baris pertama boleh header (Nama, Alamat, …) — '
+                        'otomatis dilewati. Koma di dalam nama/alamat '
+                        'tidak didukung.'
+                  : 'Satu baris = satu tamu:\nNama, Alamat\n'
+                        '(alamat boleh dikosongkan; kolom ketiga — bila '
+                        'ada — dibaca sebagai kategori.)',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _teks,
+              maxLines: 10,
+              decoration: const InputDecoration(
+                hintText: 'Tempel daftar tamu di sini…',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            if (pratinjau != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                '${pratinjau.length} tamu dikenali'
+                '${pratinjau.length > 200 ? ' — maksimal 200 sekali simpan, bagi dua ya' : ''}.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              for (final b in pratinjau.take(5))
+                Text(
+                  '• ${b.nama}'
+                  '${b.alamat != null ? ' — ${b.alamat}' : ''}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              if (pratinjau.length > 5)
+                Text(
+                  '…dan ${pratinjau.length - 5} lainnya.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Batal'),
+        ),
+        OutlinedButton(
+          onPressed: _lihatPratinjau,
+          child: const Text('Pratinjau'),
+        ),
+        FilledButton(
+          onPressed: pratinjau == null || pratinjau.isEmpty
+              ? null
+              : () => Navigator.of(context).pop(pratinjau),
+          child: const Text('Simpan'),
+        ),
+      ],
     );
   }
 }

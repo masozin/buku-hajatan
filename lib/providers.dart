@@ -11,6 +11,7 @@ import 'services/pencatatan_service.dart';
 import 'services/pembaruan_service.dart';
 import 'services/provisioning_service.dart';
 import 'services/rekap_service.dart';
+import 'services/undangan_service.dart';
 
 /// Inisialisasi Firebase. Gagal (error) berarti google-services.json
 /// belum terpasang / Firebase belum disiapkan — aplikasi menampilkan
@@ -39,6 +40,10 @@ final provisioningServiceProvider = Provider<ProvisioningService>(
 
 final koreksiServiceProvider = Provider<KoreksiService>(
   (ref) => KoreksiService(),
+);
+
+final undanganServiceProvider = Provider<UndanganService>(
+  (ref) => UndanganService(),
 );
 
 final pembaruanServiceProvider = Provider<PembaruanService>(

@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../core/kode.dart';
 import '../core/koreksi.dart';
 import '../core/pencatatan.dart';
 import '../models/acara.dart';
 import '../models/amplop.dart';
 import '../models/bundel.dart';
 import '../models/pencatat.dart';
+import '../models/tamu_undangan.dart';
 import 'layanan_exception.dart';
 
 /// Satu amplop beserta status sinkronnya (dari metadata dokumen).
@@ -306,7 +308,8 @@ class PencatatanService {
     if (!docAcara.exists) {
       throw const LayananException('Acara tidak ditemukan.');
     }
-    if (Acara.fromFirestore(docAcara).sudahSelesai) {
+    final acara = Acara.fromFirestore(docAcara);
+    if (acara.sudahSelesai) {
       throw const LayananException(
         'Acara sudah selesai — pencatatan ditutup.',
       );
@@ -343,8 +346,30 @@ class PencatatanService {
         !bundelKini.bebas &&
         amplopIniMenutupBundel(bundelKini.jumlahAmplop);
 
+    // Batch 34: tamu tak terdaftar (walk-in) — bila fitur Daftar
+    // Undangan menyala, catatan manual ini otomatis membuat baris
+    // tamu asal 'langsung' berstatus hadir + menautkannya, supaya
+    // daftar kehadiran tetap lengkap (§6.3). Tanpa Nama tidak
+    // dibuatkan baris (tidak ada nama untuk dicari). Catatan LEWAT
+    // Daftar Undangan tidak lewat sini (UndanganService membuat
+    // amplopnya sendiri), jadi tidak ada ganda. Konsekuensi yang
+    // perlu diketahui petugas: mengetik manual nama tamu yang
+    // sebenarnya sudah ada di daftar akan tercatat sebagai
+    // walk-in kedua — pakai Daftar Undangan untuk tamu terdaftar.
+    // Kode tamu dibuat acak tanpa cek tabrakan di sini (ruang
+    // 62^8 — tabrakan praktis mustahil; daftar yang diimpor
+    // pemilik tetap dicek di UndanganService).
+    final walkIn =
+        acara.fiturUndangan &&
+        jenis != JenisAmplop.tanpaNama &&
+        namaEfektif.trim().isNotEmpty;
+    final refAmplop = refBundel.collection('amplop').doc();
+    final refTamuWalkIn = walkIn
+        ? _db.collection('acara').doc(acaraId).collection('tamuUndangan').doc()
+        : null;
+
     final amplop = Amplop(
-      id: '',
+      id: refAmplop.id,
       bundelId: bundelKini.id,
       urut: urut,
       nama: namaEfektif,
@@ -359,10 +384,30 @@ class PencatatanService {
       jenis: jenis,
       createdBy: pencatatId,
       dihitung: dihitung,
+      tamuId: refTamuWalkIn?.id,
     );
 
     final batch = _db.batch();
-    batch.set(refBundel.collection('amplop').doc(), amplop.toMap());
+    batch.set(refAmplop, amplop.toMap());
+    if (walkIn && refTamuWalkIn != null) {
+      batch.set(
+        refTamuWalkIn,
+        TamuUndangan(
+          id: refTamuWalkIn.id,
+          nama: namaEfektif,
+          alamat: alamatEfektif,
+          dusun: dusun,
+          rt: rt,
+          rw: rw,
+          kodeTamu: buatKodeTamu(),
+          statusHadir: StatusHadir.hadir,
+          hadirAt: DateTime.now(),
+          amplopId: refAmplop.id,
+          dicatatOleh: pencatatId,
+          asal: 'langsung',
+        ).toMap(),
+      );
+    }
     batch.update(refBundel, <String, dynamic>{
       'jumlahAmplop': FieldValue.increment(1),
       'totalRp': FieldValue.increment(nominalEfektif),
@@ -378,6 +423,13 @@ class PencatatanService {
       'totalRp': FieldValue.increment(nominalEfektif),
       'updatedAt': FieldValue.serverTimestamp(),
       if (menutup) 'totalBundel': FieldValue.increment(1),
+      // Batch 34: walk-in ikut menghitung kehadiran — diundang
+      // dan hadir naik bersama (totalRpHadir naik sebesar
+      // nominalnya; untuk entri Buku Tamu yang belum dihitung
+      // nominalnya 0, uangnya menyusul lewat Mode Hitung).
+      if (walkIn) 'totalUndangan': FieldValue.increment(1),
+      if (walkIn) 'totalHadir': FieldValue.increment(1),
+      if (walkIn) 'totalRpHadir': FieldValue.increment(nominalEfektif),
     });
 
     Bundel? bundelBaru;
@@ -531,6 +583,10 @@ class PencatatanService {
     batch.update(refAcara, <String, dynamic>{
       'totalRp': FieldValue.increment(delta.deltaRp),
       'updatedAt': FieldValue.serverTimestamp(),
+      // Batch 34: amplop tertaut ke tamu undangan — perubahan
+      // nominalnya ikut menggeser uang kehadiran.
+      if (tersimpan.tamuId != null)
+        'totalRpHadir': FieldValue.increment(delta.deltaRp),
     });
     await batch.commit();
   }
@@ -633,6 +689,11 @@ class PencatatanService {
     batch.update(refAcara, <String, dynamic>{
       'totalRp': FieldValue.increment(delta.deltaRp),
       'updatedAt': FieldValue.serverTimestamp(),
+      // Batch 34: entri Buku Tamu yang tertaut ke tamu undangan
+      // (hadir lewat Buku Tamu) — saat dihitung, nominalnya
+      // masuk uang kehadiran.
+      if (tersimpan.tamuId != null)
+        'totalRpHadir': FieldValue.increment(delta.deltaRp),
     });
     await batch.commit();
   }
