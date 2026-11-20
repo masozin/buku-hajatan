@@ -7,6 +7,7 @@ import 'services/admin_service.dart';
 import 'services/auth_service.dart';
 import 'services/ekspor_service.dart';
 import 'services/koreksi_service.dart';
+import 'services/kunci_aplikasi.dart';
 import 'services/pencatatan_service.dart';
 import 'services/pembaruan_service.dart';
 import 'services/provisioning_service.dart';
@@ -48,6 +49,11 @@ final undanganServiceProvider = Provider<UndanganService>(
 
 final pembaruanServiceProvider = Provider<PembaruanService>(
   (ref) => PembaruanService(),
+);
+
+/// Kunci aplikasi sidik jari (Batch 38).
+final kunciAplikasiServiceProvider = Provider<KunciAplikasiService>(
+  (ref) => KunciAplikasiService(),
 );
 
 /// True bila pengguna yang sedang masuk adalah admin platform

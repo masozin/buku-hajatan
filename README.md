@@ -972,3 +972,16 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   berubah (RT/RW lama tetap terbawa saat ubah & tetap tampil
   di detail/ekspor); tampilkan lagi dengan mengembalikan
   baris Row RT/RW yang ditandai komentar Batch 37.
+- Batch 38 (permintaan Mark 2026-11-20): Kunci Sidik Jari —
+  gembok aplikasi di depan sesi yang sudah masuk (bukan
+  pengganti login), agar HP yang terpegang orang lain tidak
+  membuka isi aplikasi sementara petugas/pemilik masuk lagi
+  cukup dengan sidik jari. Paket local_auth +
+  shared_preferences; MainActivity menjadi
+  FlutterFragmentActivity + izin USE_BIOMETRIC. Saklar per
+  perangkat di Info Aplikasi > Keamanan (mengaktifkan wajib
+  membuktikan sidik jari sekali); berlaku semua peran yang
+  sedang masuk; terkunci saat aplikasi dibuka dari awal dan
+  setelah > 60 detik di latar belakang; cadangan = PIN/pola
+  kunci layar HP. Mode Buku Tamu DIKECUALIKAN (tablet di
+  tangan tamu; keluar mode tetap wajib PIN pencatat).

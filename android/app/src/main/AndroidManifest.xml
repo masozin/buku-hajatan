@@ -4,6 +4,8 @@
          (Firebase mati total) — selama ini terbantu manifest
          debug yang dipakai saat aplikasi dijalankan dari editor. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Batch 38: kunci aplikasi sidik jari (local_auth). -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <!-- Batch 24: izin memasang paket — pemasang Android dibuka
          dari dalam aplikasi setelah APK pembaruan selesai
          diunduh. -->

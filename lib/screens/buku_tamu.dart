@@ -10,6 +10,7 @@ import '../models/amplop.dart';
 import '../models/bundel.dart';
 import '../models/tamu_undangan.dart';
 import '../providers.dart';
+import '../services/kunci_aplikasi.dart';
 import '../services/layanan_exception.dart';
 import '../widgets/elemen.dart';
 import '../widgets/keadaan.dart';
@@ -80,6 +81,9 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
   @override
   void initState() {
     super.initState();
+    // Batch 38: selama Mode Buku Tamu tampil, gerbang kunci
+    // sidik jari tidak mengunci — tablet dipegang tamu.
+    penandaBukuTamuAktif.value = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _muatPelengkap();
     });
@@ -141,6 +145,7 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
 
   @override
   void dispose() {
+    penandaBukuTamuAktif.value = false;
     _timerReset?.cancel();
     _nama.dispose();
     _alamat.dispose();

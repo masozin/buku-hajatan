@@ -10,6 +10,7 @@ import 'screens/detail_acara.dart';
 import 'screens/diblokir.dart';
 import 'screens/masuk.dart';
 import 'screens/panel_admin.dart';
+import 'widgets/gerbang_kunci.dart';
 import 'widgets/keadaan.dart';
 import 'widgets/pemeriksa_pembaruan.dart';
 
@@ -70,7 +71,11 @@ class BukuHajatanApp extends ConsumerWidget {
           loading: () => const Scaffold(body: TampilMuat()),
           error: (error, _) =>
               BelumKonfigurasiScreen(rincianGalat: error.toString()),
-          data: (_) => const _GerbangPengguna(),
+          // GerbangKunciAplikasi (Batch 38): gembok sidik jari
+          // di depan sesi yang sudah masuk, bila diaktifkan.
+          data: (_) => const GerbangKunciAplikasi(
+            child: _GerbangPengguna(),
+          ),
         ),
       ),
     );
