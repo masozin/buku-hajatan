@@ -83,6 +83,19 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   /// bundel" sesaat yang membuat layar terasa memuat ulang.
   var _persiapanSelesai = false;
 
+  /// Fix reload (2026-11-20): stream bundel dibuat SEKALI di
+  /// initState, BUKAN di build. StreamBuilder yang menerima
+  /// objek stream baru di setiap build akan berlangganan ulang
+  /// dan sesaat berstatus waiting — itulah kedip "reload"
+  /// berulang setiap layar dibangun ulang (laporan Mark:
+  /// sampai 3 kali).
+  late final Stream<List<Bundel>> _streamBundel;
+
+  /// Stream isi bundel tampil — dibuat ulang hanya bila bundel
+  /// tampil berganti (rotasi bundel / mode tinjau).
+  String? _idBundelIsi;
+  Stream<List<AmplopTercatat>>? _streamIsi;
+
   /// Sugesti alamat untuk kolom Alamat (Batch 14): alamat unik
   /// yang pernah dipakai di acara ini.
   List<String> _saranAlamat = const [];
@@ -95,6 +108,9 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   @override
   void initState() {
     super.initState();
+    _streamBundel = ref
+        .read(pencatatanServiceProvider)
+        .bundelPencatatStream(widget.acaraId, widget.pencatatId);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _siapkan();
     });
@@ -294,16 +310,18 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
       // fungsinya digantikan tab Bundel di Detail Acara.
       appBar: AppBar(title: const Text('Mencatat Pengunjung')),
       body: StreamBuilder<List<Bundel>>(
-        stream: layanan.bundelPencatatStream(
-          widget.acaraId,
-          widget.pencatatId,
-        ),
+        stream: _streamBundel,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const TampilMuat();
-          }
           if (snapshot.hasError) {
             return TampilGalat(pesan: pesanDari(snapshot.error!));
+          }
+          // Fix reload: tahan indikator muat sampai persiapan
+          // awal SELESAI dan snapshot pertama tiba — layar
+          // tampil SEKALI dalam keadaan utuh (kartu bundel,
+          // tombol fitur, form), bukan menyusul berkeping.
+          if (snapshot.connectionState == ConnectionState.waiting ||
+              !_persiapanSelesai) {
+            return const TampilMuat();
           }
           final daftar = snapshot.data ?? const <Bundel>[];
           Bundel? bundel;
@@ -332,13 +350,13 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
           }
           final tampil = bundelTinjau ?? bundel;
           final meninjau = bundelTinjau != null;
-          if (tampil == null && !_persiapanSelesai) {
-            // Batch 35: persiapan awal belum selesai (acara
-            // sedang dibaca / bundel sedang dibuka) — tampilkan
-            // indikator muat, JANGAN kartu "belum ada bundel"
-            // sesaat. Kartu itu yang membuat layar terasa
-            // memuat ulang dua kali saat dibuka.
-            return const TampilMuat();
+          // Fix reload: stream isi dibuat ulang hanya bila
+          // bundel tampil berganti.
+          if (_idBundelIsi != tampil?.id) {
+            _idBundelIsi = tampil?.id;
+            _streamIsi = tampil == null
+                ? null
+                : layanan.amplopBundelStream(widget.acaraId, tampil.id);
           }
           if (tampil == null) {
             return Padding(
@@ -491,10 +509,7 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
               ),
               const SizedBox(height: 4),
               StreamBuilder<List<AmplopTercatat>>(
-                stream: layanan.amplopBundelStream(
-                  widget.acaraId,
-                  tampil.id,
-                ),
+                stream: _streamIsi,
                 builder: (context, snapshotIsi) {
                   if (snapshotIsi.connectionState ==
                       ConnectionState.waiting) {
@@ -769,6 +784,18 @@ class _DaftarUndanganPencatatState
   var _cari = '';
   var _tampilkanSemua = false;
 
+  /// Fix reload: stream undangan dibuat sekali di initState
+  /// (alasan yang sama seperti stream bundel di atas).
+  late final Stream<List<TamuUndangan>> _streamUndangan;
+
+  @override
+  void initState() {
+    super.initState();
+    _streamUndangan = ref
+        .read(undanganServiceProvider)
+        .daftarUndanganStream(widget.acaraId);
+  }
+
   @override
   void dispose() {
     _kueri.dispose();
@@ -984,9 +1011,7 @@ class _DaftarUndanganPencatatState
             ),
             const SizedBox(height: 8),
             StreamBuilder<List<TamuUndangan>>(
-              stream: ref
-                  .watch(undanganServiceProvider)
-                  .daftarUndanganStream(widget.acaraId),
+              stream: _streamUndangan,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const TampilMuat();

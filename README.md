@@ -946,3 +946,12 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   1,15x). (4) Layar pencatatan tidak lagi berkedip "belum ada
   bundel" saat dibuka: indikator muat ditahan sampai persiapan
   awal (baca acara + buka bundel) selesai.
+- Fix reload layar pencatatan (2026-11-20, laporan Mark:
+  berkedip sampai 3 kali): akar masalahnya StreamBuilder
+  menerima objek stream BARU di setiap build sehingga
+  berlangganan ulang dan sesaat berstatus waiting (indikator
+  muat) — setiap setState (simpan, ganti jenis, selesai
+  persiapan) memicu satu kedip. Stream bundel & undangan kini
+  dibuat sekali di initState, stream isi dimemo per bundel
+  tampil, dan indikator muat awal ditahan sampai persiapan
+  selesai + snapshot pertama tiba: layar tampil sekali, utuh.
