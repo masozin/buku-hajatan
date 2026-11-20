@@ -971,6 +971,11 @@ class _DialogTamuFormState extends State<_DialogTamuForm> {
   late final _kategori = TextEditingController(
     text: widget.tamu?.kategori ?? '',
   );
+  // Batch 40: rantai fokus tombol Lanjut keyboard antar kolom.
+  final _fokusNama = FocusNode();
+  final _fokusAlamat = FocusNode();
+  final _fokusDusun = FocusNode();
+  final _fokusKategori = FocusNode();
 
   @override
   void dispose() {
@@ -980,7 +985,28 @@ class _DialogTamuFormState extends State<_DialogTamuForm> {
     _rt.dispose();
     _rw.dispose();
     _kategori.dispose();
+    _fokusNama.dispose();
+    _fokusAlamat.dispose();
+    _fokusDusun.dispose();
+    _fokusKategori.dispose();
     super.dispose();
+  }
+
+  void _simpan() {
+    if (_nama.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama tamu belum diisi.')),
+      );
+      return;
+    }
+    Navigator.of(context).pop((
+      nama: _nama.text,
+      alamat: _alamat.text,
+      dusun: dusunSimpan(_dusun.text),
+      rt: int.tryParse(_rt.text.trim()),
+      rw: int.tryParse(_rw.text.trim()),
+      kategori: _kategori.text,
+    ));
   }
 
   @override
@@ -993,18 +1019,26 @@ class _DialogTamuFormState extends State<_DialogTamuForm> {
           children: [
             TextField(
               controller: _nama,
+              focusNode: _fokusNama,
+              textInputAction: TextInputAction.next,
               decoration: const InputDecoration(labelText: 'Nama tamu *'),
               textCapitalization: TextCapitalization.words,
+              onSubmitted: (_) => _fokusAlamat.requestFocus(),
             ),
             TextField(
               controller: _alamat,
+              focusNode: _fokusAlamat,
+              textInputAction: TextInputAction.next,
               decoration: const InputDecoration(labelText: 'Alamat'),
+              onSubmitted: (_) => _fokusDusun.requestFocus(),
             ),
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _dusun,
+                    focusNode: _fokusDusun,
+                    textInputAction: TextInputAction.next,
                     // Batch 36: dusun teks bebas (SP, RK, nama
                     // kampung) — keyboard teks, bukan angka.
                     keyboardType: TextInputType.text,
@@ -1012,6 +1046,7 @@ class _DialogTamuFormState extends State<_DialogTamuForm> {
                     decoration: const InputDecoration(
                       labelText: 'Dusun/Dukuh',
                     ),
+                    onSubmitted: (_) => _fokusKategori.requestFocus(),
                   ),
                 ),
                 // Batch 37: input RT/RW dialog ini DISEMBUNYIKAN
@@ -1022,9 +1057,12 @@ class _DialogTamuFormState extends State<_DialogTamuForm> {
             ),
             TextField(
               controller: _kategori,
+              focusNode: _fokusKategori,
+              textInputAction: TextInputAction.done,
               decoration: const InputDecoration(
                 labelText: 'Kategori (mis. Keluarga)',
               ),
+              onSubmitted: (_) => _simpan(),
             ),
           ],
         ),
@@ -1035,22 +1073,7 @@ class _DialogTamuFormState extends State<_DialogTamuForm> {
           child: const Text('Batal'),
         ),
         FilledButton(
-          onPressed: () {
-            if (_nama.text.trim().isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Nama tamu belum diisi.')),
-              );
-              return;
-            }
-            Navigator.of(context).pop((
-              nama: _nama.text,
-              alamat: _alamat.text,
-              dusun: dusunSimpan(_dusun.text),
-              rt: int.tryParse(_rt.text.trim()),
-              rw: int.tryParse(_rw.text.trim()),
-              kategori: _kategori.text,
-            ));
-          },
+          onPressed: _simpan,
           child: const Text('Simpan'),
         ),
       ],

@@ -54,6 +54,11 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   final _nominal = TextEditingController();
   final _keterangan = TextEditingController();
   final _fokusNama = FocusNode();
+  // Batch 40: rantai fokus tombol Lanjut keyboard antar kolom.
+  final _fokusAlamat = FocusNode();
+  final _fokusDusun = FocusNode();
+  final _fokusNominal = FocusNode();
+  final _fokusKeterangan = FocusNode();
   var _jenis = JenisAmplop.normal;
   var _sibuk = false;
   var _sudahBuka = false;
@@ -139,6 +144,10 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
     _nominal.dispose();
     _keterangan.dispose();
     _fokusNama.dispose();
+    _fokusAlamat.dispose();
+    _fokusDusun.dispose();
+    _fokusNominal.dispose();
+    _fokusKeterangan.dispose();
     super.dispose();
   }
 
@@ -471,6 +480,10 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
                   nominal: _nominal,
                   keterangan: _keterangan,
                   fokusNama: _fokusNama,
+                  fokusAlamat: _fokusAlamat,
+                  fokusDusun: _fokusDusun,
+                  fokusNominal: _fokusNominal,
+                  fokusKeterangan: _fokusKeterangan,
                   sibuk: _sibuk,
                   saranAlamat: _saranAlamat,
                   onSimpan: () => _simpan(tampil),
@@ -1174,6 +1187,10 @@ class _FormAmplop extends StatelessWidget {
     required this.nominal,
     required this.keterangan,
     required this.fokusNama,
+    required this.fokusAlamat,
+    required this.fokusDusun,
+    required this.fokusNominal,
+    required this.fokusKeterangan,
     required this.sibuk,
     required this.saranAlamat,
     required this.onSimpan,
@@ -1189,6 +1206,10 @@ class _FormAmplop extends StatelessWidget {
   final TextEditingController nominal;
   final TextEditingController keterangan;
   final FocusNode fokusNama;
+  final FocusNode fokusAlamat;
+  final FocusNode fokusDusun;
+  final FocusNode fokusNominal;
+  final FocusNode fokusKeterangan;
   final bool sibuk;
 
   /// Sugesti alamat acara ini (Batch 14).
@@ -1224,27 +1245,35 @@ class _FormAmplop extends StatelessWidget {
               onSelectionChanged: (pilihan) => onJenis(pilihan.first),
             ),
             const SizedBox(height: 12),
+            // Batch 40: tombol Lanjut (↵) di keyboard berpindah
+            // ke kolom berikutnya; di kolom terakhir (keterangan)
+            // tombol Selesai menyimpan.
             TextField(
               controller: nama,
               focusNode: fokusNama,
+              textInputAction: TextInputAction.next,
               enabled: !tanpaNama,
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
                 labelText: tanpaNama ? 'Nama (otomatis "(Tanpa Nama)")' : 'Nama tamu',
               ),
-              onSubmitted: (_) => sibuk ? null : onSimpan(),
+              onSubmitted: (_) => fokusAlamat.requestFocus(),
             ),
             const SizedBox(height: 12),
             KolomAlamat(
               controller: alamat,
               saran: saranAlamat,
-              onSubmitted: () => sibuk ? null : onSimpan(),
+              focusNode: fokusAlamat,
+              textInputAction: TextInputAction.next,
+              onSubmitted: () => fokusDusun.requestFocus(),
             ),
             const SizedBox(height: 12),
             KolomDusun(
               controller: dusun,
               teksBebas: true,
-              onSubmitted: () => sibuk ? null : onSimpan(),
+              focusNode: fokusDusun,
+              textInputAction: TextInputAction.next,
+              onSubmitted: () => fokusNominal.requestFocus(),
             ),
             // Batch 37: input RT/RW DISEMBUNYIKAN sementara
             // (permintaan Mark 2026-11-20) — controller & data
@@ -1259,6 +1288,8 @@ class _FormAmplop extends StatelessWidget {
                 final n = parseNominal(nilaiTeks.text);
                 return TextField(
                   controller: nominal,
+                  focusNode: fokusNominal,
+                  textInputAction: TextInputAction.next,
                   enabled: !kosong,
                   keyboardType: TextInputType.number,
                   inputFormatters: [
@@ -1279,13 +1310,15 @@ class _FormAmplop extends StatelessWidget {
                         ? '= ${formatRupiah(n * 1000)}'
                         : 'Ketik dalam ribu: 50 = Rp 50.000',
                   ),
-                  onSubmitted: (_) => sibuk ? null : onSimpan(),
+                  onSubmitted: (_) => fokusKeterangan.requestFocus(),
                 );
               },
             ),
             const SizedBox(height: 12),
             TextField(
               controller: keterangan,
+              focusNode: fokusKeterangan,
+              textInputAction: TextInputAction.done,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Keterangan (boleh kosong)',

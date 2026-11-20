@@ -55,6 +55,10 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
   final _rw = TextEditingController();
   final _keterangan = TextEditingController();
   final _fokusNama = FocusNode();
+  // Batch 40: rantai fokus tombol Lanjut keyboard antar kolom.
+  final _fokusAlamat = FocusNode();
+  final _fokusDusun = FocusNode();
+  final _fokusKeterangan = FocusNode();
 
   var _sibuk = false;
 
@@ -154,6 +158,9 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
     _rw.dispose();
     _keterangan.dispose();
     _fokusNama.dispose();
+    _fokusAlamat.dispose();
+    _fokusDusun.dispose();
+    _fokusKeterangan.dispose();
     super.dispose();
   }
 
@@ -456,27 +463,35 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Batch 40: tombol Lanjut (↵) keyboard berpindah
+                // antar kolom — tamu tidak perlu mengetuk kolom
+                // satu-satu; kolom terakhir = Selesai → simpan.
                 TextField(
                   controller: _nama,
                   focusNode: _fokusNama,
+                  textInputAction: TextInputAction.next,
                   textCapitalization: TextCapitalization.words,
                   style: const TextStyle(fontSize: 18),
                   decoration: const InputDecoration(
                     labelText: 'Nama Bapak/Ibu',
                   ),
-                  onSubmitted: (_) => _sibuk ? null : _simpan(),
+                  onSubmitted: (_) => _fokusAlamat.requestFocus(),
                 ),
                 const SizedBox(height: 14),
                 KolomAlamat(
                   controller: _alamat,
                   saran: _saranAlamat,
-                  onSubmitted: () => _sibuk ? null : _simpan(),
+                  focusNode: _fokusAlamat,
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: () => _fokusDusun.requestFocus(),
                 ),
                 const SizedBox(height: 14),
                 KolomDusun(
                   controller: _dusun,
                   teksBebas: true,
-                  onSubmitted: () => _sibuk ? null : _simpan(),
+                  focusNode: _fokusDusun,
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: () => _fokusKeterangan.requestFocus(),
                 ),
                 // Batch 37: input RT/RW DISEMBUNYIKAN sementara
                 // (permintaan Mark 2026-11-20) — controller &
@@ -485,6 +500,8 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
                 const SizedBox(height: 14),
                 TextField(
                   controller: _keterangan,
+                  focusNode: _fokusKeterangan,
+                  textInputAction: TextInputAction.done,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(
                     labelText: 'Ucapan / doa (boleh kosong)',

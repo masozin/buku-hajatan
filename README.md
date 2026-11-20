@@ -993,3 +993,12 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   langsung menutup aplikasi TANPA memunculkan dialog sidik
   jari (dialog muncul saat tombol Buka diketuk) — untuk saat
   petugas meletakkan/menyerahkan HP seketika.
+- Batch 40 (permintaan Mark 2026-11-21): navigasi keyboard
+  antar kolom — tombol Lanjut (↵) di keyboard berpindah ke
+  kolom berikutnya (Nama → Alamat → Dusun/Dukuh → Nominal →
+  Keterangan), tombol Selesai di kolom terakhir menyimpan.
+  Berlaku di form pencatatan, form koreksi, form Buku Tamu,
+  dan dialog tambah/ubah tamu undangan. KolomDusun &
+  KolomAlamat menerima focusNode + textInputAction eksternal.
+  Sebelumnya tombol ↵ di kolom alamat/dusun form pencatatan
+  langsung menyimpan — kini berpindah kolom.

@@ -53,6 +53,12 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
   late final TextEditingController _rw;
   late final TextEditingController _nominal;
   late final TextEditingController _keterangan;
+  // Batch 40: rantai fokus tombol Lanjut keyboard antar kolom.
+  final _fokusNama = FocusNode();
+  final _fokusAlamat = FocusNode();
+  final _fokusDusun = FocusNode();
+  final _fokusNominal = FocusNode();
+  final _fokusKeterangan = FocusNode();
   late JenisAmplop _jenis;
   late Bundel _bundel;
   bool _sibuk = false;
@@ -109,6 +115,11 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
     _rw.dispose();
     _nominal.dispose();
     _keterangan.dispose();
+    _fokusNama.dispose();
+    _fokusAlamat.dispose();
+    _fokusDusun.dispose();
+    _fokusNominal.dispose();
+    _fokusKeterangan.dispose();
     super.dispose();
   }
 
@@ -256,8 +267,13 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
                   setState(() => _jenis = pilihan.first),
             ),
             const SizedBox(height: 12),
+            // Batch 40: tombol Lanjut (↵) keyboard berpindah
+            // antar kolom; keterangan (terakhir) = Selesai →
+            // simpan.
             TextField(
               controller: _nama,
+              focusNode: _fokusNama,
+              textInputAction: TextInputAction.next,
               enabled: !tanpaNama,
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
@@ -265,11 +281,24 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
                     ? 'Nama (otomatis "(Tanpa Nama)")'
                     : 'Nama tamu',
               ),
+              onSubmitted: (_) => _fokusAlamat.requestFocus(),
             ),
             const SizedBox(height: 12),
-            KolomAlamat(controller: _alamat, saran: _saranAlamat),
+            KolomAlamat(
+              controller: _alamat,
+              saran: _saranAlamat,
+              focusNode: _fokusAlamat,
+              textInputAction: TextInputAction.next,
+              onSubmitted: () => _fokusDusun.requestFocus(),
+            ),
             const SizedBox(height: 12),
-            KolomDusun(controller: _dusun, teksBebas: true),
+            KolomDusun(
+              controller: _dusun,
+              teksBebas: true,
+              focusNode: _fokusDusun,
+              textInputAction: TextInputAction.next,
+              onSubmitted: () => _fokusNominal.requestFocus(),
+            ),
             // Batch 37: input RT/RW DISEMBUNYIKAN sementara
             // (permintaan Mark 2026-11-20). Controller dan nilai
             // tersimpan tidak berubah — RT/RW lama tetap terbawa
@@ -282,6 +311,8 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
                 final n = parseNominal(nilaiTeks.text);
                 return TextField(
                   controller: _nominal,
+                  focusNode: _fokusNominal,
+                  textInputAction: TextInputAction.next,
                   enabled: !kosong,
                   keyboardType: TextInputType.number,
                   inputFormatters: [
@@ -300,16 +331,20 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
                         ? '= ${formatRupiah(n * 1000)}'
                         : 'Ketik dalam ribu: 50 = Rp 50.000',
                   ),
+                  onSubmitted: (_) => _fokusKeterangan.requestFocus(),
                 );
               },
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _keterangan,
+              focusNode: _fokusKeterangan,
+              textInputAction: TextInputAction.done,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Keterangan (boleh kosong)',
               ),
+              onSubmitted: (_) => _sibuk ? null : _simpan(),
             ),
             if (_galat != null) ...[
               const SizedBox(height: 12),

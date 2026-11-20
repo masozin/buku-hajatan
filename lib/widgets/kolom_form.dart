@@ -26,11 +26,18 @@ class KolomDusun extends StatelessWidget {
     this.label = 'Dusun/Dukuh (boleh kosong)',
     this.onSubmitted,
     this.teksBebas = false,
+    this.focusNode,
+    this.textInputAction,
   });
 
   final TextEditingController controller;
   final String label;
   final VoidCallback? onSubmitted;
+
+  /// Fokus eksternal + aksi tombol keyboard (Batch 40 —
+  /// rantai Lanjut antar kolom form).
+  final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
 
   /// True = teks bebas + stepper angka akhir (dusun).
   /// False = angka murni (RT/RW).
@@ -58,6 +65,8 @@ class KolomDusun extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      focusNode: focusNode,
+      textInputAction: textInputAction,
       keyboardType: teksBebas
           ? TextInputType.text
           : TextInputType.number,
@@ -102,6 +111,8 @@ class KolomAlamat extends StatefulWidget {
     required this.controller,
     required this.saran,
     this.onSubmitted,
+    this.focusNode,
+    this.textInputAction,
   });
 
   final TextEditingController controller;
@@ -110,16 +121,24 @@ class KolomAlamat extends StatefulWidget {
   final List<String> saran;
   final VoidCallback? onSubmitted;
 
+  /// Fokus eksternal (Batch 40 — rantai Lanjut antar kolom);
+  /// bila null, widget membuat fokusnya sendiri.
+  final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+
   @override
   State<KolomAlamat> createState() => _KolomAlamatState();
 }
 
 class _KolomAlamatState extends State<KolomAlamat> {
-  final _fokus = FocusNode();
+  FocusNode? _fokusSendiri;
+
+  FocusNode get _fokus =>
+      widget.focusNode ?? (_fokusSendiri ??= FocusNode());
 
   @override
   void dispose() {
-    _fokus.dispose();
+    _fokusSendiri?.dispose();
     super.dispose();
   }
 
@@ -140,6 +159,7 @@ class _KolomAlamatState extends State<KolomAlamat> {
         return TextField(
           controller: controller,
           focusNode: focusNode,
+          textInputAction: widget.textInputAction,
           textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(labelText: 'Alamat'),
           onSubmitted: (_) {
