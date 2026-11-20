@@ -270,27 +270,11 @@ class _KoreksiAmplopScreenState extends ConsumerState<KoreksiAmplopScreen> {
             KolomAlamat(controller: _alamat, saran: _saranAlamat),
             const SizedBox(height: 12),
             KolomDusun(controller: _dusun, teksBebas: true),
-            const SizedBox(height: 12),
-            // Batch 25: RT & RW berdampingan, stepper − / + sama
-            // seperti dusun.
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: KolomDusun(
-                    controller: _rt,
-                    label: 'RT (angka, boleh kosong)',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: KolomDusun(
-                    controller: _rw,
-                    label: 'RW (angka, boleh kosong)',
-                  ),
-                ),
-              ],
-            ),
+            // Batch 37: input RT/RW DISEMBUNYIKAN sementara
+            // (permintaan Mark 2026-11-20). Controller dan nilai
+            // tersimpan tidak berubah — RT/RW lama tetap terbawa
+            // saat menyimpan; tampilkan lagi dengan mengembalikan
+            // baris Row RT/RW di sini.
             const SizedBox(height: 12),
             ValueListenableBuilder<TextEditingValue>(
               valueListenable: _nominal,

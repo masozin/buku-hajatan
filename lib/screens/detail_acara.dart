@@ -1010,26 +1010,14 @@ class _DialogTamuFormState extends State<_DialogTamuForm> {
                     keyboardType: TextInputType.text,
                     textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
-                      labelText: 'Dusun/Kampung',
+                      labelText: 'Dusun/Dukuh',
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _rt,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'RT'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _rw,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'RW'),
-                  ),
-                ),
+                // Batch 37: input RT/RW dialog ini DISEMBUNYIKAN
+                // sementara (permintaan Mark 2026-11-20) —
+                // controller tetap terisi dari tamu dan nilainya
+                // tetap tersimpan saat ubah.
               ],
             ),
             TextField(

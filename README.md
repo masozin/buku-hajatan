@@ -965,3 +965,10 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   tampilannya persis sama ("Dusun 2"), hanya catatan yang
   diedit/disimpan sejak versi ini menulis dusun sebagai teks.
   Rules tidak berubah (tidak ada pemeriksaan tipe dusun).
+- Batch 37 (permintaan Mark 2026-11-20): label kolom dusun
+  menjadi "Dusun/Dukuh"; input RT/RW DISEMBUNYIKAN sementara
+  di semua form (pencatatan, koreksi, buku tamu, dialog
+  undangan) — data, controller, dan nilai tersimpan TIDAK
+  berubah (RT/RW lama tetap terbawa saat ubah & tetap tampil
+  di detail/ekspor); tampilkan lagi dengan mengembalikan
+  baris Row RT/RW yang ditandai komentar Batch 37.

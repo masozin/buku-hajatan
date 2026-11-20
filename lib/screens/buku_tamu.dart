@@ -473,27 +473,10 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
                   teksBebas: true,
                   onSubmitted: () => _sibuk ? null : _simpan(),
                 ),
-                const SizedBox(height: 14),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: KolomDusun(
-                        controller: _rt,
-                        label: 'RT (angka, boleh kosong)',
-                        onSubmitted: () => _sibuk ? null : _simpan(),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: KolomDusun(
-                        controller: _rw,
-                        label: 'RW (angka, boleh kosong)',
-                        onSubmitted: () => _sibuk ? null : _simpan(),
-                      ),
-                    ),
-                  ],
-                ),
+                // Batch 37: input RT/RW DISEMBUNYIKAN sementara
+                // (permintaan Mark 2026-11-20) — controller &
+                // data tetap ada; kembalikan baris Row RT/RW di
+                // sini untuk menampilkannya lagi.
                 const SizedBox(height: 14),
                 TextField(
                   controller: _keterangan,

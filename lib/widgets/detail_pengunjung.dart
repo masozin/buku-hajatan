@@ -46,9 +46,9 @@ Future<String?> tampilkanDetailPengunjung({
     if (a.alamat != null && a.alamat!.isNotEmpty) ('Alamat', a.alamat!),
     if (a.dusun != null)
       (
-        // Batch 36: label mengikuti isi — angka murni "Dusun",
-        // teks berlabel ("SP 2") "Dusun/Kampung".
-        dusunNumerik(a.dusun) ? 'Dusun' : 'Dusun/Kampung',
+        // Batch 36/37: label mengikuti isi — angka murni
+        // "Dusun", teks berlabel ("SP 2") "Dusun/Dukuh".
+        dusunNumerik(a.dusun) ? 'Dusun' : 'Dusun/Dukuh',
         a.dusun!,
       ),
     if (a.rt != null) ('RT', '${a.rt}'),

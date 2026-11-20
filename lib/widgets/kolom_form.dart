@@ -23,7 +23,7 @@ class KolomDusun extends StatelessWidget {
   const KolomDusun({
     super.key,
     required this.controller,
-    this.label = 'Dusun/Kampung (boleh kosong)',
+    this.label = 'Dusun/Dukuh (boleh kosong)',
     this.onSubmitted,
     this.teksBebas = false,
   });

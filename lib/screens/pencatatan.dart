@@ -1246,29 +1246,10 @@ class _FormAmplop extends StatelessWidget {
               teksBebas: true,
               onSubmitted: () => sibuk ? null : onSimpan(),
             ),
-            const SizedBox(height: 12),
-            // Batch 25: RT & RW berdampingan, stepper − / + sama
-            // seperti dusun.
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: KolomDusun(
-                    controller: rt,
-                    label: 'RT (angka, boleh kosong)',
-                    onSubmitted: () => sibuk ? null : onSimpan(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: KolomDusun(
-                    controller: rw,
-                    label: 'RW (angka, boleh kosong)',
-                    onSubmitted: () => sibuk ? null : onSimpan(),
-                  ),
-                ),
-              ],
-            ),
+            // Batch 37: input RT/RW DISEMBUNYIKAN sementara
+            // (permintaan Mark 2026-11-20) — controller & data
+            // tetap ada; kembalikan baris Row RT/RW di sini
+            // untuk menampilkannya lagi.
             const SizedBox(height: 12),
             // Batch 14: nominal diketik dalam ribu — tampilkan
             // pratinjau hasil kalinya agar tidak salah tafsir.
