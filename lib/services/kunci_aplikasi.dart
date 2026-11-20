@@ -10,6 +10,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// BukuTamuScreen saat masuk/keluar mode.
 final penandaBukuTamuAktif = ValueNotifier<bool>(false);
 
+/// Sinyal "kunci sekarang juga" (Batch 39): dinaikkan oleh
+/// tombol gembok / tombol Kunci Sekarang; GerbangKunciAplikasi
+/// mendengarkan dan langsung mengunci (tanpa menunggu latar
+/// belakang 60 detik dan tanpa langsung memunculkan dialog
+/// sidik jari — dialog muncul saat tombol Buka diketuk).
+final permintaanKunciManual = ValueNotifier<int>(0);
+
 /// Kunci aplikasi sidik jari (Batch 38, permintaan Mark):
 /// gembok di depan sesi yang SUDAH masuk — bukan pengganti
 /// login. Tujuannya: HP yang terpegang orang lain tidak bisa

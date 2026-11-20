@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../providers.dart';
+import '../services/kunci_aplikasi.dart';
 import '../widgets/elemen.dart';
 
 /// Tombol info di nav atas (Batch 28, permintaan Mark): membuka
@@ -244,6 +245,17 @@ class _BagianKeamananState extends ConsumerState<_BagianKeamanan> {
               ? _ubah
               : null,
         ),
+        // Kunci manual (Batch 39): cara lain selain tombol
+        // gembok melayang di kiri bawah layar.
+        if (_aktif == true)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => permintaanKunciManual.value++,
+              icon: const Icon(Icons.lock_outline),
+              label: const Text('Kunci Sekarang'),
+            ),
+          ),
       ],
     );
   }

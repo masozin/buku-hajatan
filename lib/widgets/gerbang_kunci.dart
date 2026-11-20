@@ -33,6 +33,7 @@ class _GerbangKunciAplikasiState
     with WidgetsBindingObserver {
   bool _terkunci = false;
   bool _sedangAuth = false;
+  bool _kunciAktif = false;
   DateTime? _keLatar;
 
   KunciAplikasiService get _layanan =>
@@ -45,18 +46,32 @@ class _GerbangKunciAplikasiState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    permintaanKunciManual.addListener(_kunciManual);
     _periksaAwal();
   }
 
   @override
   void dispose() {
+    permintaanKunciManual.removeListener(_kunciManual);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  Future<void> _periksaAwal() async {
+  /// Kunci manual (Batch 39): langsung mengunci, dialog
+  /// sidik jari TIDAK langsung dimunculkan — petugas memang
+  /// sedang ingin menutup aplikasi dari orang lain.
+  Future<void> _kunciManual() async {
+    if (_terkunci || penandaBukuTamuAktif.value) return;
     if (!await _layanan.aktif() || !_sudahMasuk) return;
     if (!mounted) return;
+    setState(() => _terkunci = true);
+  }
+
+  Future<void> _periksaAwal() async {
+    final aktif = await _layanan.aktif();
+    if (!mounted) return;
+    setState(() => _kunciAktif = aktif);
+    if (!aktif || !_sudahMasuk) return;
     setState(() => _terkunci = true);
     await _mintaBuka();
   }
@@ -73,6 +88,12 @@ class _GerbangKunciAplikasiState
   }
 
   Future<void> _periksaKembali() async {
+    // Segarkan status saklar (mungkin baru diubah di Info
+    // Aplikasi) agar tombol gembok tampil/sembunyi tepat.
+    final aktifSegar = await _layanan.aktif();
+    if (mounted && aktifSegar != _kunciAktif) {
+      setState(() => _kunciAktif = aktifSegar);
+    }
     if (_sedangAuth || _terkunci || penandaBukuTamuAktif.value) {
       return;
     }
@@ -99,9 +120,33 @@ class _GerbangKunciAplikasiState
 
   @override
   Widget build(BuildContext context) {
+    final sudahMasuk =
+        ref.watch(statusPenggunaProvider).valueOrNull != null;
     return Stack(
       children: [
         widget.child,
+        // Tombol kunci manual (Batch 39): gembok kecil melayang
+        // di kiri bawah — jauh dari tombol + melayang kanan
+        // bawah milik layar-layar. Hanya tampil bila kunci
+        // aktif, ada yang masuk, dan bukan Mode Buku Tamu.
+        if (!_terkunci && _kunciAktif && sudahMasuk)
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: penandaBukuTamuAktif,
+              builder: (context, bukuTamu, _) {
+                if (bukuTamu) return const SizedBox.shrink();
+                return FloatingActionButton.small(
+                  heroTag: 'kunciManual',
+                  tooltip: 'Kunci Sekarang',
+                  onPressed: () =>
+                      permintaanKunciManual.value++,
+                  child: const Icon(Icons.lock_outline),
+                );
+              },
+            ),
+          ),
         if (_terkunci) _LayarTerkunci(onBuka: _mintaBuka),
       ],
     );

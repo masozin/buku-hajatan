@@ -985,3 +985,11 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   setelah > 60 detik di latar belakang; cadangan = PIN/pola
   kunci layar HP. Mode Buku Tamu DIKECUALIKAN (tablet di
   tangan tamu; keluar mode tetap wajib PIN pencatat).
+- Batch 39 (permintaan Mark 2026-11-21): tombol KUNCI MANUAL
+  untuk kunci sidik jari — tombol gembok kecil melayang di
+  kiri bawah semua layar (hanya bila kunci aktif & ada yang
+  masuk; tidak tampil di Mode Buku Tamu) + tombol "Kunci
+  Sekarang" di Info Aplikasi > Keamanan. Mengunci manual
+  langsung menutup aplikasi TANPA memunculkan dialog sidik
+  jari (dialog muncul saat tombol Buka diketuk) — untuk saat
+  petugas meletakkan/menyerahkan HP seketika.
