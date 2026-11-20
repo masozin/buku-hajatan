@@ -15,6 +15,7 @@ import '../services/layanan_exception.dart';
 import '../services/pencatatan_service.dart';
 import '../theme/tema_aplikasi.dart';
 import '../widgets/baris_amplop.dart';
+import '../widgets/elemen.dart';
 import '../widgets/keadaan.dart';
 import '../widgets/kolom_form.dart';
 import 'buku_tamu.dart';
@@ -605,6 +606,11 @@ class _KartuBundelAktif extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Kartu panggung: skala teks dijepit ZonaTeksRapi.
+    return ZonaTeksRapi(child: _isi(context));
+  }
+
+  Widget _isi(BuildContext context) {
     final putihRedup = Colors.white.withValues(alpha: 0.78);
     return Container(
       decoration: BoxDecoration(
@@ -1273,6 +1279,11 @@ class _KartuCatatanBebas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Kartu panggung: skala teks dijepit ZonaTeksRapi.
+    return ZonaTeksRapi(child: _isi(context));
+  }
+
+  Widget _isi(BuildContext context) {
     final putihRedup = Colors.white.withValues(alpha: 0.78);
     return Container(
       decoration: BoxDecoration(

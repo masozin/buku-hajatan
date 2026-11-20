@@ -147,6 +147,11 @@ class _Ringkasan extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Panel panggung: skala teks dijepit ZonaTeksRapi.
+    return ZonaTeksRapi(child: _isi(context));
+  }
+
+  Widget _isi(BuildContext context) {
     final tema = Theme.of(context);
     return Container(
       decoration: BoxDecoration(

@@ -76,6 +76,34 @@ class ChipStatusAcara extends StatelessWidget {
   }
 }
 
+/// Zona teks rapi (fix skala font 2026-11-20): di dalam zona
+/// ini skala font perangkat dijepit lebih ketat (maks 1,15x)
+/// daripada plafon konten aplikasi (1,45x di main.dart).
+/// Dipakai untuk bagian struktural yang komposisinya rapat —
+/// kartu total, kartu bundel aktif, panel ringkasan — supaya
+/// font besar tidak membuatnya meluber, sementara teks isi
+/// (nama, alamat, nominal) di luar zona tetap boleh membesar
+/// mengikuti setelan pengguna.
+class ZonaTeksRapi extends StatelessWidget {
+  const ZonaTeksRapi({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    return MediaQuery(
+      data: media.copyWith(
+        textScaler: media.textScaler.clamp(
+          minScaleFactor: 0.85,
+          maxScaleFactor: 1.15,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
 /// Judul bagian di dalam halaman (mis. "Acara Saya"), dengan
 /// ruang aksi opsional di sisi kanan.
 class JudulBagian extends StatelessWidget {

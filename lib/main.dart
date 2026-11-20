@@ -40,6 +40,28 @@ class BukuHajatanApp extends ConsumerWidget {
       theme: TemaAplikasi.terang,
       darkTheme: TemaAplikasi.gelap,
       themeMode: ThemeMode.system,
+      // Skala font perangkat DIJEPIT PER ZONA (fix 2026-11-20):
+      // setelan ukuran font Android yang besar memperbesar teks
+      // tetapi tidak memperbesar kotak tampilannya, sehingga di
+      // font sangat besar beberapa tampilan meluber dan kurang
+      // rapi. Di sini dipasang PLAFON KONTEN 1,45x — teks isi
+      // (nama, alamat, nominal di daftar-daftar) boleh tumbuh
+      // sampai segitu karena memang itu yang perlu dibaca.
+      // Bagian struktural yang komposisinya rapat (kartu total,
+      // kartu bundel, panel ringkasan) dijepit lebih ketat
+      // (1,15x) lewat ZonaTeksRapi di widgets/elemen.dart.
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(
+            textScaler: media.textScaler.clamp(
+              minScaleFactor: 0.85,
+              maxScaleFactor: 1.45,
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       // PemeriksaPembaruan (Batch 21) membungkus gerbang: sekali
       // saat aplikasi dibuka ia memeriksa rilis GitHub yang lebih
       // baru dan menawarkan unduh lewat dialog.

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/format.dart';
 import '../models/acara.dart';
 import '../theme/tema_aplikasi.dart';
+import 'elemen.dart';
 
 /// Kartu sorotan total acara (Batch 12): panel bergradasi zamrud
 /// berisi total terkumpul dalam angka besar, plus statistik
@@ -15,6 +16,12 @@ class KartuTotalAcara extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Kartu panggung: komposisi rapat, skala teks dijepit
+    // ZonaTeksRapi (maks 1,15x) agar font besar tidak meluber.
+    return ZonaTeksRapi(child: _isi(context));
+  }
+
+  Widget _isi(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         gradient: TemaAplikasi.gradasiPahlawan,
@@ -79,13 +86,21 @@ class KartuTotalAcara extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  formatRupiah(acara.totalRp),
-                  style: const TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                    color: Colors.white,
+                // Angka total adalah teks terpanjang di kartu
+                // ini — biarkan menyusut otomatis (tidak pernah
+                // membesar) bila lebar layar tidak cukup.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    formatRupiah(acara.totalRp),
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 18),

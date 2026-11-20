@@ -922,3 +922,12 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   pencatat + pencatat boleh menghapus amplop buatannya sendiri
   yang tertaut tamuId selama aktif (untuk batal tandai) —
   tempel ulang Console.
+- Fix skala font (2026-11-20, laporan + rancangan Mark): setelan
+  ukuran font perangkat yang besar membuat beberapa tampilan
+  meluber. Skala teks kini dijepit PER ZONA: plafon konten
+  1,45x di akar aplikasi (nama, alamat, nominal di daftar boleh
+  membesar mengikuti setelan pengguna), sedangkan kartu
+  panggung yang komposisinya rapat (KartuTotalAcara, kartu
+  bundel aktif & catatan bebas, panel ringkasan admin) dijepit
+  1,15x lewat ZonaTeksRapi; angka Total Terkumpul juga
+  menyusut otomatis bila lebar tidak cukup.
