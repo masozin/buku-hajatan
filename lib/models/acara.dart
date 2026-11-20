@@ -55,6 +55,7 @@ class Acara {
     this.metodePencatatan = MetodePencatatan.bundel,
     this.fiturUndangan = false,
     this.fiturBukuTamu = false,
+    this.sembunyikanTotal = false,
     required this.kodeGabung,
     this.totalAmplop = 0,
     this.totalRp = 0,
@@ -90,6 +91,14 @@ class Acara {
   /// Fitur tambahan (Batch 30 sakelarnya; fungsinya Batch 31):
   /// perangkat pencatat boleh masuk Mode Buku Tamu.
   final bool fiturBukuTamu;
+
+  /// Privasi total (Batch 35): bila true, PENCATAT tidak
+  /// melihat jumlah uang apa pun di tampilannya (total acara,
+  /// total bundel/total saya, total per bundel) — tertutup
+  /// "Rp •••••••". Pemilik selalu melihat semuanya. Nominal
+  /// per pengunjung yang dicatat pencatat sendiri tetap tampil
+  /// (itu data kerjanya). Acara lama tanpa field terbaca false.
+  final bool sembunyikanTotal;
 
   bool get metodeLangsung =>
       metodePencatatan == MetodePencatatan.langsung;
@@ -145,6 +154,7 @@ class Acara {
       ),
       fiturUndangan: data['fiturUndangan'] == true,
       fiturBukuTamu: data['fiturBukuTamu'] == true,
+      sembunyikanTotal: data['sembunyikanTotal'] == true,
       kodeGabung: (data['kodeGabung'] as String?) ?? '',
       totalAmplop: (data['totalAmplop'] as num?)?.toInt() ?? 0,
       totalRp: (data['totalRp'] as num?)?.toInt() ?? 0,
@@ -170,6 +180,7 @@ class Acara {
       'metodePencatatan': metodePencatatan.name,
       'fiturUndangan': fiturUndangan,
       'fiturBukuTamu': fiturBukuTamu,
+      'sembunyikanTotal': sembunyikanTotal,
       'kodeGabung': kodeGabung,
       'totalAmplop': totalAmplop,
       'totalRp': totalRp,

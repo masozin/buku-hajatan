@@ -72,6 +72,17 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
   /// Ditentukan di _siapkan.
   var _fiturUndangan = false;
 
+  /// Batch 35: pemilik menyembunyikan total dari pencatat —
+  /// total di kartu bundel/catatan ditutup. Ditentukan di
+  /// _siapkan.
+  var _sembunyikanTotal = false;
+
+  /// Batch 35: persiapan awal layar (baca acara + buka bundel)
+  /// sudah selesai. Selama false dan belum ada bundel tampil,
+  /// layar menunjukkan indikator muat — bukan kartu "belum ada
+  /// bundel" sesaat yang membuat layar terasa memuat ulang.
+  var _persiapanSelesai = false;
+
   /// Sugesti alamat untuk kolom Alamat (Batch 14): alamat unik
   /// yang pernah dipakai di acara ini.
   List<String> _saranAlamat = const [];
@@ -129,6 +140,7 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
           _langsung = acara.metodeLangsung;
           _fiturBukuTamu = acara.fiturBukuTamu;
           _fiturUndangan = acara.fiturUndangan;
+          _sembunyikanTotal = acara.sembunyikanTotal;
           _namaAcara = acara.namaAcara;
         });
       }
@@ -137,6 +149,7 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
       // buka bundel akan menyampaikan galat yang sebenarnya.
     }
     await _bukaBundel();
+    if (mounted) setState(() => _persiapanSelesai = true);
     _muatSaranAlamat();
   }
 
@@ -319,6 +332,14 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
           }
           final tampil = bundelTinjau ?? bundel;
           final meninjau = bundelTinjau != null;
+          if (tampil == null && !_persiapanSelesai) {
+            // Batch 35: persiapan awal belum selesai (acara
+            // sedang dibaca / bundel sedang dibuka) — tampilkan
+            // indikator muat, JANGAN kartu "belum ada bundel"
+            // sesaat. Kartu itu yang membuat layar terasa
+            // memuat ulang dua kali saat dibuka.
+            return const TampilMuat();
+          }
           if (tampil == null) {
             return Padding(
               padding: const EdgeInsets.all(24),
@@ -357,11 +378,15 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               if (_langsung)
-                _KartuCatatanBebas(bundel: tampil)
+                _KartuCatatanBebas(
+                  bundel: tampil,
+                  sembunyikanTotal: _sembunyikanTotal,
+                )
               else
                 _KartuBundelAktif(
                   bundel: tampil,
                   judul: meninjau ? 'Bundel Penuh' : 'Bundel Aktif',
+                  sembunyikanTotal: _sembunyikanTotal,
                 ),
               const SizedBox(height: 16),
               // Batch 31/32: jalan masuk Mode Buku Tamu & Mode
@@ -596,9 +621,13 @@ class _KartuBundelAktif extends StatelessWidget {
   const _KartuBundelAktif({
     required this.bundel,
     this.judul = 'Bundel Aktif',
+    this.sembunyikanTotal = false,
   });
 
   final Bundel bundel;
+
+  /// Batch 35: total bundel ditutup (pengaturan pemilik).
+  final bool sembunyikanTotal;
 
   /// Label kecil di atas kode bundel — "Bundel Penuh" saat mode
   /// tinjau Batch 26.
@@ -689,7 +718,9 @@ class _KartuBundelAktif extends StatelessWidget {
               Text('Total bundel', style: TextStyle(color: putihRedup)),
               const Spacer(),
               Text(
-                formatRupiah(bundel.totalRp),
+                sembunyikanTotal
+                    ? 'Rp •••••••'
+                    : formatRupiah(bundel.totalRp),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -1272,10 +1303,13 @@ class _FormAmplop extends StatelessWidget {
 /// berjalan pencatat ini — tidak ada kode bundel, tidak ada
 /// batas 10.
 class _KartuCatatanBebas extends StatelessWidget {
-  const _KartuCatatanBebas({required this.bundel});
+  const _KartuCatatanBebas({required this.bundel, this.sembunyikanTotal = false});
 
   /// Bundel bebas pencatat ini (wadah catatan langsungnya).
   final Bundel bundel;
+
+  /// Batch 35: total saya ditutup (pengaturan pemilik).
+  final bool sembunyikanTotal;
 
   @override
   Widget build(BuildContext context) {
@@ -1325,7 +1359,9 @@ class _KartuCatatanBebas extends StatelessWidget {
               Text('Total saya', style: TextStyle(color: putihRedup)),
               const Spacer(),
               Text(
-                formatRupiah(bundel.totalRp),
+                sembunyikanTotal
+                    ? 'Rp •••••••'
+                    : formatRupiah(bundel.totalRp),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,

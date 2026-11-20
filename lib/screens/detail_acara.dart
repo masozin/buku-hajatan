@@ -22,6 +22,7 @@ import 'koreksi_amplop.dart';
 import 'pencatatan.dart';
 import 'rekap.dart';
 import 'tab_bundel.dart';
+import 'ubah_acara.dart';
 
 /// Detail satu acara.
 ///
@@ -81,8 +82,9 @@ class DetailAcaraScreen extends ConsumerWidget {
             child: Scaffold(
               appBar: AppBar(
                 title: const Text('Detail Acara'),
-                bottom: TabBar(
-                  tabs: [
+                bottom: ZonaTeksRapiTab(
+                  child: TabBar(
+                    tabs: [
                     const Tab(
                       icon: Icon(Icons.summarize_outlined),
                       text: 'Ringkasan',
@@ -96,7 +98,8 @@ class DetailAcaraScreen extends ConsumerWidget {
                         icon: Icon(Icons.inventory_2_outlined),
                         text: 'Bundel',
                       ),
-                  ],
+                    ],
+                  ),
                 ),
                 // Pencatat kini bermuara langsung ke panel ini
                 // (Batch 8) — beri jalan keluar sesi di sini.
@@ -173,8 +176,9 @@ class DetailAcaraScreen extends ConsumerWidget {
             appBar: AppBar(
               title: const Text('Detail Acara'),
               actions: const [TombolInfo()],
-              bottom: TabBar(
-                tabs: [
+              bottom: ZonaTeksRapiTab(
+                child: TabBar(
+                  tabs: [
                   const Tab(
                     icon: Icon(Icons.summarize_outlined),
                     text: 'Ringkasan',
@@ -183,12 +187,13 @@ class DetailAcaraScreen extends ConsumerWidget {
                     icon: Icon(Icons.people_outline),
                     text: 'Pengunjung',
                   ),
-                  if (!acara.metodeLangsung)
-                    const Tab(
-                      icon: Icon(Icons.inventory_2_outlined),
-                      text: 'Bundel',
-                    ),
-                ],
+                    if (!acara.metodeLangsung)
+                      const Tab(
+                        icon: Icon(Icons.inventory_2_outlined),
+                        text: 'Bundel',
+                      ),
+                  ],
+                ),
               ),
             ),
             floatingActionButton: acara.sudahSelesai
@@ -343,7 +348,7 @@ class _TabPencatatDetail extends ConsumerWidget {
               children: [
                 _InfoAcara(acara: acara),
                 const SizedBox(height: 16),
-                _TotalAcara(acara: acara),
+                _TotalAcara(acara: acara, untukPencatat: true),
                 const SizedBox(height: 16),
                 _KartuPencatatSaya(acara: acara),
               ],
@@ -424,6 +429,7 @@ class _PengaturanMetode extends ConsumerWidget {
     MetodePencatatan? metode,
     bool? fiturUndangan,
     bool? fiturBukuTamu,
+    bool? sembunyikanTotal,
   }) async {
     try {
       await ref
@@ -433,6 +439,7 @@ class _PengaturanMetode extends ConsumerWidget {
             metodePencatatan: metode,
             fiturUndangan: fiturUndangan,
             fiturBukuTamu: fiturBukuTamu,
+            sembunyikanTotal: sembunyikanTotal,
           );
     } catch (e) {
       if (context.mounted) {
@@ -511,6 +518,30 @@ class _PengaturanMetode extends ConsumerWidget {
               ),
               value: acara.fiturBukuTamu,
               onChanged: (v) => _ubah(context, ref, fiturBukuTamu: v),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Sembunyikan Total dari Pencatat'),
+              subtitle: const Text(
+                'Pencatat tidak melihat jumlah uang total '
+                '(tertutup Rp •••••••); nominal per pengunjung '
+                'yang ia catat sendiri tetap tampil.',
+              ),
+              value: acara.sembunyikanTotal,
+              onChanged: (v) =>
+                  _ubah(context, ref, sembunyikanTotal: v),
+            ),
+            const Divider(height: 24),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => UbahAcaraScreen(acara: acara),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Ubah Detail Acara'),
             ),
           ],
         ),
@@ -1296,13 +1327,20 @@ class _BarisInfo extends StatelessWidget {
 
 /// Total acara kini memakai kartu sorotan bersama (Batch 12).
 class _TotalAcara extends StatelessWidget {
-  const _TotalAcara({required this.acara});
+  const _TotalAcara({required this.acara, this.untukPencatat = false});
 
   final Acara acara;
 
+  /// Batch 35: true di tab pencatat — nominal ditutup bila
+  /// pemilik menyalakan Acara.sembunyikanTotal.
+  final bool untukPencatat;
+
   @override
   Widget build(BuildContext context) {
-    return KartuTotalAcara(acara: acara);
+    return KartuTotalAcara(
+      acara: acara,
+      sembunyikanNominal: untukPencatat && acara.sembunyikanTotal,
+    );
   }
 }
 

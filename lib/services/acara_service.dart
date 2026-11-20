@@ -150,12 +150,36 @@ class AcaraService {
     MetodePencatatan? metodePencatatan,
     bool? fiturUndangan,
     bool? fiturBukuTamu,
+    bool? sembunyikanTotal,
   }) {
     return _acara.doc(acaraId).update(<String, dynamic>{
       if (metodePencatatan != null)
         'metodePencatatan': metodePencatatan.name,
       if (fiturUndangan != null) 'fiturUndangan': fiturUndangan,
       if (fiturBukuTamu != null) 'fiturBukuTamu': fiturBukuTamu,
+      if (sembunyikanTotal != null) 'sembunyikanTotal': sembunyikanTotal,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Ubah detail acara oleh pemilik (Batch 35): nama acara,
+  /// tuan rumah, jenis, tanggal, lokasi. Hanya field identitas —
+  /// agregat, status, metode, dan kode gabung tidak disentuh.
+  /// Rules memberi pemilik kebebasan mengubah dokumen acaranya.
+  Future<void> ubahDetailAcara(
+    String acaraId, {
+    required String namaAcara,
+    required String tuanRumah,
+    required String jenis,
+    required DateTime tanggal,
+    String? lokasi,
+  }) {
+    return _acara.doc(acaraId).update(<String, dynamic>{
+      'namaAcara': namaAcara,
+      'tuanRumah': tuanRumah,
+      'jenis': jenis,
+      'tanggal': Timestamp.fromDate(tanggal),
+      'lokasi': lokasi,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

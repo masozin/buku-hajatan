@@ -10,9 +10,18 @@ import 'elemen.dart';
 /// pengunjung dan bundel. Dipakai di
 /// Detail Acara dan Rekap agar keduanya tampil senada.
 class KartuTotalAcara extends StatelessWidget {
-  const KartuTotalAcara({super.key, required this.acara});
+  const KartuTotalAcara({
+    super.key,
+    required this.acara,
+    this.sembunyikanNominal = false,
+  });
 
   final Acara acara;
+
+  /// Batch 35: untuk tampilan PENCATAT bila pemilik menyalakan
+  /// Acara.sembunyikanTotal — jumlah uang ditutup, statistik
+  /// hitungan (pengunjung/bundel) tetap tampil.
+  final bool sembunyikanNominal;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +102,9 @@ class KartuTotalAcara extends StatelessWidget {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    formatRupiah(acara.totalRp),
+                    sembunyikanNominal
+                        ? 'Rp •••••••'
+                        : formatRupiah(acara.totalRp),
                     maxLines: 1,
                     style: const TextStyle(
                       fontSize: 30,

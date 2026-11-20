@@ -104,6 +104,27 @@ class ZonaTeksRapi extends StatelessWidget {
   }
 }
 
+/// TabBar di zona rapi (Batch 35): teks tab (Ringkasan /
+/// Pengunjung / Bundel) ikut plafon konten 1,45x dan tampak
+/// terlalu besar di font besar — bungkus ini menjepitnya ke
+/// 1,15x seperti kartu panggung. Mengimplementasikan
+/// PreferredSizeWidget karena AppBar.bottom menuntutnya;
+/// tinggi 72 mengikuti tab ikon + teks Material.
+class ZonaTeksRapiTab extends StatelessWidget
+    implements PreferredSizeWidget {
+  const ZonaTeksRapiTab({super.key, required this.child});
+
+  final TabBar child;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(72);
+
+  @override
+  Widget build(BuildContext context) {
+    return ZonaTeksRapi(child: child);
+  }
+}
+
 /// Judul bagian di dalam halaman (mis. "Acara Saya"), dengan
 /// ruang aksi opsional di sisi kanan.
 class JudulBagian extends StatelessWidget {

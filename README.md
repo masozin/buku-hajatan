@@ -931,3 +931,18 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   bundel aktif & catatan bebas, panel ringkasan admin) dijepit
   1,15x lewat ZonaTeksRapi; angka Total Terkumpul juga
   menyusut otomatis bila lebar tidak cukup.
+- Batch 35 (permintaan Mark 2026-11-20, aplikasi sudah memakai
+  data sungguhan): (1) Ubah Detail Acara — pemilik kini bisa
+  mengoreksi nama acara, tuan rumah, jenis, tanggal, lokasi
+  (layar baru UbahAcaraScreen dari kartu Metode & Fitur;
+  AcaraService.ubahDetailAcara; rules pemilik memang sudah
+  bebas mengubah dokumen acaranya, tanpa perubahan rules).
+  (2) Opsi "Sembunyikan Total dari Pencatat"
+  (Acara.sembunyikanTotal, bawaan mati): total acara di kartu
+  total, total bundel/total saya di layar pencatatan, dan total
+  per bundel di tab Bundel tampil "Rp •••••••" bagi pencatat;
+  nominal per pengunjung tetap tampil (data kerja pencatat).
+  (3) Teks TabBar Detail Acara masuk zona rapi (ZonaTeksRapiTab
+  1,15x). (4) Layar pencatatan tidak lagi berkedip "belum ada
+  bundel" saat dibuka: indikator muat ditahan sampai persiapan
+  awal (baca acara + buka bundel) selesai.

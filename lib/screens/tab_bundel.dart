@@ -85,7 +85,12 @@ class DaftarBundelTab extends ConsumerWidget {
                     // kemajuan. Tanpa kotak inisial, tanpa kata
                     // "Bundel", tanpa lencana Penuh.
                     title: Text(
-                      '${b.kode} • ${formatRupiah(b.totalRp)}',
+                      // Batch 35: di mode pencatat, total per
+                      // bundel ikut ditutup bila pemilik
+                      // menyalakan sembunyikanTotal.
+                      (acara.sembunyikanTotal && pencatatIdSaya != null)
+                          ? '${b.kode} • Rp •••••••'
+                          : '${b.kode} • ${formatRupiah(b.totalRp)}',
                       style: Theme.of(context).textTheme.titleSmall
                           ?.copyWith(fontSize: 15),
                     ),
