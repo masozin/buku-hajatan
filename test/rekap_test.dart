@@ -31,7 +31,7 @@ Amplop amplopUji({
   required int urut,
   required String nama,
   String? alamat,
-  int? dusun,
+  String? dusun,
   int? rt,
   int? rw,
   required int nominal,
@@ -171,13 +171,25 @@ void main() {
   group('gabungAlamat', () {
     test('menggabungkan bagian yang terisi saja', () {
       expect(
-        gabungAlamat(alamat: 'Krajan', dusun: 2, rt: 3, rw: 4),
+        gabungAlamat(alamat: 'Krajan', dusun: '2', rt: 3, rw: 4),
         'Krajan, Dusun 2, RT 03/RW 04',
       );
       expect(gabungAlamat(alamat: 'Krajan'), 'Krajan');
       expect(gabungAlamat(rt: 7), 'RT 07');
       expect(gabungAlamat(rw: 1), 'RW 01');
       expect(gabungAlamat(), '');
+    });
+
+    test('dusun teks tampil apa adanya (Batch 36)', () {
+      expect(
+        gabungAlamat(alamat: 'Krajan', dusun: 'SP 2', rt: 3),
+        'Krajan, SP 2, RT 03',
+      );
+      expect(gabungAlamat(dusun: 'RK 1'), 'RK 1');
+      expect(gabungAlamat(dusun: 'Krajan'), 'Krajan');
+      expect(segmenDusun(' 2 '), 'Dusun 2');
+      expect(segmenDusun(''), isNull);
+      expect(segmenDusun(null), isNull);
     });
   });
 

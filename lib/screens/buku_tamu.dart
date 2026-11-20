@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/pencatatan.dart';
 import '../core/rekap.dart';
 import '../core/undangan.dart';
 import '../models/amplop.dart';
@@ -180,7 +181,7 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
           tamu: tamuTerpilih,
           nama: _nama.text,
           alamat: _alamat.text,
-          dusun: int.tryParse(_dusun.text.trim()),
+          dusun: dusunSimpan(_dusun.text),
           rt: int.tryParse(_rt.text.trim()),
           rw: int.tryParse(_rw.text.trim()),
           keterangan: _keterangan.text,
@@ -213,7 +214,7 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
             jenis: JenisAmplop.normal,
             nama: _nama.text,
             alamat: _alamat.text,
-            dusun: int.tryParse(_dusun.text.trim()),
+            dusun: dusunSimpan(_dusun.text),
             rt: int.tryParse(_rt.text.trim()),
             rw: int.tryParse(_rw.text.trim()),
             keterangan: _keterangan.text,
@@ -469,6 +470,7 @@ class _BukuTamuScreenState extends ConsumerState<BukuTamuScreen> {
                 const SizedBox(height: 14),
                 KolomDusun(
                   controller: _dusun,
+                  teksBebas: true,
                   onSubmitted: () => _sibuk ? null : _simpan(),
                 ),
                 const SizedBox(height: 14),

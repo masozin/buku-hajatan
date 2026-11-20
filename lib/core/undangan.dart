@@ -12,7 +12,7 @@
 typedef BarisTamu = ({
   String nama,
   String? alamat,
-  int? dusun,
+  String? dusun,
   int? rt,
   int? rw,
   String? kategori,
@@ -71,7 +71,9 @@ List<BarisTamu> parseCsvUndangan(String teks) {
     hasil.add((
       nama: nama,
       alamat: kolom.length > 1 ? _bersih(kolom[1]) : null,
-      dusun: kolom.length > 2 ? _angka(kolom[2]) : null,
+      // Batch 36: dusun kini teks bebas ("SP 2", "Krajan") —
+      // kolom CSV-nya diambil apa adanya, bukan dipaksa angka.
+      dusun: kolom.length > 2 ? _bersih(kolom[2]) : null,
       rt: kolom.length > 3 ? _angka(kolom[3]) : null,
       rw: kolom.length > 4 ? _angka(kolom[4]) : null,
       kategori: kolom.length > 5 ? _bersih(kolom[5]) : null,

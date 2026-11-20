@@ -55,7 +55,9 @@ List<AmplopDitemukan> saringPengunjung(
     final a = d.amplop;
     return normalisasiNama(a.nama).contains(kunci) ||
         (a.alamat != null && normalisasiNama(a.alamat!).contains(kunci)) ||
-        (a.dusun != null && 'dusun ${a.dusun}'.contains(kunci)) ||
+        (a.dusun != null &&
+            (normalisasiNama(a.dusun!).contains(kunci) ||
+                'dusun ${a.dusun}'.contains(kunci))) ||
         (a.keterangan != null &&
             normalisasiNama(a.keterangan!).contains(kunci)) ||
         normalisasiNama(d.kodeBundel).contains(kunci);

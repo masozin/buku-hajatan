@@ -60,7 +60,10 @@ class TamuUndangan {
   final String id;
   final String nama;
   final String? alamat;
-  final int? dusun;
+
+  /// Dusun/kampung teks bebas (Batch 36, sama seperti Amplop;
+  /// dokumen lama berangka terbaca sebagai teks angka).
+  final String? dusun;
   final int? rt;
   final int? rw;
 
@@ -95,7 +98,7 @@ class TamuUndangan {
       id: doc.id,
       nama: (data['nama'] as String?) ?? '',
       alamat: data['alamat'] as String?,
-      dusun: (data['dusun'] as num?)?.toInt(),
+      dusun: data['dusun']?.toString(),
       rt: (data['rt'] as num?)?.toInt(),
       rw: (data['rw'] as num?)?.toInt(),
       kategori: data['kategori'] as String?,

@@ -3,6 +3,27 @@ import 'package:buku_hajatan/models/amplop.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('dusun teks (Batch 36)', () {
+    test('dusunSimpan: teks apa adanya, kosong -> null', () {
+      expect(dusunSimpan(' SP 2 '), 'SP 2');
+      expect(dusunSimpan('2'), '2');
+      expect(dusunSimpan('Krajan'), 'Krajan');
+      expect(dusunSimpan(''), isNull);
+      expect(dusunSimpan('   '), isNull);
+    });
+
+    test('ubahAngkaAkhir: stepper mengubah angka di akhir', () {
+      expect(ubahAngkaAkhir('SP 2', 1), 'SP 3');
+      expect(ubahAngkaAkhir('SP 2', -1), 'SP 1');
+      expect(ubahAngkaAkhir('Krajan', 1), 'Krajan 1');
+      expect(ubahAngkaAkhir('Krajan', -1), 'Krajan');
+      expect(ubahAngkaAkhir('', 1), '1');
+      expect(ubahAngkaAkhir('1', -1), '');
+      expect(ubahAngkaAkhir('Dusun 1', -1), 'Dusun');
+      expect(ubahAngkaAkhir('12', 1), '13');
+    });
+  });
+
   group('parseNominal', () {
     test('angka polos dan berformat Rp', () {
       expect(parseNominal('150000'), 150000);

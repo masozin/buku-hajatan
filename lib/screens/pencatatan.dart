@@ -233,7 +233,7 @@ class _PencatatanScreenState extends ConsumerState<PencatatanScreen> {
             jenis: _jenis,
             nama: _nama.text,
             alamat: _alamat.text,
-            dusun: int.tryParse(_dusun.text.trim()),
+            dusun: dusunSimpan(_dusun.text),
             rt: int.tryParse(_rt.text.trim()),
             rw: int.tryParse(_rw.text.trim()),
             keterangan: _keterangan.text,
@@ -1243,6 +1243,7 @@ class _FormAmplop extends StatelessWidget {
             const SizedBox(height: 12),
             KolomDusun(
               controller: dusun,
+              teksBebas: true,
               onSubmitted: () => sibuk ? null : onSimpan(),
             ),
             const SizedBox(height: 12),

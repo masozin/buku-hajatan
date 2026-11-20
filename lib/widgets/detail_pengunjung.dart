@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/format.dart';
+import '../core/rekap.dart';
 import '../models/amplop.dart';
 
 /// Lembar detail satu pengunjung (Batch 29) — dipakai BERSAMA oleh
@@ -43,7 +44,13 @@ Future<String?> tampilkanDetailPengunjung({
     else
       ('Nomor urut', '${a.urut}'),
     if (a.alamat != null && a.alamat!.isNotEmpty) ('Alamat', a.alamat!),
-    if (a.dusun != null) ('Dusun', '${a.dusun}'),
+    if (a.dusun != null)
+      (
+        // Batch 36: label mengikuti isi — angka murni "Dusun",
+        // teks berlabel ("SP 2") "Dusun/Kampung".
+        dusunNumerik(a.dusun) ? 'Dusun' : 'Dusun/Kampung',
+        a.dusun!,
+      ),
     if (a.rt != null) ('RT', '${a.rt}'),
     if (a.rw != null) ('RW', '${a.rw}'),
     if (a.keterangan != null && a.keterangan!.isNotEmpty)

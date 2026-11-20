@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/pencatatan.dart';
 import '../core/rekap.dart';
 
 /// Kolom isian bersama untuk form amplop (Batch 14): dusun
@@ -12,26 +13,41 @@ import '../core/rekap.dart';
 /// mengisi 1; dari 1, − mengosongkan lagi (boleh kosong).
 /// Awalnya khusus dusun (Batch 14); sejak Batch 25 dipakai
 /// juga untuk RT dan RW lewat parameter [label].
+///
+/// Batch 36: mode [teksBebas] untuk DUSUN — kolomnya teks
+/// (boleh "SP 2", "RK 1", "Krajan") karena sebutan wilayah
+/// beragam, tetapi tombol − / + tetap ada dan mengubah ANGKA
+/// DI AKHIR teks (lihat ubahAngkaAkhir). RT/RW tetap mode
+/// angka murni.
 class KolomDusun extends StatelessWidget {
   const KolomDusun({
     super.key,
     required this.controller,
-    this.label = 'Dusun (angka, boleh kosong)',
+    this.label = 'Dusun/Kampung (boleh kosong)',
     this.onSubmitted,
+    this.teksBebas = false,
   });
 
   final TextEditingController controller;
   final String label;
   final VoidCallback? onSubmitted;
 
+  /// True = teks bebas + stepper angka akhir (dusun).
+  /// False = angka murni (RT/RW).
+  final bool teksBebas;
+
   void _ubah(int delta) {
-    final sekarang = int.tryParse(controller.text.trim());
-    if (delta > 0) {
-      controller.text = '${(sekarang ?? 0) + 1}';
-    } else if (sekarang == null || sekarang <= 1) {
-      controller.clear();
+    if (teksBebas) {
+      controller.text = ubahAngkaAkhir(controller.text, delta);
     } else {
-      controller.text = '${sekarang - 1}';
+      final sekarang = int.tryParse(controller.text.trim());
+      if (delta > 0) {
+        controller.text = '${(sekarang ?? 0) + 1}';
+      } else if (sekarang == null || sekarang <= 1) {
+        controller.clear();
+      } else {
+        controller.text = '${sekarang - 1}';
+      }
     }
     controller.selection = TextSelection.collapsed(
       offset: controller.text.length,
@@ -42,8 +58,15 @@ class KolomDusun extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      keyboardType: teksBebas
+          ? TextInputType.text
+          : TextInputType.number,
+      textCapitalization: teksBebas
+          ? TextCapitalization.words
+          : TextCapitalization.none,
+      inputFormatters: teksBebas
+          ? null
+          : [FilteringTextInputFormatter.digitsOnly],
       decoration: InputDecoration(
         labelText: label,
         suffixIcon: Row(

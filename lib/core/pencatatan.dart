@@ -9,6 +9,33 @@ import '../models/amplop.dart';
 ///   nominal wajib > 0.
 /// - Keduanya tetap dihitung dalam 10 isi bundel.
 
+/// Nilai dusun yang disimpan dari teks kolom (Batch 36):
+/// teks bebas apa adanya ("2", "SP 2", "Krajan"), kosong →
+/// null. Dusun tidak lagi dipaksa angka.
+String? dusunSimpan(String teks) {
+  final t = teks.trim();
+  return t.isEmpty ? null : t;
+}
+
+/// Tombol − / + pada kolom dusun teks (Batch 36): mengubah
+/// ANGKA DI AKHIR teks sebanyak [delta]. "SP 2" +1 → "SP 3";
+/// "Krajan" +1 → "Krajan 1"; kosong +1 → "1"; angka yang
+/// habis dikurangi hilang menyisakan labelnya ("Dusun 1" −1 →
+/// "Dusun"; "1" −1 → ""). Teks tanpa angka akhir tidak berubah
+/// oleh −.
+String ubahAngkaAkhir(String teks, int delta) {
+  final t = teks.trim();
+  final cocok = RegExp(r'^(.*?)\s*(\d+)$').firstMatch(t);
+  if (cocok == null) {
+    if (delta <= 0) return teks;
+    return t.isEmpty ? '1' : '$t 1';
+  }
+  final awal = cocok.group(1)!.trim();
+  final baru = int.parse(cocok.group(2)!) + delta;
+  if (baru <= 0) return awal;
+  return awal.isEmpty ? '$baru' : '$awal $baru';
+}
+
 /// "Rp 150.000" / "150000" / "150.000" -> 150000. Bukan angka -> 0.
 int parseNominal(String teks) {
   final angkaSaja = teks.replaceAll(RegExp(r'[^0-9]'), '');

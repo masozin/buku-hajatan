@@ -113,9 +113,12 @@ class BarisEkspor {
   final int nominal;
   final JenisAmplop jenis;
 
-  /// Kolom Batch 7: nomor dusun, catatan, timestamp pencatatan.
-  /// RT/RW menyusul di Batch 25.
-  final int? dusun;
+  /// Kolom Batch 7: dusun asal tamu, catatan, timestamp
+  /// pencatatan. RT/RW menyusul di Batch 25. Sejak Batch 36
+  /// dusun berupa TEKS bebas ("2", "SP 2", "Krajan") — data
+  /// lama yang tersimpan sebagai angka terbaca sebagai teks
+  /// angka yang sama.
+  final String? dusun;
   final int? rt;
   final int? rw;
   final String? keterangan;
@@ -168,17 +171,36 @@ List<BarisEkspor> buatBarisEkspor(List<BundelTerisi> data) {
   return baris;
 }
 
+/// Segmen dusun untuk alamat gabungan (Batch 36): dusun yang
+/// isinya HANYA angka tampil "Dusun 2" — persis seperti sebelum
+/// dusun menjadi teks, agar data lama tampil dan terkelompok
+/// sama. Dusun berteks ("SP 2", "RK 1", "Krajan") tampil apa
+/// adanya, tanpa awalan "Dusun". Null/kosong → null.
+/// True bila dusun isinya hanya angka ("2", "12").
+bool dusunNumerik(String? dusun) {
+  final t = dusun?.trim();
+  return t != null && t.isNotEmpty && RegExp(r'^\d+$').hasMatch(t);
+}
+
+String? segmenDusun(String? dusun) {
+  final t = dusun?.trim();
+  if (t == null || t.isEmpty) return null;
+  if (dusunNumerik(t)) return 'Dusun $t';
+  return t;
+}
+
 /// Alamat lengkap satu baris (Batch 25, permintaan Mark): gabungan
 /// alamat + dusun + RT/RW, hanya bagian yang terisi yang tampil,
 /// disambung koma. Contoh: "Krajan, Dusun 2, RT 03/RW 04".
 /// Dipakai kolom Alamat di semua ekspor (Excel, CSV, PDF).
-String gabungAlamat({String? alamat, int? dusun, int? rt, int? rw}) {
+String gabungAlamat({String? alamat, String? dusun, int? rt, int? rw}) {
   String dua(int n) => n.toString().padLeft(2, '0');
   final bagian = <String>[];
   if (alamat != null && alamat.trim().isNotEmpty) {
     bagian.add(alamat.trim());
   }
-  if (dusun != null) bagian.add('Dusun $dusun');
+  final segmen = segmenDusun(dusun);
+  if (segmen != null) bagian.add(segmen);
   if (rt != null && rw != null) {
     bagian.add('RT ${dua(rt)}/RW ${dua(rw)}');
   } else if (rt != null) {
@@ -329,7 +351,9 @@ List<AmplopDitemukan> cariDalamData(List<BundelTerisi> data, String kataKunci) {
       final cocokAlamat =
           a.alamat != null && normalisasiNama(a.alamat!).contains(kunci);
       final cocokDusun =
-          a.dusun != null && 'dusun ${a.dusun}'.contains(kunci);
+          a.dusun != null &&
+          (normalisasiNama(a.dusun!).contains(kunci) ||
+              'dusun ${a.dusun}'.contains(kunci));
       final cocokKeterangan = a.keterangan != null &&
           normalisasiNama(a.keterangan!).contains(kunci);
       if (cocokNama || cocokAlamat || cocokDusun || cocokKeterangan) {

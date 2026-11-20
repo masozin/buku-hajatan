@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
+import '../core/pencatatan.dart';
 import '../core/rekap.dart';
 import '../core/undangan.dart';
 import '../models/acara.dart';
@@ -598,7 +599,7 @@ class _DaftarUndanganState extends ConsumerState<_DaftarUndangan> {
       ({
         String nama,
         String? alamat,
-        int? dusun,
+        String? dusun,
         int? rt,
         int? rw,
         String? kategori,
@@ -624,7 +625,7 @@ class _DaftarUndanganState extends ConsumerState<_DaftarUndangan> {
       ({
         String nama,
         String? alamat,
-        int? dusun,
+        String? dusun,
         int? rt,
         int? rw,
         String? kategori,
@@ -1004,8 +1005,13 @@ class _DialogTamuFormState extends State<_DialogTamuForm> {
                 Expanded(
                   child: TextField(
                     controller: _dusun,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Dusun'),
+                    // Batch 36: dusun teks bebas (SP, RK, nama
+                    // kampung) — keyboard teks, bukan angka.
+                    keyboardType: TextInputType.text,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Dusun/Kampung',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1051,7 +1057,7 @@ class _DialogTamuFormState extends State<_DialogTamuForm> {
             Navigator.of(context).pop((
               nama: _nama.text,
               alamat: _alamat.text,
-              dusun: int.tryParse(_dusun.text.trim()),
+              dusun: dusunSimpan(_dusun.text),
               rt: int.tryParse(_rt.text.trim()),
               rw: int.tryParse(_rw.text.trim()),
               kategori: _kategori.text,

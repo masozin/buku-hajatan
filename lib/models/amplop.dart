@@ -88,8 +88,11 @@ class Amplop {
   final String nama;
   final String? alamat;
 
-  /// Nomor dusun asal tamu (Batch 7 — isinya angka, boleh kosong).
-  final int? dusun;
+  /// Dusun/kampung asal tamu (Batch 7; Batch 36 menjadi TEKS
+  /// bebas — "2", "SP 2", "RK 1", "Krajan" — karena sebutan
+  /// wilayah beragam). Dokumen lama yang menyimpan ANGKA tetap
+  /// terbaca sebagai teks angka yang sama; tidak ada migrasi.
+  final String? dusun;
 
   /// Nomor RT / RW asal tamu (Batch 25 — angka, boleh kosong).
   final int? rt;
@@ -154,7 +157,8 @@ class Amplop {
       urut: (data['urut'] as num?)?.toInt() ?? 0,
       nama: (data['nama'] as String?) ?? '',
       alamat: data['alamat'] as String?,
-      dusun: (data['dusun'] as num?)?.toInt(),
+      // Batch 36: toleran angka (data lama) maupun teks.
+      dusun: data['dusun']?.toString(),
       rt: (data['rt'] as num?)?.toInt(),
       rw: (data['rw'] as num?)?.toInt(),
       keterangan: data['keterangan'] as String?,

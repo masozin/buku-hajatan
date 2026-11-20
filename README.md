@@ -955,3 +955,13 @@ Yang diunggah ke GitHub Releases adalah APK UNIVERSAL hasil
   dibuat sekali di initState, stream isi dimemo per bundel
   tampil, dan indikator muat awal ditahan sampai persiapan
   selesai + snapshot pertama tiba: layar tampil sekali, utuh.
+- Batch 36 (permintaan Mark 2026-11-20): dusun/dukuh menjadi
+  TEKS bebas — sebutan wilayah beragam (Dusun, Kampung, RK, R,
+  SP) dan biasanya diikuti angka. Kolom dusun kini teks dengan
+  stepper − / + yang mengubah angka di AKHIR teks ("SP 2" →
+  "SP 3"); RT/RW tetap angka murni. TANPA migrasi database:
+  field Firestore yang sama kini ditoleransi membaca angka
+  (data lama) maupun teks; dokumen lama tidak disentuh dan
+  tampilannya persis sama ("Dusun 2"), hanya catatan yang
+  diedit/disimpan sejak versi ini menulis dusun sebagai teks.
+  Rules tidak berubah (tidak ada pemeriksaan tipe dusun).

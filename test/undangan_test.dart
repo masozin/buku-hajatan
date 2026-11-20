@@ -26,7 +26,7 @@ void main() {
   });
 
   group('parseCsvUndangan', () {
-    test('header dilewati; angka dusun/RT/RW dibaca', () {
+    test('header dilewati; dusun teks & angka RT/RW dibaca', () {
       final hasil = parseCsvUndangan(
         'Nama,Alamat,Dusun,RT,RW,Kategori\n'
         'Budi Santoso,Krajan,2,03,04,Keluarga\n'
@@ -35,7 +35,8 @@ void main() {
       expect(hasil.length, 2);
       expect(hasil[0].nama, 'Budi Santoso');
       expect(hasil[0].alamat, 'Krajan');
-      expect(hasil[0].dusun, 2);
+      // Batch 36: dusun kini teks — "2" tetap "2", "SP 2" utuh.
+      expect(hasil[0].dusun, '2');
       expect(hasil[0].rt, 3);
       expect(hasil[0].rw, 4);
       expect(hasil[0].kategori, 'Keluarga');
